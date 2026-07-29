@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ELONGON | Mine GRAM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div id="app-loader">
+    <div class="loader-container">
+        <div class="loader-card">
+            <img src="https://i.ibb.co/S4bGL6HP/file-00000000d87c81f4840d26bb2cef4d7d.png" class="loader-logo" alt="ELONGON">
+            <div class="loader-brand">
+                <h2>ELONGON</h2>
+                <p>Mine GRAM with Power</p>
+            </div>
+            <div class="loader-progress-container">
+                <div class="loader-progress-bar" id="loader-progress-bar"></div>
+            </div>
+            <div class="loader-stats">
+                <span id="loader-percent" class="loader-percent">0%</span>
+            </div>
+            <div class="loader-tip">
+                <i class="fas fa-lightbulb"></i>
+                <span>Earn more Power to increase mining rate</span>
+            </div>
+            <div class="loader-error" id="loader-error"></div>
+        </div>
+    </div>
+</div>
+
+<div id="app" style="display:none;">
+    <header class="app-header">
+        <div class="header-top">
+            <div class="user-info">
+                <div class="avatar-wrapper">
+                    <img id="user-photo" class="user-avatar" src="https://i.ibb.co/S4bGL6HP/file-00000000d87c81f4840d26bb2cef4d7d.png">
+                    <div class="avatar-badge level-badge" id="user-level-badge">1</div>
+                </div>
+                <div class="user-details">
+                    <span id="user-name" class="user-name">User</span>
+                    <div class="user-level"><i class="fas fa-crown"></i> <span id="user-level-text">Level</span> <span id="user-level">1</span></div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="header-balances" id="header-balances">
+                    <div class="header-balance" id="header-power"><i class="fas fa-bolt"></i> 0</div>
+                    <div class="header-balance" id="header-ton"><img src="https://i.ibb.co/bgX518dY/IMG-20260622-025621-420.png" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> 0</div>
+                </div>
+                <button id="lang-btn" class="header-icon-btn lang-btn"><span id="current-flag">🇬🇧</span></button>
+            </div>
+        </div>
+    </header>
+
+    <div id="lang-menu" class="lang-menu" style="display:none;">
+        <div class="lang-menu-content">
+            <button class="lang-option" data-lang="ru" data-flag="🇷🇺">Русский</button>
+            <button class="lang-option" data-lang="en" data-flag="🇬🇧">English</button>
+            <button class="lang-option" data-lang="tr" data-flag="🇹🇷">Türkçe</button>
+            <button class="lang-option" data-lang="ar" data-flag="🇸🇦">العربية</button>
+        </div>
+    </div>
+
+    <main id="main-content">
+        <div id="mining-page" class="page active"></div>
+        <div id="earn-page" class="page"></div>
+        <div id="team-page" class="page"></div>
+        <div id="withdraw-page" class="page"></div>
+    </main>
+
+    <nav class="bottom-nav">
+        <button class="nav-btn active" data-page="mining-page"><i class="fas fa-hammer"></i><span id="nav-mining">Mining</span></button>
+        <button class="nav-btn" data-page="earn-page"><i class="fas fa-gem"></i><span id="nav-earn">Earn</span></button>
+        <button class="nav-btn" data-page="team-page"><i class="fas fa-users"></i><span id="nav-team">Team</span></button>
+        <button class="nav-btn" data-page="withdraw-page"><i class="fas fa-wallet"></i><span id="nav-withdraw">Withdraw</span></button>
+    </nav>
+</div>
+
+<div id="claim-modal" class="modal" style="display:none;">
+    <div class="modal-content glass-modal">
+        <div class="modal-header">
+            <h3 id="claim-title"><i class="fas fa-gift"></i> Claim Mining Rewards</h3>
+            <button class="modal-close" id="close-claim-modal">&times;</button>
+        </div>
+        <div class="modal-body" style="text-align:center">
+            <div class="reward-amount" id="claim-reward-amount">0.00000000 GRAM</div>
+            <button id="confirm-claim-btn" class="confirm-ad-btn" style="width:100%">Claim Rewards</button>
+        </div>
+    </div>
+</div>
+
+<div id="promo-info-modal" class="modal" style="display:none;">
+    <div class="modal-content glass-modal modern-modal">
+        <div class="modal-header">
+            <h3><i class="fas fa-ticket-alt"></i> How to get Promo Codes?</h3>
+            <button class="modal-close" id="close-promo-info">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="promo-steps">
+                <h4>How it works</h4>
+                <div class="step-item">
+                    <div class="step-number">1</div>
+                    <div class="step-text">Subscribe to our news channel</div>
+                </div>
+                <div class="step-item">
+                    <div class="step-number">2</div>
+                    <div class="step-text">Follow new posts</div>
+                </div>
+                <div class="step-item">
+                    <div class="step-number">3</div>
+                    <div class="step-text">Enter promo codes and get rewards</div>
+                </div>
+            </div>
+            <button id="get-promo-codes-btn" class="support-btn modern-support-btn telegram-btn"><i class="fab fa-telegram"></i> Get Promo Codes</button>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
