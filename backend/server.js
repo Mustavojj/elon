@@ -1,19 +1,26 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ========== Supabase ==========
 const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_ANON_KEY
 );
 
+// ========== Middleware ==========
 app.use(cors());
 app.use(express.json());
 
+// ========== Serve Static Files ==========
+app.use(express.static(path.join(__dirname, '..')));
+
+// ========== APP_CONFIG ==========
 const APP_CONFIG = {
     APP_NAME: "ELONGON",
     MINIMUM_WITHDRAW: 0.03,
@@ -61,6 +68,7 @@ const APP_CONFIG = {
     }
 };
 
+// ========== Helper Functions ==========
 function generateDeviceId(userAgent, screen, timezone, platform, language) {
     const seed = `${userAgent}|${screen}|${timezone}|${platform}|${language}`;
     let hash = 0;
@@ -77,10 +85,14 @@ function extractChatId(url) {
     return match ? match[1] : null;
 }
 
+// ========== API Routes ==========
+
+// Config
 app.get('/api/config', (req, res) => {
     res.json({ config: APP_CONFIG });
 });
 
+// Device Check
 app.post('/api/device/check', async (req, res) => {
     const { userId, deviceInfo } = req.body;
     
@@ -115,6 +127,7 @@ app.post('/api/device/check', async (req, res) => {
     res.json({ deviceId, registered: false });
 });
 
+// User State
 app.get('/api/user/:userId/state', async (req, res) => {
     const { userId } = req.params;
     
@@ -133,6 +146,7 @@ app.get('/api/user/:userId/state', async (req, res) => {
     res.json({ state: data?.state || 'active' });
 });
 
+// Get User
 app.get('/api/user/:userId', async (req, res) => {
     const { userId } = req.params;
     
@@ -152,6 +166,7 @@ app.get('/api/user/:userId', async (req, res) => {
     res.json({ user: data });
 });
 
+// Create User
 app.post('/api/user', async (req, res) => {
     const { id, username, firstName, photoUrl, referredBy } = req.body;
     
@@ -186,7 +201,14 @@ app.post('/api/user', async (req, res) => {
             power_balance: 1000,
             ton_balance: 0,
             level: 1,
-            state: 'active'
+            state: 'active',
+            completed_tasks: [],
+            used_promocodes: [],
+            quests: {
+                welcomeBonusClaimed: false,
+                currentLevelQuestIndex: 0,
+                currentMiningQuestIndex: 0
+            }
         }])
         .select()
         .single();
@@ -203,6 +225,7 @@ app.post('/api/user', async (req, res) => {
     res.json({ user: data });
 });
 
+// Update User
 app.put('/api/user/:userId', async (req, res) => {
     const { userId } = req.params;
     const updates = req.body;
@@ -228,6 +251,7 @@ app.put('/api/user/:userId', async (req, res) => {
     res.json({ user: data });
 });
 
+// Mining Start
 app.post('/api/mining/start', async (req, res) => {
     const { userId } = req.body;
     
@@ -260,6 +284,7 @@ app.post('/api/mining/start', async (req, res) => {
     res.json({ success: true, data });
 });
 
+// Mining Stop
 app.post('/api/mining/stop', async (req, res) => {
     const { userId } = req.body;
     
@@ -293,6 +318,7 @@ app.post('/api/mining/stop', async (req, res) => {
     res.json({ success: true, reward, data });
 });
 
+// Mining Claim
 app.post('/api/mining/claim', async (req, res) => {
     const { userId } = req.body;
     
@@ -324,8 +350,9 @@ app.post('/api/mining/claim', async (req, res) => {
     res.json({ success: true, data, claimed: reward });
 });
 
+// Quest Claim
 app.post('/api/mining/quest/claim', async (req, res) => {
-    const { userId, questType, questIndex } = req.body;
+    const { userId, questType } = req.body;
     
     const { data: user, error: fetchError } = await supabase
         .from('users')
@@ -382,6 +409,7 @@ app.post('/api/mining/quest/claim', async (req, res) => {
     res.json({ success: true, data, reward });
 });
 
+// Complete Task
 app.post('/api/task/complete', async (req, res) => {
     const { userId, taskId, reward, url, verification, isMainTask, isSocialTask, taskData } = req.body;
     
@@ -439,10 +467,6 @@ app.post('/api/task/complete', async (req, res) => {
         completed_tasks: newCompletedTasks
     };
     
-    if (isMainTask) {
-        updates.completed_main_tasks = supabase.raw(`array_append(COALESCE(completed_main_tasks, '{}'), '${taskId}')`);
-    }
-    
     if (isSocialTask && taskData) {
         updates.total_tasks_completed = supabase.raw('total_tasks_completed + 1');
         const { data: taskOwner } = await supabase
@@ -470,6 +494,7 @@ app.post('/api/task/complete', async (req, res) => {
     res.json({ success: true, data });
 });
 
+// Promo Code Apply
 app.post('/api/promo/apply', async (req, res) => {
     const { userId, code } = req.body;
     
@@ -526,9 +551,10 @@ app.post('/api/promo/apply', async (req, res) => {
         .update({ total_uses: (promo.total_uses || 0) + 1 })
         .eq('code', code);
     
-    res.json({ success: true, reward: rewardAmount, type: promo.reward_type });
+    res.json({ success: true, reward: rewardAmount, type: promo.reward_type, data });
 });
 
+// Withdraw
 app.post('/api/withdraw', async (req, res) => {
     const { userId, amount, wallet } = req.body;
     
@@ -576,6 +602,7 @@ app.post('/api/withdraw', async (req, res) => {
     res.json({ success: true, newBalance });
 });
 
+// Get Withdrawals
 app.get('/api/withdrawals/:userId', async (req, res) => {
     const { userId } = req.params;
     
@@ -590,6 +617,7 @@ app.get('/api/withdrawals/:userId', async (req, res) => {
     res.json({ withdrawals: data || [] });
 });
 
+// Team Stats
 app.get('/api/team/:userId', async (req, res) => {
     const { userId } = req.params;
     
@@ -615,6 +643,7 @@ app.get('/api/team/:userId', async (req, res) => {
     });
 });
 
+// Referral Reward
 app.post('/api/referral/reward', async (req, res) => {
     const { referrerId, reward } = req.body;
     
@@ -641,78 +670,7 @@ app.post('/api/referral/reward', async (req, res) => {
     res.json({ success: true, data });
 });
 
-app.post('/api/task/social/add', async (req, res) => {
-    const { userId, taskId, name, url, verification, maxCompletions } = req.body;
-    
-    const { data: user, error: fetchError } = await supabase
-        .from('users')
-        .select('state')
-        .eq('id', userId)
-        .single();
-    
-    if (fetchError) return res.status(400).json({ error: fetchError.message });
-    if (user?.state === 'banned') return res.status(403).json({ error: 'User banned' });
-    
-    const { data, error } = await supabase
-        .from('social_tasks')
-        .insert([{
-            id: taskId,
-            owner_id: userId,
-            name: name,
-            url: url,
-            verification: verification === 'true',
-            max_completions: parseInt(maxCompletions),
-            total_completions: 0,
-            status: 'pending',
-            created_at: new Date().toISOString()
-        }])
-        .select()
-        .single();
-    
-    if (error) return res.status(400).json({ error: error.message });
-    res.json({ success: true, data });
-});
-
-app.get('/api/tasks/social/active', async (req, res) => {
-    const { data, error } = await supabase
-        .from('social_tasks')
-        .select('*')
-        .eq('status', 'active')
-        .lt('total_completions', supabase.raw('max_completions'))
-        .order('created_at', { ascending: false });
-    
-    if (error) return res.status(400).json({ error: error.message });
-    res.json({ tasks: data || [] });
-});
-
-app.get('/api/tasks/social/:userId', async (req, res) => {
-    const { userId } = req.params;
-    
-    const { data, error } = await supabase
-        .from('social_tasks')
-        .select('*')
-        .eq('owner_id', userId)
-        .order('created_at', { ascending: false });
-    
-    if (error) return res.status(400).json({ error: error.message });
-    res.json({ tasks: data || [] });
-});
-
-app.put('/api/task/social/:taskId', async (req, res) => {
-    const { taskId } = req.params;
-    const { status } = req.body;
-    
-    const { data, error } = await supabase
-        .from('social_tasks')
-        .update({ status: status })
-        .eq('id', taskId)
-        .select()
-        .single();
-    
-    if (error) return res.status(400).json({ error: error.message });
-    res.json({ success: true, data });
-});
-
+// Bot Check Channel
 app.post('/api/bot/check-channel', async (req, res) => {
     const { userId, channel } = req.body;
     const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -748,6 +706,7 @@ app.post('/api/bot/check-channel', async (req, res) => {
     }
 });
 
+// Bot Check Admin
 app.post('/api/bot/check-admin', async (req, res) => {
     const { channel } = req.body;
     const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -775,6 +734,7 @@ app.post('/api/bot/check-admin', async (req, res) => {
     }
 });
 
+// Bot Check Admin By URL
 app.post('/api/bot/check-admin-url', async (req, res) => {
     const { taskUrl } = req.body;
     const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -807,10 +767,18 @@ app.post('/api/bot/check-admin-url', async (req, res) => {
     }
 });
 
+// Health Check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: Date.now() });
 });
 
+// ========== Serve Index.html for all other routes ==========
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'index.html'));
+});
+
+// ========== Start Server ==========
 app.listen(PORT, () => {
     console.log(`🚀 ELONGON API running on port ${PORT}`);
+    console.log(`📁 Serving static files from: ${path.join(__dirname, '..')}`);
 });
