@@ -14,21 +14,41 @@
 
 <div id="app-loader">
     <div class="loader-container">
-        <div class="loader-card gold-loader">
+        <div class="loader-card pirate-loader">
+            <div class="loader-flag">🏴‍☠️</div>
+            <div class="loader-anchor">⚓</div>
             <img src="https://i.ibb.co/bgCmP0nc/file-000000000a7c81f4951741e43e428778.png" class="loader-logo" alt="PIRATE TEAM">
             <div class="loader-brand">
                 <h2>⚓ PIRATE TEAM</h2>
-                <p>Mine Pirate with Power</p>
+                <p class="loader-subtitle">Loading the treasure...</p>
             </div>
             <div class="loader-progress-container">
-                <div class="loader-progress-bar" id="loader-progress-bar"></div>
+                <div class="loader-progress-bar pirate-progress" id="loader-progress-bar"></div>
             </div>
             <div class="loader-stats">
                 <span id="loader-percent" class="loader-percent">0%</span>
             </div>
-            <div class="loader-tip gold-tip">
-                <i class="fas fa-skull"></i>
-                <span>Earn more Power to increase mining rate</span>
+            <div class="loader-tips" id="loader-tips">
+                <div class="loader-tip active">
+                    <i class="fas fa-skull"></i>
+                    <span>💀 Raise the anchor, captain!</span>
+                </div>
+                <div class="loader-tip">
+                    <i class="fas fa-ship"></i>
+                    <span>🌊 Set sail for treasure!</span>
+                </div>
+                <div class="loader-tip">
+                    <i class="fas fa-compass"></i>
+                    <span>🧭 Navigate the seven seas!</span>
+                </div>
+                <div class="loader-tip">
+                    <i class="fas fa-map"></i>
+                    <span>🗺️ X marks the spot!</span>
+                </div>
+                <div class="loader-tip">
+                    <i class="fas fa-crown"></i>
+                    <span>👑 Become the Pirate King!</span>
+                </div>
             </div>
             <div class="loader-error" id="loader-error"></div>
         </div>
@@ -36,7 +56,7 @@
 </div>
 
 <div id="app" style="display:none;">
-    <header class="app-header">
+    <header class="app-header pirate-header">
         <div class="header-top">
             <div class="user-info">
                 <div class="avatar-wrapper">
@@ -70,7 +90,7 @@
         <div id="wallet-page" class="page"></div>
     </main>
 
-    <nav class="bottom-nav gold-nav">
+    <nav class="bottom-nav pirate-nav">
         <button class="nav-btn active" data-page="mining-page"><i class="fas fa-hammer"></i><span id="nav-mining">Mining</span></button>
         <button class="nav-btn" data-page="earn-page"><i class="fas fa-gem"></i><span id="nav-earn">Earn</span></button>
         <button class="nav-btn" data-page="team-page"><i class="fas fa-users"></i><span id="nav-team">Team</span></button>
