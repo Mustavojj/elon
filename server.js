@@ -6,6 +6,22 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get('/', (req, res) => {
+    res.json({ 
+        status: 'ok', 
+        message: 'PIRATE TEAM API is running',
+        version: '1.0.0',
+        endpoints: {
+            config: '/api/config',
+            user: '/api/get-user',
+            tasks: '/api/tasks/:category',
+            mining: '/api/update-mining',
+            claim: '/api/claim-mining',
+            withdraw: '/api/withdraw'
+        }
+    });
+});
+
 const supabaseUrl = process.env.SUPABASE_URL || 'YOUR_SUPABASE_URL';
 const supabaseKey = process.env.SUPABASE_KEY || 'YOUR_SUPABASE_KEY';
 const supabase = createClient(supabaseUrl, supabaseKey);
