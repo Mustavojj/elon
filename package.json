@@ -2,7 +2,7 @@
   "name": "elongon-backend",
   "version": "1.0.0",
   "description": "ELONGON Backend API",
-  "main": "backend/server.js",
+  "main": "server.js",
   "scripts": {
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js"
