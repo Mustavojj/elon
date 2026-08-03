@@ -1,10 +1,16 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static(__dirname));
 
 const supabaseUrl = process.env.SUPABASE_URL || 'YOUR_SUPABASE_URL';
 const supabaseKey = process.env.SUPABASE_KEY || 'YOUR_SUPABASE_KEY';
@@ -283,6 +289,10 @@ async function sendTelegramNotification(userId, title, message) {
         console.error('sendTelegramNotification error:', error);
     }
 }
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', time: getCurrentTime() });
@@ -746,4 +756,5 @@ async function checkReferralReward(userId) {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`PIRATE TEAM server running on port ${PORT}`);
+    console.log(`http://localhost:${PORT}`);
 });
