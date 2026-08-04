@@ -1,7 +1,7 @@
 {
   "name": "pirate-team-server",
   "version": "1.0.0",
-  "description": "PIRATE TEAM - Telegram Mini App Backend",
+  "description": "🏴‍☠️ PIRATE TEAM - Telegram Mini App Backend",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -18,8 +18,5 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "keywords": ["telegram", "mini-app", "pirate", "mining", "gram"],
-  "author": "PIRATE TEAM",
-  "license": "MIT"
+  }
 }
