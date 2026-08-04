@@ -42,6 +42,8 @@ const APP_CONFIG = {
     MINING_ICON: "https://i.ibb.co/bgCmP0nc/file-000000000a7c81f4951741e43e428778.png",
     REFERRAL_LINK: "https://t.me/PirateTeamChannel",
     PIRATE_TO_GRAM_RATE: 10000,
+    PIRATE_TO_POWER_RATE: 1000,
+    POWER_BONUS_PERCENTAGE: 10,
     QUESTS: {
         welcome_bonus: { reward: 3000, type: "power" },
         level_quests: [
@@ -84,6 +86,18 @@ function extractChatIdFromUrl(url) {
     return match ? match[1] : null;
 }
 
+function logError(context, error, userId = null) {
+    const logEntry = {
+        timestamp: new Date().toISOString(),
+        context: context,
+        userId: userId || 'unknown',
+        message: error.message || error,
+        stack: error.stack || 'No stack trace'
+    };
+    console.error('🚨 ERROR LOG:', JSON.stringify(logEntry, null, 2));
+    return logEntry;
+}
+
 async function getUser(userId) {
     try {
         const { data, error } = await supabase
@@ -94,7 +108,7 @@ async function getUser(userId) {
         if (error && error.code !== 'PGRST116') throw error;
         return data;
     } catch (error) {
-        console.error('getUser error:', error);
+        logError('getUser', error, userId);
         return null;
     }
 }
@@ -109,7 +123,7 @@ async function createUser(userData) {
         if (error) throw error;
         return data;
     } catch (error) {
-        console.error('createUser error:', error);
+        logError('createUser', error, userData.id);
         throw error;
     }
 }
@@ -125,7 +139,7 @@ async function updateUser(userId, updates) {
         if (error) throw error;
         return data;
     } catch (error) {
-        console.error('updateUser error:', error);
+        logError('updateUser', error, userId);
         throw error;
     }
 }
@@ -140,7 +154,7 @@ async function getTasks(category) {
         if (error) throw error;
         return data || [];
     } catch (error) {
-        console.error('getTasks error:', error);
+        logError('getTasks', error);
         return [];
     }
 }
@@ -154,7 +168,7 @@ async function getCompletedTasks(userId) {
         if (error) throw error;
         return data ? data.map(t => t.task_id) : [];
     } catch (error) {
-        console.error('getCompletedTasks error:', error);
+        logError('getCompletedTasks', error, userId);
         return [];
     }
 }
@@ -170,7 +184,7 @@ async function getWithdrawals(userId) {
         if (error) throw error;
         return data || [];
     } catch (error) {
-        console.error('getWithdrawals error:', error);
+        logError('getWithdrawals', error, userId);
         return [];
     }
 }
@@ -184,7 +198,7 @@ async function getReferrals(userId) {
         if (error) throw error;
         return data || [];
     } catch (error) {
-        console.error('getReferrals error:', error);
+        logError('getReferrals', error, userId);
         return [];
     }
 }
@@ -199,7 +213,7 @@ async function getPromoCode(code) {
         if (error && error.code !== 'PGRST116') throw error;
         return data;
     } catch (error) {
-        console.error('getPromoCode error:', error);
+        logError('getPromoCode', error);
         return null;
     }
 }
@@ -214,7 +228,7 @@ async function usePromoCode(userId, code) {
         if (error) throw error;
         return data;
     } catch (error) {
-        console.error('usePromoCode error:', error);
+        logError('usePromoCode', error, userId);
         throw error;
     }
 }
@@ -230,7 +244,7 @@ async function incrementPromoUses(code) {
         if (error) throw error;
         return data;
     } catch (error) {
-        console.error('incrementPromoUses error:', error);
+        logError('incrementPromoUses', error);
         throw error;
     }
 }
@@ -245,7 +259,7 @@ async function createWithdrawal(withdrawalData) {
         if (error) throw error;
         return data;
     } catch (error) {
-        console.error('createWithdrawal error:', error);
+        logError('createWithdrawal', error, withdrawalData.user_id);
         throw error;
     }
 }
@@ -269,7 +283,7 @@ async function updateStats(statName, increment) {
                 .insert([{ key: statName, value: increment }]);
         }
     } catch (error) {
-        console.error('updateStats error:', error);
+        logError('updateStats', error);
     }
 }
 
@@ -286,7 +300,7 @@ async function sendTelegramNotification(userId, title, message) {
             })
         });
     } catch (error) {
-        console.error('sendTelegramNotification error:', error);
+        logError('sendTelegramNotification', error, userId);
     }
 }
 
@@ -379,7 +393,7 @@ app.post('/api/get-user', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('getUser error:', error);
+        logError('getUser endpoint', error, req.body.userId);
         res.status(500).json({ error: error.message });
     }
 });
@@ -409,7 +423,7 @@ app.post('/api/update-mining', async (req, res) => {
         res.json({ success: true, user });
 
     } catch (error) {
-        console.error('updateMining error:', error);
+        logError('updateMining', error, req.body.userId);
         res.status(500).json({ error: error.message });
     }
 });
@@ -447,7 +461,7 @@ app.post('/api/claim-mining', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('claimMining error:', error);
+        logError('claimMining', error, req.body.userId);
         res.status(500).json({ error: error.message });
     }
 });
@@ -503,7 +517,51 @@ app.post('/api/complete-task', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('completeTask error:', error);
+        logError('completeTask', error, req.body.userId);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/convert-pirate-to-power', async (req, res) => {
+    try {
+        const { userId, pirateAmount } = req.body;
+        if (!userId || !pirateAmount) {
+            return res.status(400).json({ error: 'userId and pirateAmount required' });
+        }
+
+        const user = await getUser(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const amount = parseFloat(pirateAmount);
+        if (isNaN(amount) || amount <= 0) {
+            return res.status(400).json({ error: 'Invalid amount' });
+        }
+
+        if (amount > (user.pirate_balance || 0)) {
+            return res.status(400).json({ error: 'Insufficient Pirate balance' });
+        }
+
+        const powerAmount = amount * APP_CONFIG.PIRATE_TO_POWER_RATE;
+        const bonusPower = powerAmount * (APP_CONFIG.POWER_BONUS_PERCENTAGE / 100);
+        const totalPower = powerAmount + bonusPower;
+
+        const updatedUser = await updateUser(userId, {
+            pirate_balance: (user.pirate_balance || 0) - amount,
+            power_balance: (user.power_balance || 0) + totalPower
+        });
+
+        res.json({
+            success: true,
+            user: updatedUser,
+            converted: powerAmount,
+            bonus: bonusPower,
+            total: totalPower
+        });
+
+    } catch (error) {
+        logError('convertPirateToPower', error, req.body.userId);
         res.status(500).json({ error: error.message });
     }
 });
@@ -566,7 +624,7 @@ app.post('/api/apply-promo', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('applyPromo error:', error);
+        logError('applyPromo', error, req.body.userId);
         res.status(500).json({ error: error.message });
     }
 });
@@ -577,7 +635,7 @@ app.get('/api/tasks/:category', async (req, res) => {
         const tasks = await getTasks(category);
         res.json({ tasks });
     } catch (error) {
-        console.error('getTasks error:', error);
+        logError('getTasks endpoint', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -614,7 +672,7 @@ app.post('/api/check-membership', async (req, res) => {
         res.json({ isMember });
 
     } catch (error) {
-        console.error('checkMembership error:', error);
+        logError('checkMembership', error, req.body.userId);
         res.status(500).json({ error: error.message });
     }
 });
@@ -685,7 +743,7 @@ app.post('/api/withdraw', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('withdraw error:', error);
+        logError('withdraw', error, req.body.userId);
         res.status(500).json({ error: error.message });
     }
 });
@@ -701,7 +759,7 @@ app.post('/api/get-withdrawals', async (req, res) => {
         res.json({ withdrawals });
 
     } catch (error) {
-        console.error('getWithdrawals error:', error);
+        logError('getWithdrawals endpoint', error, req.body.userId);
         res.status(500).json({ error: error.message });
     }
 });
@@ -717,7 +775,7 @@ app.post('/api/get-referrals', async (req, res) => {
         res.json({ referrals });
 
     } catch (error) {
-        console.error('getReferrals error:', error);
+        logError('getReferrals endpoint', error, req.body.userId);
         res.status(500).json({ error: error.message });
     }
 });
@@ -749,7 +807,7 @@ async function checkReferralReward(userId) {
             }
         }
     } catch (error) {
-        console.error('checkReferralReward error:', error);
+        logError('checkReferralReward', error, userId);
     }
 }
 
@@ -757,4 +815,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🏴‍☠️ PIRATE TEAM server running on port ${PORT}`);
     console.log(`⚓ http://localhost:${PORT}`);
+    console.log(`📋 Logs enabled - errors will be displayed in console`);
 });
