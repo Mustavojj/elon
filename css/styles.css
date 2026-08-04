@@ -50,7 +50,6 @@ body {
         linear-gradient(180deg, var(--ocean-dark) 0%, var(--ocean-mid) 100%);
 }
 
-/* ==================== LOADER ==================== */
 .loader-container {
     position: fixed;
     top: 0;
@@ -263,7 +262,6 @@ body {
     border: 1px solid rgba(231, 76, 60, 0.2);
 }
 
-/* ==================== APP ==================== */
 #app {
     max-width: 480px;
     margin: 0 auto;
@@ -273,7 +271,6 @@ body {
     min-height: 100vh;
 }
 
-/* ==================== HEADER ==================== */
 .app-header {
     padding: 16px 0 20px;
     background: linear-gradient(180deg, rgba(10,22,40,0.95) 0%, rgba(10,22,40,0) 100%);
@@ -454,7 +451,6 @@ body {
     color: var(--primary);
 }
 
-/* ==================== BOTTOM NAV ==================== */
 .bottom-nav {
     position: fixed;
     bottom: 20px;
@@ -487,10 +483,19 @@ body {
     padding: 8px 0;
     border-radius: 40px;
     transition: all 0.2s ease;
+    position: relative;
 }
 
 .nav-btn i {
-    font-size: 1.2rem;
+    font-size: 1.4rem;
+    transition: all 0.3s ease;
+}
+
+.nav-btn span {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
 }
 
 .nav-btn.active {
@@ -499,13 +504,22 @@ body {
     box-shadow: 0 0 25px var(--primary-glow);
 }
 
+.nav-btn.active i {
+    transform: scale(1.1);
+}
+
 .nav-btn:active {
     transform: scale(0.95);
+}
+
+.nav-btn:not(.active):hover i {
+    color: var(--primary-light);
 }
 
 .page {
     display: none;
     animation: fadeIn 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    padding-bottom: 10vh;
 }
 
 .page.active {
@@ -517,7 +531,6 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* ==================== GOLD CARDS ==================== */
 .gold-card {
     background: var(--bg-card);
     backdrop-filter: blur(12px);
@@ -602,7 +615,6 @@ body {
     color: var(--primary-light) !important;
 }
 
-/* ==================== MINING ==================== */
 .mining-card {
     background: var(--bg-card);
     backdrop-filter: blur(12px);
@@ -838,7 +850,138 @@ body {
     border-radius: 50%;
 }
 
-/* ==================== QUESTS ==================== */
+.boost-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin: 20px 0;
+    border: 1px solid rgba(255, 215, 0, 0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.boost-card h4 {
+    color: var(--primary-light);
+    font-size: 1rem;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.boost-card h4 i {
+    color: var(--primary);
+}
+
+.boost-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255, 215, 0, 0.05);
+}
+
+.boost-info .rate {
+    font-size: 0.8rem;
+    color: var(--primary-light);
+}
+
+.boost-info .bonus {
+    font-size: 0.7rem;
+    color: var(--success);
+    background: rgba(46, 204, 113, 0.12);
+    padding: 2px 10px;
+    border-radius: 20px;
+}
+
+.boost-input-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.boost-input-group .form-input {
+    flex: 1;
+}
+
+.boost-btn {
+    padding: 12px 24px;
+    background: var(--gold-gradient);
+    border: none;
+    border-radius: 40px;
+    color: #0a0a0f;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.boost-btn:active {
+    transform: scale(0.95);
+}
+
+.boost-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.level-progress-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin: 20px 0;
+    border: 1px solid rgba(255, 215, 0, 0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.level-progress-card .level-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.level-progress-card .level-header span {
+    font-size: 0.85rem;
+    color: var(--primary-light);
+}
+
+.level-progress-card .level-header .level-number {
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.level-progress-container {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 215, 0, 0.08);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 215, 0, 0.05);
+}
+
+.level-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--gold-gradient);
+    border-radius: 10px;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 15px var(--primary-glow);
+}
+
+.level-progress-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    color: #888;
+    margin-top: 6px;
+}
+
 .quests-section {
     margin-bottom: 20px;
 }
@@ -930,7 +1073,6 @@ body {
     cursor: not-allowed;
 }
 
-/* ==================== EARN TABS ==================== */
 .earn-tabs {
     display: flex;
     gap: 8px;
@@ -969,7 +1111,6 @@ body {
     display: block;
 }
 
-/* ==================== PROMO ==================== */
 .promo-card {
     background: var(--bg-card);
     backdrop-filter: blur(12px);
@@ -1016,7 +1157,6 @@ body {
     box-shadow: 0 0 15px var(--primary-glow);
 }
 
-/* ==================== TASKS ==================== */
 .section-header {
     background: var(--bg-card);
     backdrop-filter: blur(12px);
@@ -1132,7 +1272,6 @@ body {
     cursor: default;
 }
 
-/* ==================== TEAM ==================== */
 .team-stats-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -1174,7 +1313,6 @@ body {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
-/* ==================== WALLET ==================== */
 .wallet-card {
     background: var(--bg-card);
     backdrop-filter: blur(12px);
@@ -1322,7 +1460,6 @@ body {
     text-align: center;
 }
 
-/* ==================== HISTORY ==================== */
 .history-list {
     margin-bottom: 80px;
 }
@@ -1369,7 +1506,6 @@ body {
 .history-status.pending { background: rgba(243, 156, 18, 0.12); color: #f39c12; }
 .history-status.completed { background: rgba(46, 204, 113, 0.12); color: #2ecc71; }
 
-/* ==================== MODALS ==================== */
 .modal {
     position: fixed;
     top: 0;
@@ -1426,7 +1562,6 @@ body {
     padding: 20px;
 }
 
-/* ==================== PROMO STEPS ==================== */
 .promo-steps {
     background: rgba(255, 215, 0, 0.02);
     border-radius: var(--border-radius-sm);
@@ -1470,7 +1605,6 @@ body {
     color: #ddd;
 }
 
-/* ==================== NOTIFICATIONS ==================== */
 .notif {
     position: fixed;
     top: 80px;
@@ -1500,7 +1634,6 @@ body {
     to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-/* ==================== UTILITIES ==================== */
 .no-data {
     text-align: center;
     padding: 40px 20px;
@@ -1595,7 +1728,6 @@ body {
     box-shadow: 0 0 15px var(--primary-glow);
 }
 
-/* ==================== RESPONSIVE ==================== */
 @media (max-width: 400px) {
     .header-balance {
         font-size: 0.55rem;
@@ -1625,7 +1757,6 @@ body {
     }
 }
 
-/* ==================== SCROLLBAR ==================== */
 ::-webkit-scrollbar {
     width: 4px;
 }
