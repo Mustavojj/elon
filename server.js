@@ -8,6 +8,8 @@ import { createClient } from '@supabase/supabase-js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+process.stdout._handle.setBlocking(true);
+
 if (!fs.existsSync('./logs')) {
     fs.mkdirSync('./logs');
 }
@@ -31,9 +33,14 @@ function writeLog(level, context, message, data = null) {
     };
     
     const color = colors[level] || colors.info;
-    console.log(`${color}[${level.toUpperCase()}] ${timestamp} | ${context} | ${message}${colors.reset}`);
+    const logLine = `${color}[${level.toUpperCase()}] ${timestamp} | ${context} | ${message}${colors.reset}`;
+    console.log(logLine);
+    process.stdout.write(logLine + '\n');
+    
     if (data) {
-        console.log(JSON.stringify(data, null, 2));
+        const dataLine = JSON.stringify(data, null, 2);
+        console.log(dataLine);
+        process.stdout.write(dataLine + '\n');
     }
     
     try {
@@ -52,7 +59,9 @@ function logError(context, error, userId = null) {
         message: error.message || error,
         stack: error.stack || 'No stack trace'
     };
-    writeLog('error', context, error.message || error, errorData);
+    const errorMessage = error.message || error;
+    writeLog('error', context, errorMessage, errorData);
+    process.stderr.write(`[ERROR] ${context}: ${errorMessage}\n`);
     return errorData;
 }
 
@@ -914,6 +923,28 @@ app.post('/api/get-referrals', async (req, res) => {
     }
 });
 
+app.get('/api/test-error', (req, res) => {
+    try {
+        throw new Error('This is a test error from /api/test-error');
+    } catch (error) {
+        logError('test-error', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/test-db-error', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('nonexistent_table')
+            .select('*');
+        if (error) throw error;
+        res.json({ data });
+    } catch (error) {
+        logError('test-db-error', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 async function checkReferralReward(userId) {
     try {
         const user = await getUser(userId);
@@ -946,10 +977,37 @@ async function checkReferralReward(userId) {
     }
 }
 
+process.on('uncaughtException', (error) => {
+    console.error('UNCAUGHT EXCEPTION:', error);
+    process.stderr.write(`UNCAUGHT EXCEPTION: ${error.message}\n`);
+    logError('uncaughtException', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('UNHANDLED REJECTION:', reason);
+    process.stderr.write(`UNHANDLED REJECTION: ${reason}\n`);
+    logError('unhandledRejection', reason);
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+
+const server = app.listen(PORT, '0.0.0.0', () => {
     logSuccess('SERVER', `🏴‍☠️ PIRATE TEAM server running on port ${PORT}`);
     logInfo('SERVER', `⚓ http://localhost:${PORT}`);
     logInfo('SERVER', `📋 Logs enabled - errors will be displayed in console and saved to /logs`);
     logInfo('SERVER', `📁 Logs directory: ${path.join(__dirname, 'logs')}`);
+});
+
+server.on('error', (error) => {
+    logError('SERVER', error);
+    console.error('Server error:', error);
+    process.stderr.write(`SERVER ERROR: ${error.message}\n`);
+});
+
+process.on('SIGTERM', () => {
+    logInfo('SERVER', 'SIGTERM received, closing server...');
+    server.close(() => {
+        logInfo('SERVER', 'Server closed');
+        process.exit(0);
+    });
 });
