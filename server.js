@@ -9,6 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 process.stdout._handle.setBlocking(true);
+process.send && process.send('ready');
 
 if (!fs.existsSync('./logs')) {
     fs.mkdirSync('./logs');
@@ -374,42 +375,8 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.get('/api/logs', (req, res) => {
-    try {
-        const today = new Date().toISOString().split('T')[0];
-        const logFile = `./logs/app-${today}.log`;
-        if (fs.existsSync(logFile)) {
-            const content = fs.readFileSync(logFile, 'utf8');
-            res.json({ success: true, logs: content });
-        } else {
-            res.json({ success: true, logs: 'No logs for today' });
-        }
-    } catch (error) {
-        logError('GET /api/logs', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.post('/api/logs/clean', (req, res) => {
-    try {
-        const files = fs.readdirSync('./logs');
-        const now = Date.now();
-        const sevenDays = 7 * 24 * 60 * 60 * 1000;
-        let deleted = 0;
-        files.forEach(file => {
-            const filePath = `./logs/${file}`;
-            const stats = fs.statSync(filePath);
-            if (now - stats.mtimeMs > sevenDays) {
-                fs.unlinkSync(filePath);
-                deleted++;
-            }
-        });
-        logInfo('POST /api/logs/clean', `Deleted ${deleted} old log files`);
-        res.json({ success: true, deleted });
-    } catch (error) {
-        logError('POST /api/logs/clean', error);
-        res.status(500).json({ error: error.message });
-    }
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
 });
 
 app.get('/api/health', (req, res) => {
@@ -923,28 +890,6 @@ app.post('/api/get-referrals', async (req, res) => {
     }
 });
 
-app.get('/api/test-error', (req, res) => {
-    try {
-        throw new Error('This is a test error from /api/test-error');
-    } catch (error) {
-        logError('test-error', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.get('/api/test-db-error', async (req, res) => {
-    try {
-        const { data, error } = await supabase
-            .from('nonexistent_table')
-            .select('*');
-        if (error) throw error;
-        res.json({ data });
-    } catch (error) {
-        logError('test-db-error', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
 async function checkReferralReward(userId) {
     try {
         const user = await getUser(userId);
@@ -989,7 +934,7 @@ process.on('unhandledRejection', (reason, promise) => {
     logError('unhandledRejection', reason);
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 const server = app.listen(PORT, '0.0.0.0', () => {
     logSuccess('SERVER', `🏴‍☠️ PIRATE TEAM server running on port ${PORT}`);
