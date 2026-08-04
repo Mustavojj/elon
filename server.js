@@ -1,11 +1,75 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+if (!fs.existsSync('./logs')) {
+    fs.mkdirSync('./logs');
+}
+
+function writeLog(level, context, message, data = null) {
+    const timestamp = new Date().toISOString();
+    const logEntry = {
+        timestamp,
+        level,
+        context,
+        message,
+        data: data || null
+    };
+    
+    const colors = {
+        error: '\x1b[31m',
+        warn: '\x1b[33m',
+        info: '\x1b[36m',
+        success: '\x1b[32m',
+        reset: '\x1b[0m'
+    };
+    
+    const color = colors[level] || colors.info;
+    console.log(`${color}[${level.toUpperCase()}] ${timestamp} | ${context} | ${message}${colors.reset}`);
+    if (data) {
+        console.log(JSON.stringify(data, null, 2));
+    }
+    
+    try {
+        const logFile = `./logs/app-${new Date().toISOString().split('T')[0]}.log`;
+        const logText = `[${level.toUpperCase()}] ${timestamp} | ${context} | ${message}\n`;
+        fs.appendFileSync(logFile, logText);
+        if (data) {
+            fs.appendFileSync(logFile, JSON.stringify(data, null, 2) + '\n');
+        }
+    } catch (e) {}
+}
+
+function logError(context, error, userId = null) {
+    const errorData = {
+        userId: userId || 'unknown',
+        message: error.message || error,
+        stack: error.stack || 'No stack trace'
+    };
+    writeLog('error', context, error.message || error, errorData);
+    return errorData;
+}
+
+function logInfo(context, message, data = null) {
+    writeLog('info', context, message, data);
+}
+
+function logSuccess(context, message, data = null) {
+    writeLog('success', context, message, data);
+}
+
+function logWarn(context, message, data = null) {
+    writeLog('warn', context, message, data);
+}
+
+logInfo('SERVER', '🏴‍☠️ PIRATE TEAM Server Starting...');
+logInfo('SERVER', `Environment: ${process.env.NODE_ENV || 'development'}`);
 
 const app = express();
 app.use(cors());
@@ -86,18 +150,6 @@ function extractChatIdFromUrl(url) {
     return match ? match[1] : null;
 }
 
-function logError(context, error, userId = null) {
-    const logEntry = {
-        timestamp: new Date().toISOString(),
-        context: context,
-        userId: userId || 'unknown',
-        message: error.message || error,
-        stack: error.stack || 'No stack trace'
-    };
-    console.error('🚨 ERROR LOG:', JSON.stringify(logEntry, null, 2));
-    return logEntry;
-}
-
 async function getUser(userId) {
     try {
         const { data, error } = await supabase
@@ -121,6 +173,7 @@ async function createUser(userData) {
             .select()
             .single();
         if (error) throw error;
+        logSuccess('createUser', `User ${userData.id} created`, { userId: userData.id });
         return data;
     } catch (error) {
         logError('createUser', error, userData.id);
@@ -226,6 +279,7 @@ async function usePromoCode(userId, code) {
             .select()
             .single();
         if (error) throw error;
+        logSuccess('usePromoCode', `User ${userId} used promo ${code}`);
         return data;
     } catch (error) {
         logError('usePromoCode', error, userId);
@@ -257,6 +311,7 @@ async function createWithdrawal(withdrawalData) {
             .select()
             .single();
         if (error) throw error;
+        logSuccess('createWithdrawal', `Withdrawal created for user ${withdrawalData.user_id}`, { amount: withdrawalData.amount });
         return data;
     } catch (error) {
         logError('createWithdrawal', error, withdrawalData.user_id);
@@ -299,13 +354,53 @@ async function sendTelegramNotification(userId, title, message) {
                 parse_mode: 'Markdown'
             })
         });
+        logInfo('sendTelegramNotification', `Notification sent to ${userId}`);
     } catch (error) {
         logError('sendTelegramNotification', error, userId);
     }
 }
 
 app.get('/', (req, res) => {
+    logInfo('GET /', 'Serving index.html');
     res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/api/logs', (req, res) => {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const logFile = `./logs/app-${today}.log`;
+        if (fs.existsSync(logFile)) {
+            const content = fs.readFileSync(logFile, 'utf8');
+            res.json({ success: true, logs: content });
+        } else {
+            res.json({ success: true, logs: 'No logs for today' });
+        }
+    } catch (error) {
+        logError('GET /api/logs', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/logs/clean', (req, res) => {
+    try {
+        const files = fs.readdirSync('./logs');
+        const now = Date.now();
+        const sevenDays = 7 * 24 * 60 * 60 * 1000;
+        let deleted = 0;
+        files.forEach(file => {
+            const filePath = `./logs/${file}`;
+            const stats = fs.statSync(filePath);
+            if (now - stats.mtimeMs > sevenDays) {
+                fs.unlinkSync(filePath);
+                deleted++;
+            }
+        });
+        logInfo('POST /api/logs/clean', `Deleted ${deleted} old log files`);
+        res.json({ success: true, deleted });
+    } catch (error) {
+        logError('POST /api/logs/clean', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.get('/api/health', (req, res) => {
@@ -313,6 +408,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.get('/api/config', (req, res) => {
+    logInfo('GET /api/config', 'Config requested');
     res.json(APP_CONFIG);
 });
 
@@ -324,9 +420,11 @@ app.post('/api/get-user', async (req, res) => {
     try {
         const { userId } = req.body;
         if (!userId) {
+            logWarn('getUser endpoint', 'userId required');
             return res.status(400).json({ error: 'userId required' });
         }
 
+        logInfo('getUser endpoint', `Fetching user ${userId}`);
         let user = await getUser(userId);
         
         if (!user) {
@@ -385,6 +483,7 @@ app.post('/api/get-user', async (req, res) => {
             getReferrals(userId)
         ]);
 
+        logSuccess('getUser endpoint', `User ${userId} loaded successfully`);
         res.json({
             user,
             completedTasks,
@@ -402,6 +501,7 @@ app.post('/api/update-mining', async (req, res) => {
     try {
         const { userId, miningActive, miningStartTime, miningEndTime, pendingPirateReward } = req.body;
         if (!userId) {
+            logWarn('updateMining', 'userId required');
             return res.status(400).json({ error: 'userId required' });
         }
 
@@ -416,6 +516,7 @@ app.post('/api/update-mining', async (req, res) => {
             const user = await getUser(userId);
             if (user) {
                 updates.total_mining_starts = (user.total_mining_starts || 0) + 1;
+                logInfo('updateMining', `User ${userId} started mining (${user.total_mining_starts + 1} total)`);
             }
         }
 
@@ -432,15 +533,18 @@ app.post('/api/claim-mining', async (req, res) => {
     try {
         const { userId, pirateAmount } = req.body;
         if (!userId) {
+            logWarn('claimMining', 'userId required');
             return res.status(400).json({ error: 'userId required' });
         }
 
         const user = await getUser(userId);
         if (!user) {
+            logWarn('claimMining', `User ${userId} not found`);
             return res.status(404).json({ error: 'User not found' });
         }
 
         if (user.pending_pirate_reward <= 0) {
+            logWarn('claimMining', `No rewards to claim for user ${userId}`);
             return res.status(400).json({ error: 'No rewards to claim' });
         }
 
@@ -454,6 +558,7 @@ app.post('/api/claim-mining', async (req, res) => {
             mining_end_time: null
         });
 
+        logSuccess('claimMining', `User ${userId} claimed ${rewardAmount} Pirate`);
         res.json({ 
             success: true, 
             user: updatedUser,
@@ -470,16 +575,19 @@ app.post('/api/complete-task', async (req, res) => {
     try {
         const { userId, taskId, reward, isPartner, taskOwner } = req.body;
         if (!userId || !taskId) {
+            logWarn('completeTask', 'userId and taskId required');
             return res.status(400).json({ error: 'userId and taskId required' });
         }
 
         const user = await getUser(userId);
         if (!user) {
+            logWarn('completeTask', `User ${userId} not found`);
             return res.status(404).json({ error: 'User not found' });
         }
 
         const completedTasks = await getCompletedTasks(userId);
         if (completedTasks.includes(taskId)) {
+            logWarn('completeTask', `Task ${taskId} already completed by user ${userId}`);
             return res.status(400).json({ error: 'Task already completed' });
         }
 
@@ -508,6 +616,7 @@ app.post('/api/complete-task', async (req, res) => {
             total_tasks_completed: (user.total_tasks_completed || 0) + 1
         });
 
+        logSuccess('completeTask', `User ${userId} completed task ${taskId} (+${rewardAmount} Power)`);
         await checkReferralReward(userId);
 
         res.json({ 
@@ -526,20 +635,24 @@ app.post('/api/convert-pirate-to-power', async (req, res) => {
     try {
         const { userId, pirateAmount } = req.body;
         if (!userId || !pirateAmount) {
+            logWarn('convertPirateToPower', 'userId and pirateAmount required');
             return res.status(400).json({ error: 'userId and pirateAmount required' });
         }
 
         const user = await getUser(userId);
         if (!user) {
+            logWarn('convertPirateToPower', `User ${userId} not found`);
             return res.status(404).json({ error: 'User not found' });
         }
 
         const amount = parseFloat(pirateAmount);
         if (isNaN(amount) || amount <= 0) {
+            logWarn('convertPirateToPower', `Invalid amount: ${pirateAmount}`);
             return res.status(400).json({ error: 'Invalid amount' });
         }
 
         if (amount > (user.pirate_balance || 0)) {
+            logWarn('convertPirateToPower', `Insufficient balance for user ${userId}: ${amount} > ${user.pirate_balance}`);
             return res.status(400).json({ error: 'Insufficient Pirate balance' });
         }
 
@@ -552,6 +665,7 @@ app.post('/api/convert-pirate-to-power', async (req, res) => {
             power_balance: (user.power_balance || 0) + totalPower
         });
 
+        logSuccess('convertPirateToPower', `User ${userId} converted ${amount} Pirate to ${totalPower} Power (+${bonusPower} bonus)`);
         res.json({
             success: true,
             user: updatedUser,
@@ -570,11 +684,13 @@ app.post('/api/apply-promo', async (req, res) => {
     try {
         const { userId, code } = req.body;
         if (!userId || !code) {
+            logWarn('applyPromo', 'userId and code required');
             return res.status(400).json({ error: 'userId and code required' });
         }
 
         const user = await getUser(userId);
         if (!user) {
+            logWarn('applyPromo', `User ${userId} not found`);
             return res.status(404).json({ error: 'User not found' });
         }
 
@@ -586,15 +702,18 @@ app.post('/api/apply-promo', async (req, res) => {
             .single();
 
         if (usedData) {
+            logWarn('applyPromo', `Code ${code} already used by user ${userId}`);
             return res.status(400).json({ error: 'Code already used' });
         }
 
         const promo = await getPromoCode(code);
         if (!promo) {
+            logWarn('applyPromo', `Invalid promo code: ${code}`);
             return res.status(400).json({ error: 'Invalid promo code' });
         }
 
         if (promo.max_uses && (promo.total_uses || 0) >= promo.max_uses) {
+            logWarn('applyPromo', `Promo code ${code} expired (max uses reached)`);
             return res.status(400).json({ error: 'Promo code expired' });
         }
 
@@ -616,6 +735,7 @@ app.post('/api/apply-promo', async (req, res) => {
         }
 
         const updatedUser = await updateUser(userId, updates);
+        logSuccess('applyPromo', `User ${userId} applied promo ${code}: ${rewardMessage}`);
 
         res.json({
             success: true,
@@ -644,10 +764,12 @@ app.post('/api/check-membership', async (req, res) => {
     try {
         const { userId, channel } = req.body;
         if (!userId || !channel) {
+            logWarn('checkMembership', 'userId and channel required');
             return res.status(400).json({ error: 'userId and channel required' });
         }
 
         if (!BOT_TOKEN) {
+            logError('checkMembership', 'BOT_TOKEN not configured');
             return res.status(500).json({ error: 'BOT_TOKEN not configured' });
         }
 
@@ -661,6 +783,7 @@ app.post('/api/check-membership', async (req, res) => {
         const isBotAdmin = ['administrator', 'creator'].includes(botMember.result?.status);
 
         if (!isBotAdmin) {
+            logWarn('checkMembership', `Bot is not admin in channel ${channel}`);
             return res.json({ isMember: false, error: 'bot_not_admin' });
         }
 
@@ -669,6 +792,7 @@ app.post('/api/check-membership', async (req, res) => {
         ).then(r => r.json());
 
         const isMember = ['member', 'administrator', 'creator'].includes(response.result?.status);
+        logInfo('checkMembership', `User ${userId} membership in ${channel}: ${isMember}`);
         res.json({ isMember });
 
     } catch (error) {
@@ -681,31 +805,37 @@ app.post('/api/withdraw', async (req, res) => {
     try {
         const { userId, pirateAmount, wallet } = req.body;
         if (!userId || !pirateAmount || !wallet) {
+            logWarn('withdraw', 'userId, pirateAmount, and wallet required');
             return res.status(400).json({ error: 'userId, pirateAmount, and wallet required' });
         }
 
         if (wallet.length < 20) {
+            logWarn('withdraw', `Invalid wallet address: ${wallet}`);
             return res.status(400).json({ error: 'Invalid wallet address' });
         }
 
         const user = await getUser(userId);
         if (!user) {
+            logWarn('withdraw', `User ${userId} not found`);
             return res.status(404).json({ error: 'User not found' });
         }
 
         const amount = parseFloat(pirateAmount);
         if (isNaN(amount) || amount <= 0) {
+            logWarn('withdraw', `Invalid amount: ${pirateAmount}`);
             return res.status(400).json({ error: 'Invalid amount' });
         }
 
         const gramAmount = amount / APP_CONFIG.PIRATE_TO_GRAM_RATE;
         if (gramAmount < APP_CONFIG.MINIMUM_WITHDRAW) {
+            logWarn('withdraw', `Amount below minimum: ${gramAmount} GRAM`);
             return res.status(400).json({ 
                 error: `Minimum withdrawal: ${APP_CONFIG.MINIMUM_WITHDRAW} GRAM (${APP_CONFIG.MINIMUM_WITHDRAW * APP_CONFIG.PIRATE_TO_GRAM_RATE} Pirate)`
             });
         }
 
         if (amount > (user.pirate_balance || 0)) {
+            logWarn('withdraw', `Insufficient balance: ${amount} > ${user.pirate_balance}`);
             return res.status(400).json({ error: 'Insufficient Pirate balance' });
         }
 
@@ -713,6 +843,7 @@ app.post('/api/withdraw', async (req, res) => {
         const totalGram = gramAmount - (APP_CONFIG.WITHDRAWAL_FEES || 0);
 
         if (totalGram <= 0) {
+            logWarn('withdraw', `Amount too low after fees: ${totalGram}`);
             return res.status(400).json({ error: 'Amount too low after fees' });
         }
 
@@ -735,6 +866,7 @@ app.post('/api/withdraw', async (req, res) => {
         await updateStats('total_withdrawals', 1);
         await updateStats('total_gram_paid', totalGram);
 
+        logSuccess('withdraw', `User ${userId} withdrew ${amount} Pirate → ${totalGram} GRAM`);
         res.json({
             success: true,
             user: updatedUser,
@@ -752,6 +884,7 @@ app.post('/api/get-withdrawals', async (req, res) => {
     try {
         const { userId } = req.body;
         if (!userId) {
+            logWarn('getWithdrawals', 'userId required');
             return res.status(400).json({ error: 'userId required' });
         }
 
@@ -768,6 +901,7 @@ app.post('/api/get-referrals', async (req, res) => {
     try {
         const { userId } = req.body;
         if (!userId) {
+            logWarn('getReferrals', 'userId required');
             return res.status(400).json({ error: 'userId required' });
         }
 
@@ -804,6 +938,7 @@ async function checkReferralReward(userId) {
                     'Referral Bonus',
                     `You received ${rewardPower} Power! Your referral ${user.first_name} completed the requirements.`
                 );
+                logSuccess('checkReferralReward', `Referral reward given: ${userId} → ${user.referred_by}`);
             }
         }
     } catch (error) {
@@ -813,7 +948,8 @@ async function checkReferralReward(userId) {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🏴‍☠️ PIRATE TEAM server running on port ${PORT}`);
-    console.log(`⚓ http://localhost:${PORT}`);
-    console.log(`📋 Logs enabled - errors will be displayed in console`);
+    logSuccess('SERVER', `🏴‍☠️ PIRATE TEAM server running on port ${PORT}`);
+    logInfo('SERVER', `⚓ http://localhost:${PORT}`);
+    logInfo('SERVER', `📋 Logs enabled - errors will be displayed in console and saved to /logs`);
+    logInfo('SERVER', `📁 Logs directory: ${path.join(__dirname, 'logs')}`);
 });
