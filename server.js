@@ -9,7 +9,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 process.stdout._handle.setBlocking(true);
-process.send && process.send('ready');
 
 if (!fs.existsSync('./logs')) {
     fs.mkdirSync('./logs');
@@ -81,16 +80,72 @@ function logWarn(context, message, data = null) {
 logInfo('SERVER', '🏴‍☠️ PIRATE TEAM Server Starting...');
 logInfo('SERVER', `Environment: ${process.env.NODE_ENV || 'development'}`);
 
+// ==================== CHECK ENVIRONMENT VARIABLES ====================
+logInfo('ENV', 'Checking environment variables...');
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const botToken = process.env.BOT_TOKEN;
+
+logInfo('ENV', 'SUPABASE_URL: ' + (supabaseUrl ? supabaseUrl : '❌ MISSING'));
+logInfo('ENV', 'SUPABASE_KEY: ' + (supabaseKey ? '✅ SET (length: ' + supabaseKey.length + ')' : '❌ MISSING'));
+logInfo('ENV', 'BOT_TOKEN: ' + (botToken ? '✅ SET' : '❌ MISSING'));
+
+if (!supabaseUrl) {
+    logError('ENV', 'SUPABASE_URL is missing! Please add it to Railway variables.');
+}
+if (!supabaseKey) {
+    logError('ENV', 'SUPABASE_KEY is missing! Please add it to Railway variables.');
+}
+if (!botToken) {
+    logWarn('ENV', 'BOT_TOKEN is missing! Telegram notifications will not work.');
+}
+
+// ==================== TEST SUPABASE CONNECTION ====================
+let supabase = null;
+let supabaseConnected = false;
+
+async function testSupabaseConnection() {
+    try {
+        if (!supabaseUrl || !supabaseKey) {
+            logError('SUPABASE', 'Cannot connect: Missing URL or KEY');
+            return false;
+        }
+        
+        logInfo('SUPABASE', 'Attempting to connect...');
+        logInfo('SUPABASE', 'URL: ' + supabaseUrl);
+        logInfo('SUPABASE', 'KEY: ' + supabaseKey.substring(0, 10) + '...');
+        
+        supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // Test query
+        const { data, error } = await supabase
+            .from('users')
+            .select('id')
+            .limit(1);
+        
+        if (error) {
+            logError('SUPABASE', 'Connection test failed: ' + error.message);
+            logError('SUPABASE', 'Error details:', error);
+            return false;
+        }
+        
+        logSuccess('SUPABASE', '✅ Connected successfully!');
+        logInfo('SUPABASE', 'Database response:', data);
+        supabaseConnected = true;
+        return true;
+        
+    } catch (error) {
+        logError('SUPABASE', 'Connection test crashed: ' + error.message);
+        logError('SUPABASE', 'Stack:', error.stack);
+        return false;
+    }
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
-
-const supabaseUrl = process.env.SUPABASE_URL || 'YOUR_SUPABASE_URL';
-const supabaseKey = process.env.SUPABASE_KEY || 'YOUR_SUPABASE_KEY';
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-const BOT_TOKEN = process.env.BOT_TOKEN;
 
 const APP_CONFIG = {
     APP_NAME: "PIRATE TEAM",
@@ -160,14 +215,27 @@ function extractChatIdFromUrl(url) {
     return match ? match[1] : null;
 }
 
+// ==================== WRAPPER FUNCTIONS WITH LOGGING ====================
 async function getUser(userId) {
+    if (!supabaseConnected) {
+        logError('getUser', 'Supabase not connected', userId);
+        return null;
+    }
     try {
+        logInfo('getUser', `Fetching user ${userId}`);
         const { data, error } = await supabase
             .from('users')
             .select('*')
             .eq('id', userId)
             .single();
-        if (error && error.code !== 'PGRST116') throw error;
+        if (error) {
+            if (error.code === 'PGRST116') {
+                logInfo('getUser', `User ${userId} not found, will create`);
+                return null;
+            }
+            throw error;
+        }
+        logSuccess('getUser', `User ${userId} found`);
         return data;
     } catch (error) {
         logError('getUser', error, userId);
@@ -176,14 +244,19 @@ async function getUser(userId) {
 }
 
 async function createUser(userData) {
+    if (!supabaseConnected) {
+        logError('createUser', 'Supabase not connected', userData.id);
+        throw new Error('Supabase not connected');
+    }
     try {
+        logInfo('createUser', `Creating user ${userData.id}`);
         const { data, error } = await supabase
             .from('users')
             .insert([userData])
             .select()
             .single();
         if (error) throw error;
-        logSuccess('createUser', `User ${userData.id} created`, { userId: userData.id });
+        logSuccess('createUser', `User ${userData.id} created successfully`);
         return data;
     } catch (error) {
         logError('createUser', error, userData.id);
@@ -192,7 +265,12 @@ async function createUser(userData) {
 }
 
 async function updateUser(userId, updates) {
+    if (!supabaseConnected) {
+        logError('updateUser', 'Supabase not connected', userId);
+        throw new Error('Supabase not connected');
+    }
     try {
+        logInfo('updateUser', `Updating user ${userId}`);
         const { data, error } = await supabase
             .from('users')
             .update(updates)
@@ -200,6 +278,7 @@ async function updateUser(userId, updates) {
             .select()
             .single();
         if (error) throw error;
+        logSuccess('updateUser', `User ${userId} updated successfully`);
         return data;
     } catch (error) {
         logError('updateUser', error, userId);
@@ -208,6 +287,10 @@ async function updateUser(userId, updates) {
 }
 
 async function getTasks(category) {
+    if (!supabaseConnected) {
+        logError('getTasks', 'Supabase not connected');
+        return [];
+    }
     try {
         let query = supabase.from('tasks').select('*').eq('status', 'active');
         if (category) {
@@ -223,6 +306,10 @@ async function getTasks(category) {
 }
 
 async function getCompletedTasks(userId) {
+    if (!supabaseConnected) {
+        logError('getCompletedTasks', 'Supabase not connected', userId);
+        return [];
+    }
     try {
         const { data, error } = await supabase
             .from('user_completed_tasks')
@@ -237,6 +324,10 @@ async function getCompletedTasks(userId) {
 }
 
 async function getWithdrawals(userId) {
+    if (!supabaseConnected) {
+        logError('getWithdrawals', 'Supabase not connected', userId);
+        return [];
+    }
     try {
         const { data, error } = await supabase
             .from('withdrawals')
@@ -253,6 +344,10 @@ async function getWithdrawals(userId) {
 }
 
 async function getReferrals(userId) {
+    if (!supabaseConnected) {
+        logError('getReferrals', 'Supabase not connected', userId);
+        return [];
+    }
     try {
         const { data, error } = await supabase
             .from('users')
@@ -267,6 +362,10 @@ async function getReferrals(userId) {
 }
 
 async function getPromoCode(code) {
+    if (!supabaseConnected) {
+        logError('getPromoCode', 'Supabase not connected');
+        return null;
+    }
     try {
         const { data, error } = await supabase
             .from('promo_codes')
@@ -282,6 +381,10 @@ async function getPromoCode(code) {
 }
 
 async function usePromoCode(userId, code) {
+    if (!supabaseConnected) {
+        logError('usePromoCode', 'Supabase not connected', userId);
+        throw new Error('Supabase not connected');
+    }
     try {
         const { data, error } = await supabase
             .from('used_promo_codes')
@@ -298,6 +401,10 @@ async function usePromoCode(userId, code) {
 }
 
 async function incrementPromoUses(code) {
+    if (!supabaseConnected) {
+        logError('incrementPromoUses', 'Supabase not connected');
+        throw new Error('Supabase not connected');
+    }
     try {
         const { data, error } = await supabase
             .from('promo_codes')
@@ -314,6 +421,10 @@ async function incrementPromoUses(code) {
 }
 
 async function createWithdrawal(withdrawalData) {
+    if (!supabaseConnected) {
+        logError('createWithdrawal', 'Supabase not connected', withdrawalData.user_id);
+        throw new Error('Supabase not connected');
+    }
     try {
         const { data, error } = await supabase
             .from('withdrawals')
@@ -330,6 +441,10 @@ async function createWithdrawal(withdrawalData) {
 }
 
 async function updateStats(statName, increment) {
+    if (!supabaseConnected) {
+        logError('updateStats', 'Supabase not connected');
+        return;
+    }
     try {
         const { data } = await supabase
             .from('stats')
@@ -353,9 +468,12 @@ async function updateStats(statName, increment) {
 }
 
 async function sendTelegramNotification(userId, title, message) {
-    if (!BOT_TOKEN) return;
+    if (!botToken) {
+        logWarn('sendTelegramNotification', 'BOT_TOKEN not configured');
+        return;
+    }
     try {
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -370,6 +488,7 @@ async function sendTelegramNotification(userId, title, message) {
     }
 }
 
+// ==================== ROUTES ====================
 app.get('/', (req, res) => {
     logInfo('GET /', 'Serving index.html');
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -380,7 +499,11 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', time: getCurrentTime() });
+    res.json({ 
+        status: 'ok', 
+        time: getCurrentTime(),
+        supabase: supabaseConnected ? 'connected' : 'disconnected'
+    });
 });
 
 app.get('/api/config', (req, res) => {
@@ -744,16 +867,16 @@ app.post('/api/check-membership', async (req, res) => {
             return res.status(400).json({ error: 'userId and channel required' });
         }
 
-        if (!BOT_TOKEN) {
+        if (!botToken) {
             logError('checkMembership', 'BOT_TOKEN not configured');
             return res.status(500).json({ error: 'BOT_TOKEN not configured' });
         }
 
-        const botInfo = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getMe`).then(r => r.json());
+        const botInfo = await fetch(`https://api.telegram.org/bot${botToken}/getMe`).then(r => r.json());
         const botId = botInfo.result.id;
 
         const botMember = await fetch(
-            `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=@${channel}&user_id=${botId}`
+            `https://api.telegram.org/bot${botToken}/getChatMember?chat_id=@${channel}&user_id=${botId}`
         ).then(r => r.json());
 
         const isBotAdmin = ['administrator', 'creator'].includes(botMember.result?.status);
@@ -764,7 +887,7 @@ app.post('/api/check-membership', async (req, res) => {
         }
 
         const response = await fetch(
-            `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=@${channel}&user_id=${userId}`
+            `https://api.telegram.org/bot${botToken}/getChatMember?chat_id=@${channel}&user_id=${userId}`
         ).then(r => r.json());
 
         const isMember = ['member', 'administrator', 'creator'].includes(response.result?.status);
@@ -890,6 +1013,30 @@ app.post('/api/get-referrals', async (req, res) => {
     }
 });
 
+// ==================== TEST ENDPOINTS ====================
+app.get('/api/test-env', (req, res) => {
+    res.json({
+        supabaseUrl: supabaseUrl ? '✅ Set' : '❌ Missing',
+        supabaseKey: supabaseKey ? '✅ Set' : '❌ Missing',
+        botToken: botToken ? '✅ Set' : '❌ Missing',
+        supabaseConnected: supabaseConnected
+    });
+});
+
+app.get('/api/test-supabase', async (req, res) => {
+    try {
+        const result = await testSupabaseConnection();
+        res.json({ 
+            success: result,
+            supabaseConnected: supabaseConnected,
+            message: result ? 'Connected successfully' : 'Connection failed'
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ==================== REFERRAL REWARD ====================
 async function checkReferralReward(userId) {
     try {
         const user = await getUser(userId);
@@ -922,6 +1069,7 @@ async function checkReferralReward(userId) {
     }
 }
 
+// ==================== PROCESS HANDLERS ====================
 process.on('uncaughtException', (error) => {
     console.error('UNCAUGHT EXCEPTION:', error);
     process.stderr.write(`UNCAUGHT EXCEPTION: ${error.message}\n`);
@@ -934,13 +1082,18 @@ process.on('unhandledRejection', (reason, promise) => {
     logError('unhandledRejection', reason);
 });
 
+// ==================== START SERVER ====================
 const PORT = process.env.PORT || 8080;
+
+// Test Supabase connection before starting
+await testSupabaseConnection();
 
 const server = app.listen(PORT, '0.0.0.0', () => {
     logSuccess('SERVER', `🏴‍☠️ PIRATE TEAM server running on port ${PORT}`);
     logInfo('SERVER', `⚓ http://localhost:${PORT}`);
     logInfo('SERVER', `📋 Logs enabled - errors will be displayed in console and saved to /logs`);
     logInfo('SERVER', `📁 Logs directory: ${path.join(__dirname, 'logs')}`);
+    logInfo('SERVER', `🔗 Supabase: ${supabaseConnected ? '✅ Connected' : '❌ Disconnected'}`);
 });
 
 server.on('error', (error) => {
