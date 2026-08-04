@@ -207,7 +207,7 @@ class App {
         this.tgUser = null;
         this.isInitialized = false;
         this.deviceId = null;
-        this.serverUrl = 'https://pirate-team-server.railway.app';
+        this.serverUrl = 'https://elon-production-9fd2.up.railway.app';
         
         this.powerBalance = 0;
         this.pirateBalance = 0;
