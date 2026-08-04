@@ -33,7 +33,7 @@ const translations = {
         invite_earn: "Приглашай и зарабатывай", verified_member: "Подтвержденный участник", team_earnings: "Доход команды",
         more_active_members: "Чем больше активных участников, тем больше прибыль", copy_link: "Копировать ссылку", get_referrals: "Пригласить",
         total_members: "Всего участников", active_members: "Активных участников", total_earnings: "Всего заработано",
-        tasks: "Задания", quests: "Квесты", pirate_balance: "Пират", gram_balance: "GRAM",
+        tasks: "Задания", quests: "Квесты", pirate_balance: "Пират",
         exchange_rate: "Курс обмена", pirate_to_gram: "10,000 Pirate = 1 GRAM",
         convert_withdraw: "Конвертировать и вывести", withdraw_pirate: "Вывести Пиратов",
         enter_pirate_amount: "Введите количество Пиратов", min_withdraw_pirate: "Мин. вывод",
@@ -41,7 +41,13 @@ const translations = {
         target_referrals: "Пригласите {target} друзей", progress: "Прогресс",
         main_tasks: "Основные задания", partner_tasks: "Партнерские задания",
         tasks_completed: "Заданий выполнено", current_level: "Текущий уровень",
-        main_task_complete: "Выполнить задание", partner_task_complete: "Выполнить задание"
+        main_task_complete: "Выполнить задание", partner_task_complete: "Выполнить задание",
+        boost_power: "Увеличить энергию", boost_desc: "Конвертируйте Пиратов в Энергию с бонусом +10%",
+        pirate_to_power: "1,000 Pirate = 1,100 Power",
+        convert: "Конвертировать", enter_pirate: "Введите количество Пиратов",
+        level_progress: "Прогресс уровня", next_level: "Следующий уровень",
+        quest_completed: "Квест выполнен!",
+        current_power: "Текущая энергия", next_level_power: "До следующего уровня"
     },
     en: {
         level: "Level", mining_rig: "Pirate Rig Lv.", hourly: "5 Hours", daily: "Daily", monthly: "Monthly",
@@ -77,7 +83,7 @@ const translations = {
         invite_earn: "Invite & Earn", verified_member: "Verified Member", team_earnings: "Team Earnings",
         more_active_members: "More active members, more profits", copy_link: "Copy Link", get_referrals: "Get Referrals",
         total_members: "Total Members", active_members: "Active Members", total_earnings: "Total Earnings",
-        tasks: "Tasks", quests: "Quests", pirate_balance: "Pirate", gram_balance: "GRAM",
+        tasks: "Tasks", quests: "Quests", pirate_balance: "Pirate",
         exchange_rate: "Exchange Rate", pirate_to_gram: "10,000 Pirate = 1 GRAM",
         convert_withdraw: "Convert & Withdraw", withdraw_pirate: "Withdraw Pirates",
         enter_pirate_amount: "Enter Pirate amount", min_withdraw_pirate: "Min. withdrawal",
@@ -85,7 +91,13 @@ const translations = {
         target_referrals: "Invite {target} friends", progress: "Progress",
         main_tasks: "Main Tasks", partner_tasks: "Partner Tasks",
         tasks_completed: "Tasks completed", current_level: "Current Level",
-        main_task_complete: "Complete Task", partner_task_complete: "Complete Task"
+        main_task_complete: "Complete Task", partner_task_complete: "Complete Task",
+        boost_power: "Boost Your Power", boost_desc: "Convert Pirates to Power with +10% bonus",
+        pirate_to_power: "1,000 Pirate = 1,100 Power",
+        convert: "Convert", enter_pirate: "Enter Pirate amount",
+        level_progress: "Level Progress", next_level: "Next Level",
+        quest_completed: "Quest Completed!",
+        current_power: "Current Power", next_level_power: "Next Level Power"
     },
     tr: {
         level: "Seviye", mining_rig: "Korsan Madenci Seviye", hourly: "5 saat", daily: "Günlük", monthly: "Aylık",
@@ -121,7 +133,7 @@ const translations = {
         invite_earn: "Davet Et ve Kazan", verified_member: "Doğrulanmış Üye", team_earnings: "Takım Kazancı",
         more_active_members: "Daha aktif üye, daha fazla kazanç", copy_link: "Bağlantıyı Kopyala", get_referrals: "Davet Al",
         total_members: "Toplam Üye", active_members: "Aktif Üyeler", total_earnings: "Toplam Kazanç",
-        tasks: "Görevler", quests: "Görevler", pirate_balance: "Korsan", gram_balance: "GRAM",
+        tasks: "Görevler", quests: "Görevler", pirate_balance: "Korsan",
         exchange_rate: "Döviz Kuru", pirate_to_gram: "10,000 Pirate = 1 GRAM",
         convert_withdraw: "Dönüştür ve Çek", withdraw_pirate: "Korsan Çek",
         enter_pirate_amount: "Korsan miktarını girin", min_withdraw_pirate: "Min. çekim",
@@ -129,7 +141,13 @@ const translations = {
         target_referrals: "{target} arkadaş davet et", progress: "İlerleme",
         main_tasks: "Ana Görevler", partner_tasks: "Partner Görevler",
         tasks_completed: "Tamamlanan görevler", current_level: "Mevcut seviye",
-        main_task_complete: "Görevi Tamamla", partner_task_complete: "Görevi Tamamla"
+        main_task_complete: "Görevi Tamamla", partner_task_complete: "Görevi Tamamla",
+        boost_power: "Gücünü Artır", boost_desc: "Korsanları +10% bonus ile Güce Dönüştür",
+        pirate_to_power: "1,000 Pirate = 1,100 Power",
+        convert: "Dönüştür", enter_pirate: "Korsan miktarını girin",
+        level_progress: "Seviye İlerlemesi", next_level: "Sonraki Seviye",
+        quest_completed: "Görev Tamamlandı!",
+        current_power: "Mevcut Güç", next_level_power: "Sonraki Seviye Gücü"
     },
     ar: {
         level: "مستوى", mining_rig: "جهاز القراصنة مستوى", hourly: "كل 5 ساعات", daily: "يومي", monthly: "شهري",
@@ -165,7 +183,7 @@ const translations = {
         invite_earn: "ادعو واربح", verified_member: "عضو مؤكد", team_earnings: "أرباح الفريق",
         more_active_members: "كلما زاد الأعضاء النشطاء، زادت الأرباح", copy_link: "نسخ الرابط", get_referrals: "احصل على الإحالات",
         total_members: "إجمالي الأعضاء", active_members: "الأعضاء النشطاء", total_earnings: "إجمالي الأرباح",
-        tasks: "المهام", quests: "المهام", pirate_balance: "قرصان", gram_balance: "غرام",
+        tasks: "المهام", quests: "المهام", pirate_balance: "قرصان",
         exchange_rate: "سعر الصرف", pirate_to_gram: "10,000 قرصان = 1 غرام",
         convert_withdraw: "تحويل وسحب", withdraw_pirate: "سحب القراصنة",
         enter_pirate_amount: "أدخل كمية القراصنة", min_withdraw_pirate: "الحد الأدنى للسحب",
@@ -173,7 +191,13 @@ const translations = {
         target_referrals: "ادعو {target} أصدقاء", progress: "التقدم",
         main_tasks: "المهام الرئيسية", partner_tasks: "مهام الشركاء",
         tasks_completed: "المهام المكتملة", current_level: "المستوى الحالي",
-        main_task_complete: "إكمال المهمة", partner_task_complete: "إكمال المهمة"
+        main_task_complete: "إكمال المهمة", partner_task_complete: "إكمال المهمة",
+        boost_power: "عزز طاقتك", boost_desc: "حوّل القراصنة إلى طاقة مع مكافأة +10%",
+        pirate_to_power: "1,000 قرصان = 1,100 طاقة",
+        convert: "تحويل", enter_pirate: "أدخل كمية القراصنة",
+        level_progress: "تقدم المستوى", next_level: "المستوى التالي",
+        quest_completed: "تم إكمال المهمة!",
+        current_power: "الطاقة الحالية", next_level_power: "طاقة المستوى التالي"
     }
 };
 
@@ -314,6 +338,8 @@ class App {
             this.renderMining();
             if (this._earnLoaded) this.renderEarn();
         }
+        
+        return oldLevel !== newLevel;
     }
 
     updateHeaderBalances() {
@@ -380,6 +406,8 @@ class App {
                 MINING_ICON: "https://i.ibb.co/bgCmP0nc/file-000000000a7c81f4951741e43e428778.png",
                 REFERRAL_LINK: "https://t.me/PirateTeamChannel",
                 PIRATE_TO_GRAM_RATE: 10000,
+                PIRATE_TO_POWER_RATE: 1000,
+                POWER_BONUS_PERCENTAGE: 10,
                 QUESTS: {
                     welcome_bonus: { reward: 3000, type: "power" },
                     level_quests: [
@@ -446,6 +474,7 @@ class App {
             
             if (result.error) {
                 console.error('Error loading user:', result.error);
+                this.showNotification('Error', 'Failed to load user data: ' + result.error, 'error');
                 return;
             }
             
@@ -537,10 +566,17 @@ class App {
                 return true;
             }
             
-            await this.fetchFromServer('/api/update-mining', {
+            const result = await this.fetchFromServer('/api/update-mining', {
                 userId: this.tgUser.id,
                 ...updates
             });
+            
+            if (result.error) {
+                console.error('Save error:', result.error);
+                this.showNotification('Error', this.t('save_error'), 'error');
+                this._isSaving = false;
+                return false;
+            }
             
             this._dirtyPower = false;
             this._dirtyPirate = false;
@@ -549,7 +585,8 @@ class App {
             
             return true;
         } catch (error) {
-            console.warn('Failed to save user data:', error);
+            console.error('Failed to save user data:', error);
+            this.showNotification('Error', this.t('save_error'), 'error');
             return false;
         } finally {
             this._isSaving = false;
@@ -582,6 +619,35 @@ class App {
         } catch (error) {
             console.error('Complete task error:', error);
             this.showNotification('Error', 'Failed to complete task', 'error');
+            return false;
+        }
+    }
+
+    async convertPirateToPower(pirateAmount) {
+        try {
+            const result = await this.fetchFromServer('/api/convert-pirate-to-power', {
+                userId: this.tgUser.id,
+                pirateAmount: pirateAmount
+            });
+            
+            if (result.error) {
+                this.showNotification('Error', result.error, 'error');
+                return false;
+            }
+            
+            if (result.user) {
+                this.pirateBalance = result.user.pirate_balance || 0;
+                this.powerBalance = result.user.power_balance || 0;
+                this.updateLevelFromPower();
+                this.updateHeaderBalances();
+                this.showNotification('Success', `${result.total} Power added! (${result.converted} + ${result.bonus} bonus)`, 'success');
+                return true;
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('Convert error:', error);
+            this.showNotification('Error', 'Failed to convert', 'error');
             return false;
         }
     }
@@ -921,6 +987,8 @@ class App {
         const showClaimButton = !this.miningActive && this.pendingPirateReward > 0;
         const showMiningActive = this.miningActive;
         
+        const levelProgress = this.getLevelProgress();
+        
         el.innerHTML = `
             <div class="mining-card gold-card">
                 <div class="mining-icon-container">
@@ -944,6 +1012,33 @@ class App {
                     <span><img src="${this.config.PIRATE_ICON}" style="width:16px;height:16px;border-radius:50%;"> ${this.formatNumber(Math.floor(this.pirateBalance))} ${this.t('pirate')}</span>
                 </div>
             </div>
+            
+            <div class="boost-card gold-card">
+                <h4><i class="fas fa-rocket"></i> ${this.t('boost_power')}</h4>
+                <p style="font-size:0.8rem;color:#888;margin-bottom:12px;">${this.t('boost_desc')}</p>
+                <div class="boost-info">
+                    <span class="rate">${this.t('pirate_to_power')}</span>
+                    <span class="bonus">+${this.config.POWER_BONUS_PERCENTAGE || 10}%</span>
+                </div>
+                <div class="boost-input-group">
+                    <input type="number" id="boost-amount" class="form-input gold-input" placeholder="${this.t('enter_pirate')}" min="1" step="1">
+                    <button id="boost-btn" class="boost-btn gold-btn">${this.t('convert')}</button>
+                </div>
+            </div>
+            
+            <div class="level-progress-card gold-card">
+                <div class="level-header">
+                    <span>${this.t('level')} ${this.userLevel}</span>
+                    <span class="level-number">${this.t('next_level')}: ${this.userLevel + 1}</span>
+                </div>
+                <div class="level-progress-container">
+                    <div class="level-progress-bar" style="width: ${levelProgress.percent}%"></div>
+                </div>
+                <div class="level-progress-text">
+                    <span>${this.formatNumber(Math.floor(this.powerBalance))} ${this.t('power')}</span>
+                    <span>${this.formatNumber(this.getRequiredPowerForLevel(this.userLevel + 1))} ${this.t('power')}</span>
+                </div>
+            </div>
         `;
         
         const ringCircle = document.querySelector('.progress-ring-circle');
@@ -954,7 +1049,45 @@ class App {
         document.getElementById('start-mining-btn')?.addEventListener('click', () => this.startMining());
         document.getElementById('claim-mining-btn')?.addEventListener('click', () => this.claimMiningRewards());
         
+        document.getElementById('boost-btn')?.addEventListener('click', async () => {
+            const input = document.getElementById('boost-amount');
+            const amount = parseFloat(input?.value);
+            if (!amount || amount <= 0) {
+                this.showNotification('Error', 'Please enter a valid amount', 'error');
+                return;
+            }
+            if (amount > this.pirateBalance) {
+                this.showNotification('Error', 'Insufficient Pirate balance', 'error');
+                return;
+            }
+            const btn = document.getElementById('boost-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
+            await this.convertPirateToPower(amount);
+            btn.disabled = false;
+            btn.innerHTML = this.t('convert');
+            input.value = '';
+            this.renderMining();
+        });
+        
         if (this.miningActive) this.updateMiningTimerDisplay();
+    }
+
+    getLevelProgress() {
+        const currentPower = this.powerBalance;
+        const currentLevel = this.userLevel;
+        const nextLevelPower = this.getRequiredPowerForLevel(currentLevel + 1);
+        const currentLevelPower = this.getRequiredPowerForLevel(currentLevel);
+        
+        const progress = currentLevelPower >= 0 ? 
+            ((currentPower - currentLevelPower) / (nextLevelPower - currentLevelPower)) * 100 : 
+            (currentPower / nextLevelPower) * 100;
+        
+        return {
+            percent: Math.min(Math.max(progress, 0), 100),
+            current: currentPower,
+            next: nextLevelPower
+        };
     }
 
     renderEarn() {
@@ -1297,10 +1430,13 @@ class App {
                 this._dirtyPower = true;
                 this.quests.currentLevelQuestIndex = currentIndex + 1;
                 await this.saveUserData(true);
-                this.updateLevelFromPower();
+                const leveledUp = this.updateLevelFromPower();
                 this.renderMining();
                 this.renderQuests();
                 this.showNotification('Quest Completed!', `+${reward} Power`, 'success');
+                if (leveledUp) {
+                    this.showNotification('Level Up!', `You reached level ${this.userLevel}!`, 'success');
+                }
             });
         }
     }
@@ -1663,11 +1799,22 @@ class App {
     async initialize() {
         const progressBar = document.getElementById('loader-progress-bar');
         const loaderPercent = document.getElementById('loader-percent');
+        const loaderTips = document.querySelectorAll('.loader-tip');
+        let tipIndex = 0;
         
         const updateProgress = (percent) => {
             if (progressBar) progressBar.style.width = percent + '%';
             if (loaderPercent) loaderPercent.innerText = Math.floor(percent) + '%';
         };
+        
+        const rotateTips = () => {
+            loaderTips.forEach((tip, i) => {
+                tip.classList.toggle('active', i === tipIndex);
+            });
+            tipIndex = (tipIndex + 1) % loaderTips.length;
+        };
+        
+        const tipInterval = setInterval(rotateTips, 3000);
         
         try {
             updateProgress(5);
@@ -1705,7 +1852,6 @@ class App {
                 <div class="header-balances" id="header-balances">
                     <div class="header-balance" id="header-power"><i class="fas fa-bolt"></i> ${this.formatNumber(Math.floor(this.powerBalance))}</div>
                     <div class="header-balance" id="header-pirate"><img src="${this.config.PIRATE_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> ${this.formatNumber(Math.floor(this.pirateBalance))}</div>
-                    <div class="header-balance" id="header-gram"><img src="${this.config.GRAM_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> ${this.gramBalance.toFixed(4)}</div>
                 </div>
             `;
             const headerActions = document.querySelector('.header-actions');
@@ -1740,6 +1886,7 @@ class App {
             updateProgress(100);
             
             setTimeout(() => {
+                clearInterval(tipInterval);
                 const loader = document.getElementById('app-loader');
                 if (loader) {
                     loader.style.opacity = '0';
@@ -1755,6 +1902,7 @@ class App {
             this.isInitialized = true;
             
         } catch(err) {
+            clearInterval(tipInterval);
             console.error('Initialization error:', err);
             const errorEl = document.getElementById('loader-error');
             if (errorEl) {
