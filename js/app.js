@@ -65,7 +65,8 @@ const translations = {
         code_placeholder: "Введите код",
         resend_code: "Отправить повторно",
         verification_error: "Неверный код или код истек",
-        verification_success: "Верификация успешна!"
+        verification_success: "Верификация успешна!",
+        bonus: "бонус"
     },
     en: {
         level: "Level", mining_rig: "Pirate Rig Lv.", hourly: "5 Hours", daily: "Daily", monthly: "Monthly",
@@ -133,7 +134,8 @@ const translations = {
         code_placeholder: "Enter code",
         resend_code: "Resend Code",
         verification_error: "Invalid code or code expired",
-        verification_success: "Verification successful!"
+        verification_success: "Verification successful!",
+        bonus: "bonus"
     },
     tr: {
         level: "Seviye", mining_rig: "Korsan Madenci Seviye", hourly: "5 saat", daily: "Günlük", monthly: "Aylık",
@@ -201,7 +203,8 @@ const translations = {
         code_placeholder: "Kodu girin",
         resend_code: "Tekrar Gönder",
         verification_error: "Geçersiz kod veya kod süresi doldu",
-        verification_success: "Doğrulama başarılı!"
+        verification_success: "Doğrulama başarılı!",
+        bonus: "bonus"
     },
     ar: {
         level: "مستوى", mining_rig: "جهاز القراصنة مستوى", hourly: "كل 5 ساعات", daily: "يومي", monthly: "شهري",
@@ -269,7 +272,8 @@ const translations = {
         code_placeholder: "أدخل الرمز",
         resend_code: "إعادة الإرسال",
         verification_error: "رمز غير صحيح أو انتهت صلاحيته",
-        verification_success: "تم التحقق بنجاح!"
+        verification_success: "تم التحقق بنجاح!",
+        bonus: "مكافأة"
     }
 };
 
@@ -280,6 +284,8 @@ class App {
         this.isInitialized = false;
         this.serverUrl = '';
         this.verified = false;
+        this.sessionToken = null;
+        this.sessionExpiresAt = null;
         this.verificationCode = '';
         
         this.powerBalance = 0;
@@ -438,14 +444,28 @@ class App {
         return 1000;
     }
 
-    async fetchFromServer(endpoint, data) {
+    async fetchFromServer(endpoint, data = {}) {
         try {
+            if (this.sessionToken) {
+                data.sessionToken = this.sessionToken;
+            }
+            
             const response = await fetch(`${this.serverUrl}${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-            return await response.json();
+            const result = await response.json();
+            
+            if (result.error === 'Session expired' || result.error === 'Invalid token' || result.error === 'Session required') {
+                this.sessionToken = null;
+                localStorage.removeItem('pirate_session_token');
+                localStorage.removeItem('pirate_session_expires');
+                this.verified = false;
+                this.showVerificationModal();
+            }
+            
+            return result;
         } catch (error) {
             console.error('Server fetch error:', error);
             throw error;
@@ -500,6 +520,7 @@ class App {
                 AD_COOLDOWN_MINUTES: 5,
                 AD_DAILY_LIMIT: 10,
                 VERIFICATION_CODE_LIFETIME: 60000,
+                SESSION_TOKEN_LIFETIME: 86400000,
                 QUESTS: {
                     welcome_bonus: { reward: 3000, type: "power" },
                     level_quests: [
@@ -551,13 +572,18 @@ class App {
         return Date.now() + this.serverTimeOffset;
     }
 
+    showVerificationModal() {
+        const modal = document.getElementById('verification-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+            this.sendVerificationCode();
+        }
+    }
+
     async sendVerificationCode() {
         try {
             const result = await this.fetchFromServer('/api/send-verification', {
-                userId: this.tgUser.id,
-                username: this.tgUser.username || '',
-                firstName: this.tgUser.first_name || 'User',
-                photoUrl: this.tgUser.photo_url || this.config.DEFAULT_USER_AVATAR
+                userId: this.tgUser.id
             });
             
             if (result.error) {
@@ -574,6 +600,26 @@ class App {
         }
     }
 
+    async resendVerificationCode() {
+        try {
+            const result = await this.fetchFromServer('/api/resend-verification', {
+                userId: this.tgUser.id
+            });
+            
+            if (result.error) {
+                this.showNotification('Error', result.error, 'error');
+                return false;
+            }
+            
+            this.showNotification('Code Sent', 'Check your Telegram for the verification code', 'success');
+            return true;
+        } catch (error) {
+            console.error('Resend verification error:', error);
+            this.showNotification('Error', 'Failed to resend verification code', 'error');
+            return false;
+        }
+    }
+
     async verifyCode(code) {
         try {
             const result = await this.fetchFromServer('/api/verify-code', {
@@ -586,9 +632,15 @@ class App {
                 return false;
             }
             
+            this.sessionToken = result.sessionToken;
+            this.sessionExpiresAt = result.expiresAt;
+            localStorage.setItem('pirate_session_token', this.sessionToken);
+            localStorage.setItem('pirate_session_expires', this.sessionExpiresAt.toString());
+            
             this.verified = true;
             document.getElementById('verification-modal').style.display = 'none';
             this.showNotification('Success', this.t('verification_success'), 'success');
+            
             await this.loadUserData();
             this.renderMining();
             return true;
@@ -603,11 +655,15 @@ class App {
         if (this._userDataLoaded) return;
         
         try {
+            this.sessionToken = localStorage.getItem('pirate_session_token') || null;
+            this.sessionExpiresAt = parseInt(localStorage.getItem('pirate_session_expires') || '0');
+            
             const result = await this.fetchFromServer('/api/get-user', {
                 userId: this.tgUser.id,
                 username: this.tgUser.username || '',
                 firstName: this.tgUser.first_name || 'User',
-                photoUrl: this.tgUser.photo_url || this.config.DEFAULT_USER_AVATAR
+                photoUrl: this.tgUser.photo_url || this.config.DEFAULT_USER_AVATAR,
+                sessionToken: this.sessionToken || null
             });
             
             if (result.error) {
@@ -633,10 +689,23 @@ class App {
             this.totalTasksCompleted = user.total_tasks_completed || 0;
             this.totalMiningStarts = user.total_mining_starts || 0;
             this.referralRewardGiven = user.referral_reward_given || false;
-            this.userState = user.state || 'active';
-            this.verified = user.verified || false;
+            this.userState = user.state || 'pending_verification';
             this.adWatchCount = user.ad_watch_count || 0;
             this.adLastWatch = user.ad_last_watch || 0;
+            
+            const isSessionValid = user.sessionValid || false;
+            
+            if (isSessionValid && this.sessionToken) {
+                this.verified = true;
+                this.userState = 'active';
+            } else {
+                this.sessionToken = null;
+                this.sessionExpiresAt = 0;
+                localStorage.removeItem('pirate_session_token');
+                localStorage.removeItem('pirate_session_expires');
+                this.verified = false;
+                this.userState = 'pending_verification';
+            }
             
             if (user.quests) {
                 this.quests = user.quests;
@@ -667,9 +736,8 @@ class App {
             
             this.updateHeaderBalances();
             
-            if (!this.verified && this.userState === 'pending_verification') {
-                document.getElementById('verification-modal').style.display = 'flex';
-                await this.sendVerificationCode();
+            if (!this.verified) {
+                this.showVerificationModal();
             }
             
         } catch (error) {
@@ -787,7 +855,7 @@ class App {
                 this.powerBalance = result.user.power_balance || 0;
                 this.updateLevelFromPower();
                 this.updateHeaderBalances();
-                this.showNotification('Success', `${result.total} Power added! (${result.converted} + ${result.bonus} bonus)`, 'success');
+                this.showNotification('Success', `${result.total} Power added! (${result.converted} + ${result.bonus} ${this.t('bonus')})`, 'success');
                 return true;
             }
             
@@ -1286,7 +1354,7 @@ class App {
                     <span class="gold-preview" id="boost-preview">≈ 0 ${this.t('power')}</span>
                     <button id="boost-btn" class="boost-btn gold-btn">${this.t('convert')}</button>
                 </div>
-                <div class="boost-bonus">+${this.config.POWER_BONUS_PERCENTAGE || 10}% ${this.t('bonus') || 'bonus'}</div>
+                <div class="boost-bonus">+${this.config.POWER_BONUS_PERCENTAGE || 10}% ${this.t('bonus')}</div>
             </div>
             
             <div class="level-progress-card gold-card">
@@ -1879,7 +1947,7 @@ class App {
             <div class="earnings-row">
                 <div class="earning-card">
                     <div>
-                        <div class="earning-label"><i class="fas fa-bolt"></i> ${this.t('power_earnings')}</div>
+                        <div class="earning-label"><i class="fas fa-bolt"></i> ${this.t('referral_earnings')}</div>
                         <div class="earning-value">${this.formatNumber(Math.floor(this.referralEarnings))}</div>
                     </div>
                     <button id="claim-earnings-btn" class="claim-btn gold-btn" ${this.referralEarnings <= 0 ? 'disabled' : ''}>${this.t('claim_earnings')}</button>
@@ -2205,9 +2273,6 @@ class App {
                         const app = document.getElementById('app');
                         if (app) app.style.display = 'block';
                         this.updateMiningRing();
-                        if (!this.verified && this.userState === 'pending_verification') {
-                            document.getElementById('verification-modal').style.display = 'flex';
-                        }
                     }, 500);
                 }
             }, 500);
@@ -2251,7 +2316,7 @@ class App {
             const btn = document.getElementById('resend-code-btn');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
-            await this.sendVerificationCode();
+            await this.resendVerificationCode();
             btn.disabled = false;
             btn.innerHTML = this.t('resend_code');
         });
