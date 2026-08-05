@@ -44,7 +44,7 @@ const APP_CONFIG = {
     MINING_ICON: "https://i.ibb.co/bgCmP0nc/file-000000000a7c81f4951741e43e428778.png",
     REFERRAL_LINK: "https://t.me/PirateTeamChannel",
     PIRATE_TO_GRAM_RATE: 10000,
-    PIRATE_TO_POWER_RATE: 1000,
+    GOLD_TO_POWER_RATE: 1,
     POWER_BONUS_PERCENTAGE: 10,
     REFERRAL_TASKS_PERCENTAGE: 20,
     REFERRAL_PROMO_PERCENTAGE: 20,
@@ -55,6 +55,7 @@ const APP_CONFIG = {
     AD_DAILY_LIMIT: 10,
     VERIFICATION_CODE_LIFETIME: 60000,
     SESSION_TOKEN_LIFETIME: 86400000,
+    MIN_CLAIM_GOLD: 1,
     QUESTS: {
         welcome_bonus: { reward: 3000, type: "power" },
         level_quests: [
@@ -377,6 +378,19 @@ app.post('/api/send-verification', async (req, res) => {
             return res.status(400).json({ error: 'userId required' });
         }
 
+        const { data: existing } = await supabase
+            .from('verifications')
+            .select('created_at')
+            .eq('user_id', userId)
+            .single();
+
+        if (existing) {
+            const cooldown = 60000;
+            if (getCurrentTime() - existing.created_at < cooldown) {
+                return res.status(400).json({ error: 'Please wait 60 seconds before requesting a new code' });
+            }
+        }
+
         const code = generateVerificationCode();
         const expiresAt = getCurrentTime() + APP_CONFIG.VERIFICATION_CODE_LIFETIME;
 
@@ -406,6 +420,19 @@ app.post('/api/resend-verification', async (req, res) => {
         const { userId } = req.body;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
+        }
+
+        const { data: existing } = await supabase
+            .from('verifications')
+            .select('created_at')
+            .eq('user_id', userId)
+            .single();
+
+        if (existing) {
+            const cooldown = 60000;
+            if (getCurrentTime() - existing.created_at < cooldown) {
+                return res.status(400).json({ error: 'Please wait 60 seconds before requesting a new code' });
+            }
         }
 
         const code = generateVerificationCode();
@@ -566,8 +593,8 @@ app.post('/api/get-user', async (req, res) => {
                 created_at: getCurrentTime(),
                 power_balance: 0,
                 gold_balance: 0,
-                gram_balance: 0,
-                referral_earnings: 0,
+                referral_power_earnings: 0,
+                referral_gold_earnings: 0,
                 level: 1,
                 total_tasks_completed: 0,
                 total_mining_starts: 0,
@@ -686,6 +713,16 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
             mining_end_time: null
         });
 
+        if (user.referred_by) {
+            const referrer = await getUser(user.referred_by);
+            if (referrer && referrer.verified) {
+                const referralEarning = rewardAmount * (APP_CONFIG.REFERRAL_MINING_PERCENTAGE / 100);
+                await updateUser(user.referred_by, {
+                    referral_gold_earnings: (referrer.referral_gold_earnings || 0) + referralEarning
+                });
+            }
+        }
+
         res.json({
             success: true,
             user: updatedUser,
@@ -744,7 +781,7 @@ app.post('/api/complete-task', verifySession, async (req, res) => {
             if (referrer && referrer.verified) {
                 const referralEarning = rewardAmount * (APP_CONFIG.REFERRAL_TASKS_PERCENTAGE / 100);
                 await updateUser(user.referred_by, {
-                    referral_earnings: (referrer.referral_earnings || 0) + referralEarning
+                    referral_power_earnings: (referrer.referral_power_earnings || 0) + referralEarning
                 });
             }
         }
@@ -783,7 +820,7 @@ app.post('/api/convert-gold-to-power', verifySession, async (req, res) => {
             return res.status(400).json({ error: 'Insufficient Gold balance' });
         }
 
-        const powerAmount = amount * APP_CONFIG.PIRATE_TO_POWER_RATE;
+        const powerAmount = amount * APP_CONFIG.GOLD_TO_POWER_RATE;
         const bonusPower = powerAmount * (APP_CONFIG.POWER_BONUS_PERCENTAGE / 100);
         const totalPower = powerAmount + bonusPower;
 
@@ -807,9 +844,9 @@ app.post('/api/convert-gold-to-power', verifySession, async (req, res) => {
 
 app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
     try {
-        const { userId } = req.body;
-        if (!userId) {
-            return res.status(400).json({ error: 'userId required' });
+        const { userId, type } = req.body;
+        if (!userId || !type) {
+            return res.status(400).json({ error: 'userId and type required' });
         }
 
         const user = await getUser(userId);
@@ -817,20 +854,42 @@ app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
             return res.status(403).json({ error: 'User not verified' });
         }
 
-        if ((user.referral_earnings || 0) <= 0) {
+        let amount = 0;
+        let updates = {};
+
+        if (type === 'power') {
+            amount = user.referral_power_earnings || 0;
+            if (amount < APP_CONFIG.MIN_CLAIM_GOLD) {
+                return res.status(400).json({ error: `Minimum claim: ${APP_CONFIG.MIN_CLAIM_GOLD} Power` });
+            }
+            updates = {
+                power_balance: (user.power_balance || 0) + amount,
+                referral_power_earnings: 0
+            };
+        } else if (type === 'gold') {
+            amount = user.referral_gold_earnings || 0;
+            if (amount < APP_CONFIG.MIN_CLAIM_GOLD) {
+                return res.status(400).json({ error: `Minimum claim: ${APP_CONFIG.MIN_CLAIM_GOLD} Gold` });
+            }
+            updates = {
+                gold_balance: (user.gold_balance || 0) + amount,
+                referral_gold_earnings: 0
+            };
+        } else {
+            return res.status(400).json({ error: 'Invalid type' });
+        }
+
+        if (amount <= 0) {
             return res.status(400).json({ error: 'No earnings to claim' });
         }
 
-        const earnings = user.referral_earnings;
-        const updatedUser = await updateUser(userId, {
-            power_balance: (user.power_balance || 0) + earnings,
-            referral_earnings: 0
-        });
+        const updatedUser = await updateUser(userId, updates);
 
         res.json({
             success: true,
             user: updatedUser,
-            claimed: earnings
+            claimed: amount,
+            type: type
         });
 
     } catch (error) {
@@ -875,24 +934,29 @@ app.post('/api/apply-promo', verifySession, async (req, res) => {
 
         let updates = {};
         let rewardMessage = '';
+        let rewardType = '';
 
         if (promo.reward_type === 'power') {
             updates.power_balance = (user.power_balance || 0) + promo.reward_amount;
             rewardMessage = `+${promo.reward_amount} Power`;
+            rewardType = 'power';
         } else if (promo.reward_type === 'gold') {
             updates.gold_balance = (user.gold_balance || 0) + promo.reward_amount;
             rewardMessage = `+${promo.reward_amount} Gold`;
+            rewardType = 'gold';
         } else if (promo.reward_type === 'gram') {
             updates.gram_balance = (user.gram_balance || 0) + promo.reward_amount;
             rewardMessage = `+${promo.reward_amount} GRAM`;
+            rewardType = 'gram';
         }
 
-        if (user.referred_by) {
+        if (user.referred_by && (rewardType === 'power' || rewardType === 'gold')) {
             const referrer = await getUser(user.referred_by);
             if (referrer && referrer.verified) {
                 const referralEarning = promo.reward_amount * (APP_CONFIG.REFERRAL_PROMO_PERCENTAGE / 100);
+                const updateField = rewardType === 'power' ? 'referral_power_earnings' : 'referral_gold_earnings';
                 await updateUser(user.referred_by, {
-                    referral_earnings: (referrer.referral_earnings || 0) + referralEarning
+                    [updateField]: (referrer[updateField] || 0) + referralEarning
                 });
             }
         }
