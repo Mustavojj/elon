@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 
@@ -39,7 +40,6 @@ const APP_CONFIG = {
     TASK_REWARD: 100,
     TASK_IMAGE: "https://i.ibb.co/bjyVgYqJ/256e636cf3a0.jpg",
     GRAM_ICON: "https://i.ibb.co/Q3LyfHL6/file-00000000aec481f4a4599f4c3a9fee9a.png",
-    PIRATE_ICON: "https://i.ibb.co/TqFMpkmh/file-00000000a1e482439c3eb9ba48a9444c.png",
     GOLD_ICON: "https://i.ibb.co/TqFMpkmh/file-00000000a1e482439c3eb9ba48a9444c.png",
     MINING_ICON: "https://i.ibb.co/bgCmP0nc/file-000000000a7c81f4951741e43e428778.png",
     REFERRAL_LINK: "https://t.me/PirateTeamChannel",
@@ -54,6 +54,7 @@ const APP_CONFIG = {
     AD_COOLDOWN_MINUTES: 5,
     AD_DAILY_LIMIT: 10,
     VERIFICATION_CODE_LIFETIME: 60000,
+    SESSION_TOKEN_LIFETIME: 86400000,
     QUESTS: {
         welcome_bonus: { reward: 3000, type: "power" },
         level_quests: [
@@ -91,13 +92,17 @@ function getCurrentTime() {
     return Date.now();
 }
 
+function generateVerificationCode() {
+    return Math.floor(10000 + Math.random() * 90000).toString();
+}
+
+function generateSessionToken() {
+    return crypto.randomBytes(32).toString('hex');
+}
+
 function extractChatIdFromUrl(url) {
     const match = url.match(/t\.me\/([^\/\?]+)/);
     return match ? match[1] : null;
-}
-
-function generateVerificationCode() {
-    return Math.floor(10000 + Math.random() * 90000).toString();
 }
 
 async function getUser(userId) {
@@ -309,6 +314,42 @@ async function sendVerificationCode(userId, code) {
     }
 }
 
+async function verifySession(req, res, next) {
+    const { userId, sessionToken } = req.body;
+
+    if (!userId || !sessionToken) {
+        return res.status(401).json({ error: 'Session required' });
+    }
+
+    try {
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('session_token, token_expires_at, verified')
+            .eq('id', userId)
+            .single();
+
+        if (error || !user) {
+            return res.status(401).json({ error: 'Invalid session' });
+        }
+
+        if (!user.verified) {
+            return res.status(403).json({ error: 'User not verified' });
+        }
+
+        if (user.session_token !== sessionToken) {
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+
+        if (getCurrentTime() > user.token_expires_at) {
+            return res.status(401).json({ error: 'Session expired' });
+        }
+
+        next();
+    } catch (error) {
+        res.status(500).json({ error: 'Session verification failed' });
+    }
+}
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -339,49 +380,14 @@ app.post('/api/send-verification', async (req, res) => {
         const code = generateVerificationCode();
         const expiresAt = getCurrentTime() + APP_CONFIG.VERIFICATION_CODE_LIFETIME;
 
-        const user = await getUser(userId);
-        if (user) {
-            await updateUser(userId, {
-                verification_code: code,
-                verification_expires: expiresAt,
-                verified: false
+        await supabase
+            .from('verifications')
+            .upsert({
+                user_id: userId,
+                code: code,
+                expires_at: expiresAt,
+                created_at: getCurrentTime()
             });
-        } else {
-            const userData = {
-                id: userId,
-                username: req.body.username || '',
-                first_name: req.body.firstName || 'User',
-                photo_url: req.body.photoUrl || APP_CONFIG.DEFAULT_USER_AVATAR,
-                created_at: getCurrentTime(),
-                power_balance: 0,
-                gold_balance: 0,
-                gram_balance: 0,
-                referral_earnings: 0,
-                level: 1,
-                total_tasks_completed: 0,
-                total_mining_starts: 0,
-                referral_reward_given: false,
-                state: 'pending_verification',
-                quests: {
-                    welcome_bonus_claimed: false,
-                    current_level_quest_index: 0,
-                    current_mining_quest_index: 0,
-                    current_referral_quest_index: 0
-                },
-                mining_active: false,
-                mining_start_time: null,
-                mining_end_time: null,
-                pending_gold_reward: 0,
-                total_referrals: 0,
-                referral_power: 0,
-                verified: false,
-                verification_code: code,
-                verification_expires: expiresAt,
-                ad_watch_count: 0,
-                ad_last_watch: 0
-            };
-            await createUser(userData);
-        }
 
         const sent = await sendVerificationCode(userId, code);
         if (!sent) {
@@ -395,6 +401,34 @@ app.post('/api/send-verification', async (req, res) => {
     }
 });
 
+app.post('/api/resend-verification', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!userId) {
+            return res.status(400).json({ error: 'userId required' });
+        }
+
+        const code = generateVerificationCode();
+        const expiresAt = getCurrentTime() + APP_CONFIG.VERIFICATION_CODE_LIFETIME;
+
+        await supabase
+            .from('verifications')
+            .upsert({
+                user_id: userId,
+                code: code,
+                expires_at: expiresAt,
+                created_at: getCurrentTime()
+            });
+
+        await sendVerificationCode(userId, code);
+
+        res.json({ success: true, message: 'New code sent' });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.post('/api/verify-code', async (req, res) => {
     try {
         const { userId, code } = req.body;
@@ -402,32 +436,103 @@ app.post('/api/verify-code', async (req, res) => {
             return res.status(400).json({ error: 'userId and code required' });
         }
 
-        const user = await getUser(userId);
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
+        const { data: verification, error } = await supabase
+            .from('verifications')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+        if (error || !verification) {
+            return res.status(400).json({ error: 'No verification request found' });
         }
 
-        if (user.verified) {
-            return res.json({ success: true, message: 'Already verified' });
-        }
-
-        if (user.verification_code !== code) {
+        if (verification.code !== code) {
             return res.status(400).json({ error: 'Invalid code' });
         }
 
-        if (getCurrentTime() > user.verification_expires) {
+        if (getCurrentTime() > verification.expires_at) {
             return res.status(400).json({ error: 'Code expired' });
         }
 
+        const sessionToken = generateSessionToken();
+        const tokenExpiresAt = getCurrentTime() + APP_CONFIG.SESSION_TOKEN_LIFETIME;
+
+        const user = await getUser(userId);
         await updateUser(userId, {
             verified: true,
             state: 'active',
+            session_token: sessionToken,
+            token_expires_at: tokenExpiresAt,
             power_balance: (user.power_balance || 0) + 1000
         });
 
-        await updateStats('total_users', 1);
+        await supabase
+            .from('verifications')
+            .delete()
+            .eq('user_id', userId);
 
-        res.json({ success: true, message: 'Verified successfully' });
+        res.json({
+            success: true,
+            message: 'Verified successfully',
+            sessionToken: sessionToken,
+            expiresAt: tokenExpiresAt
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/refresh-session', async (req, res) => {
+    try {
+        const { userId, sessionToken } = req.body;
+        if (!userId || !sessionToken) {
+            return res.status(400).json({ error: 'userId and sessionToken required' });
+        }
+
+        const user = await getUser(userId);
+        if (!user || !user.verified) {
+            return res.status(403).json({ error: 'User not verified' });
+        }
+
+        if (user.session_token !== sessionToken) {
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+
+        const newToken = generateSessionToken();
+        const newExpiresAt = getCurrentTime() + APP_CONFIG.SESSION_TOKEN_LIFETIME;
+
+        await updateUser(userId, {
+            session_token: newToken,
+            token_expires_at: newExpiresAt
+        });
+
+        res.json({
+            success: true,
+            sessionToken: newToken,
+            expiresAt: newExpiresAt
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/logout', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!userId) {
+            return res.status(400).json({ error: 'userId required' });
+        }
+
+        await updateUser(userId, {
+            session_token: null,
+            token_expires_at: null,
+            verified: false,
+            state: 'pending_verification'
+        });
+
+        res.json({ success: true });
 
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -436,13 +541,22 @@ app.post('/api/verify-code', async (req, res) => {
 
 app.post('/api/get-user', async (req, res) => {
     try {
-        const { userId } = req.body;
+        const { userId, sessionToken } = req.body;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
 
         let user = await getUser(userId);
-        
+        let isValidSession = false;
+
+        if (user && sessionToken) {
+            if (user.verified &&
+                user.session_token === sessionToken &&
+                getCurrentTime() < user.token_expires_at) {
+                isValidSession = true;
+            }
+        }
+
         if (!user) {
             const userData = {
                 id: userId,
@@ -459,6 +573,9 @@ app.post('/api/get-user', async (req, res) => {
                 total_mining_starts: 0,
                 referral_reward_given: false,
                 state: 'pending_verification',
+                verified: false,
+                session_token: null,
+                token_expires_at: null,
                 quests: {
                     welcome_bonus_claimed: false,
                     current_level_quest_index: 0,
@@ -471,13 +588,24 @@ app.post('/api/get-user', async (req, res) => {
                 pending_gold_reward: 0,
                 total_referrals: 0,
                 referral_power: 0,
-                verified: false,
-                verification_code: null,
-                verification_expires: null,
                 ad_watch_count: 0,
                 ad_last_watch: 0
             };
             user = await createUser(userData);
+
+            const code = generateVerificationCode();
+            const expiresAt = getCurrentTime() + APP_CONFIG.VERIFICATION_CODE_LIFETIME;
+
+            await supabase
+                .from('verifications')
+                .insert([{
+                    user_id: userId,
+                    code: code,
+                    expires_at: expiresAt,
+                    created_at: getCurrentTime()
+                }]);
+
+            await sendVerificationCode(userId, code);
         }
 
         const [completedTasks, withdrawals, referrals] = await Promise.all([
@@ -487,7 +615,10 @@ app.post('/api/get-user', async (req, res) => {
         ]);
 
         res.json({
-            user,
+            user: {
+                ...user,
+                sessionValid: isValidSession
+            },
             completedTasks,
             withdrawals,
             referrals
@@ -498,7 +629,7 @@ app.post('/api/get-user', async (req, res) => {
     }
 });
 
-app.post('/api/update-mining', async (req, res) => {
+app.post('/api/update-mining', verifySession, async (req, res) => {
     try {
         const { userId, miningActive, miningStartTime, miningEndTime, pendingGoldReward } = req.body;
         if (!userId) {
@@ -529,7 +660,7 @@ app.post('/api/update-mining', async (req, res) => {
     }
 });
 
-app.post('/api/claim-mining', async (req, res) => {
+app.post('/api/claim-mining', verifySession, async (req, res) => {
     try {
         const { userId, goldAmount } = req.body;
         if (!userId) {
@@ -555,8 +686,8 @@ app.post('/api/claim-mining', async (req, res) => {
             mining_end_time: null
         });
 
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             user: updatedUser,
             claimed: rewardAmount
         });
@@ -566,7 +697,7 @@ app.post('/api/claim-mining', async (req, res) => {
     }
 });
 
-app.post('/api/complete-task', async (req, res) => {
+app.post('/api/complete-task', verifySession, async (req, res) => {
     try {
         const { userId, taskId, reward, isPartner, taskOwner } = req.body;
         if (!userId || !taskId) {
@@ -620,8 +751,8 @@ app.post('/api/complete-task', async (req, res) => {
 
         await checkReferralReward(userId);
 
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             user: updatedUser,
             reward: rewardAmount
         });
@@ -631,7 +762,7 @@ app.post('/api/complete-task', async (req, res) => {
     }
 });
 
-app.post('/api/convert-gold-to-power', async (req, res) => {
+app.post('/api/convert-gold-to-power', verifySession, async (req, res) => {
     try {
         const { userId, goldAmount } = req.body;
         if (!userId || !goldAmount) {
@@ -674,7 +805,7 @@ app.post('/api/convert-gold-to-power', async (req, res) => {
     }
 });
 
-app.post('/api/claim-referral-earnings', async (req, res) => {
+app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
     try {
         const { userId } = req.body;
         if (!userId) {
@@ -707,7 +838,7 @@ app.post('/api/claim-referral-earnings', async (req, res) => {
     }
 });
 
-app.post('/api/apply-promo', async (req, res) => {
+app.post('/api/apply-promo', verifySession, async (req, res) => {
     try {
         const { userId, code } = req.body;
         if (!userId || !code) {
@@ -779,7 +910,7 @@ app.post('/api/apply-promo', async (req, res) => {
     }
 });
 
-app.post('/api/watch-ad', async (req, res) => {
+app.post('/api/watch-ad', verifySession, async (req, res) => {
     try {
         const { userId } = req.body;
         if (!userId) {
@@ -875,7 +1006,7 @@ app.post('/api/check-membership', async (req, res) => {
     }
 });
 
-app.post('/api/withdraw', async (req, res) => {
+app.post('/api/withdraw', verifySession, async (req, res) => {
     try {
         const { userId, goldAmount, wallet } = req.body;
         if (!userId || !goldAmount || !wallet) {
@@ -898,7 +1029,7 @@ app.post('/api/withdraw', async (req, res) => {
 
         const gramAmount = amount / APP_CONFIG.PIRATE_TO_GRAM_RATE;
         if (gramAmount < APP_CONFIG.MINIMUM_WITHDRAW) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: `Minimum withdrawal: ${APP_CONFIG.MINIMUM_WITHDRAW} GRAM (${APP_CONFIG.MINIMUM_WITHDRAW * APP_CONFIG.PIRATE_TO_GRAM_RATE} Gold)`
             });
         }
@@ -945,7 +1076,7 @@ app.post('/api/withdraw', async (req, res) => {
     }
 });
 
-app.post('/api/get-withdrawals', async (req, res) => {
+app.post('/api/get-withdrawals', verifySession, async (req, res) => {
     try {
         const { userId } = req.body;
         if (!userId) {
@@ -960,7 +1091,7 @@ app.post('/api/get-withdrawals', async (req, res) => {
     }
 });
 
-app.post('/api/get-referrals', async (req, res) => {
+app.post('/api/get-referrals', verifySession, async (req, res) => {
     try {
         const { userId } = req.body;
         if (!userId) {
@@ -981,7 +1112,7 @@ async function checkReferralReward(userId) {
         if (!user || user.referral_reward_given) return;
 
         const conditionsMet = (user.total_tasks_completed || 0) >= APP_CONFIG.REFERRAL_REQUIRED_TASKS ||
-                              (user.total_mining_starts || 0) >= APP_CONFIG.REFERRAL_REQUIRED_MINES;
+            (user.total_mining_starts || 0) >= APP_CONFIG.REFERRAL_REQUIRED_MINES;
 
         if (conditionsMet && user.referred_by) {
             const referrer = await getUser(user.referred_by);
