@@ -2,7 +2,7 @@ const translations = {
     ru: {
         level: "Уровень", mining_rig: "Пиратская установка Ур.", hourly: "5 часов", daily: "Ежедневно", monthly: "Ежемесячно",
         start_mining: "НАЧАТЬ МАЙНИНГ", claim_reward: "ПОЛУЧИТЬ НАГРАДУ", mining_note: "Награды можно получить после окончания сеанса майнинга",
-        next_level_reward: "Награда за следующий уровень", power: "Энергия", pirate: "Пират", gram: "GRAM", promo_code: "Промокод",
+        next_level_reward: "Награда за следующий уровень", power: "Энергия", gold: "Золото", gram: "GRAM", promo_code: "Промокод",
         enter_code: "Введите код", claim: "Получить",
         watch_ad: "Смотреть рекламу", reward_amount: "Награда", available_in: "Доступно через", hours: "ч",
         watch: "Смотреть", all_tasks_completed: "Все задания выполнены!", check_later: "Заходите позже за новыми",
@@ -12,7 +12,7 @@ const translations = {
         available: "Доступно", wallet: "кошелек", amount: "Сумма", min_withdraw: "Мин. вывод",
         confirm_withdrawal: "Подтвердить вывод", withdrawal_history: "История выводов", no_withdrawals: "Пока нет выводов",
         pending: "В ОЖИДАНИИ", completed: "ВЫПЛАЧЕНО", claim_mining_title: "Получить награды майнинга", claim_btn: "Получить награды",
-        mining: "Майнинг", earn: "Заработок", team: "Команда", wallet_page: "Кошелек",
+        mining: "Майнинг", earn: "Заработок", team: "Пираты", wallet_page: "Кошелек",
         copy_success: "Скопировано!", link_copied: "Ссылка скопирована", earn_more: "Заработай больше энергии",
         complete_tasks: "Выполнить задания", go: "ПЕРЕЙТИ", invite_frens: "Пригласить друзей", ad_reward: "Смотреть рекламу", loading: "Загрузка",
         ready: "Готово", mining_active: "МАЙНИНГ АКТИВЕН", save_error: "Ошибка сохранения данных! Попробуйте снова.",
@@ -29,30 +29,48 @@ const translations = {
         earn_percent_friends: "Зарабатывайте {percent}% от дохода друзей",
         reward_added: "Награда добавлена! +{reward} Power",
         welcome_bonus: "Приветственный бонус", up_to_level: "До уровня {level}", start_mining_quest: "Начать майнинг {times} раз",
-        claim_quest: "Получить", claimed: "Получено", quests_title: "Задания",
+        claim_quest: "Получить", claimed: "Получено", rewards_title: "Награды",
         invite_earn: "Приглашай и зарабатывай", verified_member: "Подтвержденный участник", team_earnings: "Доход команды",
         more_active_members: "Чем больше активных участников, тем больше прибыль", copy_link: "Копировать ссылку", get_referrals: "Пригласить",
         total_members: "Всего участников", active_members: "Активных участников", total_earnings: "Всего заработано",
-        tasks: "Задания", quests: "Квесты", pirate_balance: "Пират",
-        exchange_rate: "Курс обмена", pirate_to_gram: "10,000 Pirate = 1 GRAM",
-        convert_withdraw: "Конвертировать и вывести", withdraw_pirate: "Вывести Пиратов",
-        enter_pirate_amount: "Введите количество Пиратов", min_withdraw_pirate: "Мин. вывод",
-        tasks_tab: "Задания", quests_tab: "Квесты", referral_quests: "Реферальные квесты",
+        tasks: "Задания", rewards: "Награды", gold_balance: "Золото",
+        exchange_rate: "Курс обмена", gold_to_gram: "10,000 Gold = 1 GRAM",
+        convert_withdraw: "Конвертировать и вывести", withdraw_gold: "Вывести Золото",
+        enter_gold_amount: "Введите количество Золота", min_withdraw_gold: "Мин. вывод",
+        tasks_tab: "Задания", rewards_tab: "Награды", referral_quests: "Реферальные квесты",
         target_referrals: "Пригласите {target} друзей", progress: "Прогресс",
         main_tasks: "Основные задания", partner_tasks: "Партнерские задания",
         tasks_completed: "Заданий выполнено", current_level: "Текущий уровень",
         main_task_complete: "Выполнить задание", partner_task_complete: "Выполнить задание",
-        boost_power: "Увеличить энергию", boost_desc: "Конвертируйте Пиратов в Энергию с бонусом +10%",
-        pirate_to_power: "1,000 Pirate = 1,100 Power",
-        convert: "Конвертировать", enter_pirate: "Введите количество Пиратов",
+        boost_power: "Увеличить энергию", boost_desc: "Конвертируйте Золото в Энергию с бонусом +10%",
+        gold_to_power: "1,000 Gold = 1,100 Power",
+        convert: "Конвертировать", enter_gold: "Введите количество Золота",
         level_progress: "Прогресс уровня", next_level: "Следующий уровень",
         quest_completed: "Квест выполнен!",
-        current_power: "Текущая энергия", next_level_power: "До следующего уровня"
+        current_power: "Текущая энергия", next_level_power: "До следующего уровня",
+        verification_title: "Требуется верификация",
+        verification_sub: "Введите 5-значный код, отправленный в Telegram",
+        verify: "Подтвердить", resend: "Отправить код повторно",
+        referral_commissions: "Комиссии с рефералов",
+        referral_tasks: "Задания", referral_promo: "Промокоды", referral_mining: "Майнинг",
+        referral_max: "До 50% от дохода пиратов",
+        referral_earnings: "Доход с рефералов",
+        claim_earnings: "Забрать",
+        total_gold: "Всего золота", total_earnings: "Всего заработано",
+        watch_ad_reward: "Смотреть рекламу",
+        ad_reward_power: "+50 Power",
+        ad_cooldown: "Доступно через",
+        ad_daily_limit: "Дневной лимит",
+        verify_code: "Код верификации",
+        code_placeholder: "Введите код",
+        resend_code: "Отправить повторно",
+        verification_error: "Неверный код или код истек",
+        verification_success: "Верификация успешна!"
     },
     en: {
         level: "Level", mining_rig: "Pirate Rig Lv.", hourly: "5 Hours", daily: "Daily", monthly: "Monthly",
         start_mining: "START MINING", claim_reward: "CLAIM REWARD", mining_note: "Rewards can be collected after mining session ends",
-        next_level_reward: "Next level reward", power: "Power", pirate: "Pirate", gram: "GRAM", promo_code: "Promo Code",
+        next_level_reward: "Next level reward", power: "Power", gold: "Gold", gram: "GRAM", promo_code: "Promo Code",
         enter_code: "Enter code", claim: "Claim",
         watch_ad: "Watch Reward AD", reward_amount: "Reward", available_in: "Available in", hours: "h",
         watch: "Watch", all_tasks_completed: "All tasks completed!", check_later: "Check back later for more",
@@ -62,7 +80,7 @@ const translations = {
         available: "Available", wallet: "Wallet", amount: "Amount", min_withdraw: "Minimum withdrawal",
         confirm_withdrawal: "Confirm Withdrawal", withdrawal_history: "Withdrawal History", no_withdrawals: "No withdrawals yet",
         pending: "PENDING", completed: "PAID", claim_mining_title: "Claim Mining Rewards", claim_btn: "Claim Rewards",
-        mining: "Mining", earn: "Earn", team: "Team", wallet_page: "Wallet",
+        mining: "Mining", earn: "Earn", team: "Pirates", wallet_page: "Wallet",
         copy_success: "Copied!", link_copied: "Link copied to clipboard", earn_more: "Earn More Power",
         complete_tasks: "Complete Tasks", go: "GO", invite_frens: "Invite Frens", ad_reward: "Watch AD", loading: "Loading",
         ready: "Ready", mining_active: "MINING ACTIVE", save_error: "Data save failed! Please try again.",
@@ -79,30 +97,48 @@ const translations = {
         earn_percent_friends: "Earn {percent}% From Friends Earnings",
         reward_added: "Reward Added! +{reward} Power",
         welcome_bonus: "Welcome Bonus", up_to_level: "Up To Level {level}", start_mining_quest: "Start Mining {times} Times",
-        claim_quest: "Claim", claimed: "Claimed", quests_title: "Quests",
+        claim_quest: "Claim", claimed: "Claimed", rewards_title: "Rewards",
         invite_earn: "Invite & Earn", verified_member: "Verified Member", team_earnings: "Team Earnings",
         more_active_members: "More active members, more profits", copy_link: "Copy Link", get_referrals: "Get Referrals",
         total_members: "Total Members", active_members: "Active Members", total_earnings: "Total Earnings",
-        tasks: "Tasks", quests: "Quests", pirate_balance: "Pirate",
-        exchange_rate: "Exchange Rate", pirate_to_gram: "10,000 Pirate = 1 GRAM",
-        convert_withdraw: "Convert & Withdraw", withdraw_pirate: "Withdraw Pirates",
-        enter_pirate_amount: "Enter Pirate amount", min_withdraw_pirate: "Min. withdrawal",
-        tasks_tab: "Tasks", quests_tab: "Quests", referral_quests: "Referral Quests",
+        tasks: "Tasks", rewards: "Rewards", gold_balance: "Gold",
+        exchange_rate: "Exchange Rate", gold_to_gram: "10,000 Gold = 1 GRAM",
+        convert_withdraw: "Convert & Withdraw", withdraw_gold: "Withdraw Gold",
+        enter_gold_amount: "Enter Gold amount", min_withdraw_gold: "Min. withdrawal",
+        tasks_tab: "Tasks", rewards_tab: "Rewards", referral_quests: "Referral Quests",
         target_referrals: "Invite {target} friends", progress: "Progress",
         main_tasks: "Main Tasks", partner_tasks: "Partner Tasks",
         tasks_completed: "Tasks completed", current_level: "Current Level",
         main_task_complete: "Complete Task", partner_task_complete: "Complete Task",
-        boost_power: "Boost Your Power", boost_desc: "Convert Pirates to Power with +10% bonus",
-        pirate_to_power: "1,000 Pirate = 1,100 Power",
-        convert: "Convert", enter_pirate: "Enter Pirate amount",
+        boost_power: "Boost Your Power", boost_desc: "Convert Gold to Power with +10% bonus",
+        gold_to_power: "1,000 Gold = 1,100 Power",
+        convert: "Convert", enter_gold: "Enter Gold amount",
         level_progress: "Level Progress", next_level: "Next Level",
         quest_completed: "Quest Completed!",
-        current_power: "Current Power", next_level_power: "Next Level Power"
+        current_power: "Current Power", next_level_power: "Next Level Power",
+        verification_title: "Verification Required",
+        verification_sub: "Enter the 5-digit code sent to your Telegram",
+        verify: "Verify", resend: "Resend Code",
+        referral_commissions: "Referral Commissions",
+        referral_tasks: "Tasks", referral_promo: "Promo Codes", referral_mining: "Mining",
+        referral_max: "Up to 50% from pirates earnings",
+        referral_earnings: "Referral Earnings",
+        claim_earnings: "Claim",
+        total_gold: "Total Gold", total_earnings: "Total Earnings",
+        watch_ad_reward: "Watch Reward AD",
+        ad_reward_power: "+50 Power",
+        ad_cooldown: "Available in",
+        ad_daily_limit: "Daily limit",
+        verify_code: "Verification Code",
+        code_placeholder: "Enter code",
+        resend_code: "Resend Code",
+        verification_error: "Invalid code or code expired",
+        verification_success: "Verification successful!"
     },
     tr: {
         level: "Seviye", mining_rig: "Korsan Madenci Seviye", hourly: "5 saat", daily: "Günlük", monthly: "Aylık",
         start_mining: "MADENCİLİĞE BAŞLA", claim_reward: "ÖDÜLÜ AL", mining_note: "Ödüller madencilik oturumu bittikten sonra toplanabilir",
-        next_level_reward: "Sonraki seviye ödülü", power: "Güç", pirate: "Korsan", gram: "GRAM", promo_code: "Promosyon Kodu",
+        next_level_reward: "Sonraki seviye ödülü", power: "Güç", gold: "Altın", gram: "GRAM", promo_code: "Promosyon Kodu",
         enter_code: "Kodu girin", claim: "Al",
         watch_ad: "Ödüllü Reklam İzle", reward_amount: "Ödül", available_in: "Kalan süre", hours: "sa",
         watch: "İzle", all_tasks_completed: "Tüm görevler tamamlandı!", check_later: "Daha fazlası için daha sonra kontrol edin",
@@ -112,7 +148,7 @@ const translations = {
         available: "Mevcut", wallet: "Cüzdan", amount: "Miktar", min_withdraw: "Minimum çekim",
         confirm_withdrawal: "Çekimi Onayla", withdrawal_history: "Çekim Geçmişi", no_withdrawals: "Henüz çekim yok",
         pending: "beklemede", completed: "tamamlandı", claim_mining_title: "Madencilik Ödüllerini Al", claim_btn: "Ödülleri Al",
-        mining: "Madencilik", earn: "Kazan", team: "Takım", wallet_page: "Cüzdan",
+        mining: "Madencilik", earn: "Kazan", team: "Korsanlar", wallet_page: "Cüzdan",
         copy_success: "Kopyalandı!", link_copied: "Bağlantı panoya kopyalandı", earn_more: "Daha Fazla Güç Kazan",
         complete_tasks: "Görevleri Tamamla", go: "GİT", invite_frens: "Arkadaşları Davet Et", ad_reward: "Reklam İzle", loading: "Yükleniyor",
         ready: "Hazır", mining_active: "MADENCİLİK AKTİF", save_error: "Veri kaydedilemedi! Lütfen tekrar deneyin.",
@@ -129,30 +165,48 @@ const translations = {
         earn_percent_friends: "Arkadaş Kazançlarından {percent}% Kazanın",
         reward_added: "Ödül Eklendi! +{reward} Power",
         welcome_bonus: "Hoş Geldin Bonusu", up_to_level: "{level} Seviyeye Kadar", start_mining_quest: "{times} Kez Madencilik Başlat",
-        claim_quest: "Al", claimed: "Alındı", quests_title: "Görevler",
+        claim_quest: "Al", claimed: "Alındı", rewards_title: "Ödüller",
         invite_earn: "Davet Et ve Kazan", verified_member: "Doğrulanmış Üye", team_earnings: "Takım Kazancı",
         more_active_members: "Daha aktif üye, daha fazla kazanç", copy_link: "Bağlantıyı Kopyala", get_referrals: "Davet Al",
         total_members: "Toplam Üye", active_members: "Aktif Üyeler", total_earnings: "Toplam Kazanç",
-        tasks: "Görevler", quests: "Görevler", pirate_balance: "Korsan",
-        exchange_rate: "Döviz Kuru", pirate_to_gram: "10,000 Pirate = 1 GRAM",
-        convert_withdraw: "Dönüştür ve Çek", withdraw_pirate: "Korsan Çek",
-        enter_pirate_amount: "Korsan miktarını girin", min_withdraw_pirate: "Min. çekim",
-        tasks_tab: "Görevler", quests_tab: "Görevler", referral_quests: "Referans Görevleri",
+        tasks: "Görevler", rewards: "Ödüller", gold_balance: "Altın",
+        exchange_rate: "Döviz Kuru", gold_to_gram: "10,000 Gold = 1 GRAM",
+        convert_withdraw: "Dönüştür ve Çek", withdraw_gold: "Altın Çek",
+        enter_gold_amount: "Altın miktarını girin", min_withdraw_gold: "Min. çekim",
+        tasks_tab: "Görevler", rewards_tab: "Ödüller", referral_quests: "Referans Görevleri",
         target_referrals: "{target} arkadaş davet et", progress: "İlerleme",
         main_tasks: "Ana Görevler", partner_tasks: "Partner Görevler",
         tasks_completed: "Tamamlanan görevler", current_level: "Mevcut seviye",
         main_task_complete: "Görevi Tamamla", partner_task_complete: "Görevi Tamamla",
-        boost_power: "Gücünü Artır", boost_desc: "Korsanları +10% bonus ile Güce Dönüştür",
-        pirate_to_power: "1,000 Pirate = 1,100 Power",
-        convert: "Dönüştür", enter_pirate: "Korsan miktarını girin",
+        boost_power: "Gücünü Artır", boost_desc: "Altınları +10% bonus ile Güce Dönüştür",
+        gold_to_power: "1,000 Gold = 1,100 Power",
+        convert: "Dönüştür", enter_gold: "Altın miktarını girin",
         level_progress: "Seviye İlerlemesi", next_level: "Sonraki Seviye",
         quest_completed: "Görev Tamamlandı!",
-        current_power: "Mevcut Güç", next_level_power: "Sonraki Seviye Gücü"
+        current_power: "Mevcut Güç", next_level_power: "Sonraki Seviye Gücü",
+        verification_title: "Doğrulama Gerekli",
+        verification_sub: "Telegram'ınıza gönderilen 5 haneli kodu girin",
+        verify: "Doğrula", resend: "Kodu Tekrar Gönder",
+        referral_commissions: "Referans Komisyonları",
+        referral_tasks: "Görevler", referral_promo: "Promosyon Kodları", referral_mining: "Madencilik",
+        referral_max: "Korsan kazançlarından %50'ye kadar",
+        referral_earnings: "Referans Kazançları",
+        claim_earnings: "Al",
+        total_gold: "Toplam Altın", total_earnings: "Toplam Kazanç",
+        watch_ad_reward: "Ödüllü Reklam İzle",
+        ad_reward_power: "+50 Güç",
+        ad_cooldown: "Kalan süre",
+        ad_daily_limit: "Günlük limit",
+        verify_code: "Doğrulama Kodu",
+        code_placeholder: "Kodu girin",
+        resend_code: "Tekrar Gönder",
+        verification_error: "Geçersiz kod veya kod süresi doldu",
+        verification_success: "Doğrulama başarılı!"
     },
     ar: {
         level: "مستوى", mining_rig: "جهاز القراصنة مستوى", hourly: "كل 5 ساعات", daily: "يومي", monthly: "شهري",
         start_mining: "بدء التعدين", claim_reward: "استلام المكافأة", mining_note: "يمكن جمع المكافآت بعد انتهاء جلسة التعدين",
-        next_level_reward: "مكافأة المستوى التالي", power: "الطاقة", pirate: "قرصان", gram: "غرام", promo_code: "رمز ترويجي",
+        next_level_reward: "مكافأة المستوى التالي", power: "الطاقة", gold: "ذهب", gram: "غرام", promo_code: "رمز ترويجي",
         enter_code: "أدخل الرمز", claim: "استلام",
         watch_ad: "مشاهدة إعلان مكافأة", reward_amount: "المكافأة", available_in: "متاح بعد", hours: "ساعة",
         watch: "مشاهدة", all_tasks_completed: "جميع المهام مكتملة!", check_later: "تحقق لاحقاً للمزيد",
@@ -162,7 +216,7 @@ const translations = {
         available: "الرصيد المتوفر", wallet: "محفظة", amount: "المبلغ", min_withdraw: "الحد الأدنى للسحب",
         confirm_withdrawal: "تأكيد السحب", withdrawal_history: "سجل السحوبات", no_withdrawals: "لا توجد سحوبات بعد",
         pending: "قيد الانتظار", completed: "مكتمل", claim_mining_title: "استلام مكافآت التعدين", claim_btn: "استلام المكافآت",
-        mining: "التعدين", earn: "الأرباح", team: "الفريق", wallet_page: "المحفظة",
+        mining: "التعدين", earn: "الأرباح", team: "القراصنة", wallet_page: "المحفظة",
         copy_success: "تم النسخ!", link_copied: "تم نسخ الرابط", earn_more: "احصل على طاقة أكثر",
         complete_tasks: "إكمال المهام", go: "اذهب", invite_frens: "دعوة الأصدقاء", ad_reward: "مشاهدة إعلان", loading: "جاري التحميل",
         ready: "جاهز", mining_active: "التعدين نشط", save_error: "فشل حفظ البيانات! حاول مرة أخرى.",
@@ -179,25 +233,43 @@ const translations = {
         earn_percent_friends: "اربح {percent}% من أرباح الأصدقاء",
         reward_added: "تمت إضافة المكافأة! +{reward} طاقة",
         welcome_bonus: "مكافأة الترحيب", up_to_level: "حتى المستوى {level}", start_mining_quest: "بدء التعدين {times} مرات",
-        claim_quest: "استلام", claimed: "تم الاستلام", quests_title: "المهام",
+        claim_quest: "استلام", claimed: "تم الاستلام", rewards_title: "المكافآت",
         invite_earn: "ادعو واربح", verified_member: "عضو مؤكد", team_earnings: "أرباح الفريق",
         more_active_members: "كلما زاد الأعضاء النشطاء، زادت الأرباح", copy_link: "نسخ الرابط", get_referrals: "احصل على الإحالات",
         total_members: "إجمالي الأعضاء", active_members: "الأعضاء النشطاء", total_earnings: "إجمالي الأرباح",
-        tasks: "المهام", quests: "المهام", pirate_balance: "قرصان",
-        exchange_rate: "سعر الصرف", pirate_to_gram: "10,000 قرصان = 1 غرام",
-        convert_withdraw: "تحويل وسحب", withdraw_pirate: "سحب القراصنة",
-        enter_pirate_amount: "أدخل كمية القراصنة", min_withdraw_pirate: "الحد الأدنى للسحب",
-        tasks_tab: "المهام", quests_tab: "المهام", referral_quests: "مهام الإحالة",
+        tasks: "المهام", rewards: "المكافآت", gold_balance: "ذهب",
+        exchange_rate: "سعر الصرف", gold_to_gram: "10,000 ذهب = 1 غرام",
+        convert_withdraw: "تحويل وسحب", withdraw_gold: "سحب الذهب",
+        enter_gold_amount: "أدخل كمية الذهب", min_withdraw_gold: "الحد الأدنى للسحب",
+        tasks_tab: "المهام", rewards_tab: "المكافآت", referral_quests: "مهام الإحالة",
         target_referrals: "ادعو {target} أصدقاء", progress: "التقدم",
         main_tasks: "المهام الرئيسية", partner_tasks: "مهام الشركاء",
         tasks_completed: "المهام المكتملة", current_level: "المستوى الحالي",
         main_task_complete: "إكمال المهمة", partner_task_complete: "إكمال المهمة",
-        boost_power: "عزز طاقتك", boost_desc: "حوّل القراصنة إلى طاقة مع مكافأة +10%",
-        pirate_to_power: "1,000 قرصان = 1,100 طاقة",
-        convert: "تحويل", enter_pirate: "أدخل كمية القراصنة",
+        boost_power: "عزز طاقتك", boost_desc: "حوّل الذهب إلى طاقة مع مكافأة +10%",
+        gold_to_power: "1,000 ذهب = 1,100 طاقة",
+        convert: "تحويل", enter_gold: "أدخل كمية الذهب",
         level_progress: "تقدم المستوى", next_level: "المستوى التالي",
         quest_completed: "تم إكمال المهمة!",
-        current_power: "الطاقة الحالية", next_level_power: "طاقة المستوى التالي"
+        current_power: "الطاقة الحالية", next_level_power: "طاقة المستوى التالي",
+        verification_title: "التحقق مطلوب",
+        verification_sub: "أدخل الرمز المكون من 5 أرقام المرسل إلى Telegram",
+        verify: "تحقق", resend: "إعادة إرسال الرمز",
+        referral_commissions: "عمولات الإحالات",
+        referral_tasks: "المهام", referral_promo: "الرموز الترويجية", referral_mining: "التعدين",
+        referral_max: "حتى 50% من أرباح القراصنة",
+        referral_earnings: "أرباح الإحالات",
+        claim_earnings: "استلام",
+        total_gold: "إجمالي الذهب", total_earnings: "إجمالي الأرباح",
+        watch_ad_reward: "مشاهدة إعلان مكافأة",
+        ad_reward_power: "+50 طاقة",
+        ad_cooldown: "متاح بعد",
+        ad_daily_limit: "الحد اليومي",
+        verify_code: "رمز التحقق",
+        code_placeholder: "أدخل الرمز",
+        resend_code: "إعادة الإرسال",
+        verification_error: "رمز غير صحيح أو انتهت صلاحيته",
+        verification_success: "تم التحقق بنجاح!"
     }
 };
 
@@ -206,12 +278,14 @@ class App {
         this.tg = null;
         this.tgUser = null;
         this.isInitialized = false;
-        this.deviceId = null;
-        this.serverUrl = 'https://elon-production-9fd2.up.railway.app';
+        this.serverUrl = '';
+        this.verified = false;
+        this.verificationCode = '';
         
         this.powerBalance = 0;
-        this.pirateBalance = 0;
+        this.goldBalance = 0;
         this.gramBalance = 0;
+        this.referralEarnings = 0;
         this.userLevel = 1;
         this.hasStartedMining = false;
         this.userCompletedTasks = new Set();
@@ -222,13 +296,15 @@ class App {
         this.miningEndTime = null;
         this.miningInterval = null;
         this.uiUpdateInterval = null;
-        this.pendingPirateReward = 0;
+        this.pendingGoldReward = 0;
         this.miningSessionHours = 5;
         this.withdrawals = [];
         this.totalReferrals = 0;
         this.referralPower = 0;
         this.isTaskRunning = false;
         this.userState = null;
+        this.adWatchCount = 0;
+        this.adLastWatch = 0;
         
         this.lang = 'en';
         
@@ -240,7 +316,7 @@ class App {
         this.serverTimeOffset = 0;
         
         this._dirtyPower = false;
-        this._dirtyPirate = false;
+        this._dirtyGold = false;
         this._dirtyGram = false;
         this._dirtyMining = false;
         this._saveTimeout = null;
@@ -292,20 +368,20 @@ class App {
         return num.toString();
     }
 
-    getHourlyPirateRate() {
-        return (this.powerBalance / 1000) * (this.config.POWER_PER_TON_RATE || 0.0000125);
+    getDailyGoldRate() {
+        return (this.powerBalance / 1000) * (this.config.POWER_PER_DAY_RATE || 0.003);
     }
 
-    getDailyPirateRate() {
-        return this.getHourlyPirateRate() * 24;
+    getHourlyGoldRate() {
+        return this.getDailyGoldRate() / 24;
     }
 
-    getMonthlyPirateRate() {
-        return this.getDailyPirateRate() * 30;
+    getMonthlyGoldRate() {
+        return this.getDailyGoldRate() * 30;
     }
 
     calculateRewardForHours(hours) {
-        return this.getHourlyPirateRate() * hours;
+        return this.getHourlyGoldRate() * hours;
     }
 
     updateLevelFromPower() {
@@ -344,11 +420,9 @@ class App {
 
     updateHeaderBalances() {
         const powerHeader = document.getElementById('header-power');
-        const pirateHeader = document.getElementById('header-pirate');
-        const gramHeader = document.getElementById('header-gram');
+        const goldHeader = document.getElementById('header-gold');
         if (powerHeader) powerHeader.innerHTML = `<i class="fas fa-bolt"></i> ${this.formatNumber(Math.floor(this.powerBalance))}`;
-        if (pirateHeader) pirateHeader.innerHTML = `<img src="${this.config.PIRATE_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> ${this.formatNumber(Math.floor(this.pirateBalance))}`;
-        if (gramHeader) gramHeader.innerHTML = `<img src="${this.config.GRAM_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> ${this.gramBalance.toFixed(4)}`;
+        if (goldHeader) goldHeader.innerHTML = `<img src="${this.config.GOLD_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> ${this.formatNumber(Math.floor(this.goldBalance))}`;
     }
 
     getRequiredPowerForLevel(level) {
@@ -378,10 +452,19 @@ class App {
         }
     }
 
+    async getFromServer(endpoint) {
+        try {
+            const response = await fetch(`${this.serverUrl}${endpoint}`);
+            return await response.json();
+        } catch (error) {
+            console.error('Server fetch error:', error);
+            throw error;
+        }
+    }
+
     async getConfig() {
         try {
-            const response = await fetch(`${this.serverUrl}/api/config`);
-            const config = await response.json();
+            const config = await this.getFromServer('/api/config');
             this.config = config;
             return config;
         } catch (error) {
@@ -393,21 +476,30 @@ class App {
                 REFERRAL_PERCENTAGE: 10,
                 REFERRAL_POWER_REWARD: 3000,
                 MINING_SESSION_HOURS: 5,
-                POWER_PER_TON_RATE: 0.0000125,
+                POWER_PER_DAY_RATE: 0.003,
                 TASK_VERIFICATION_DELAY: 10,
                 DEFAULT_USER_AVATAR: "https://i.ibb.co/XxXhyZYf/file-000000006f8c720e9ab4c76b6e560062.png",
                 INTERSTITIAL_AD_BLOCK_ID: "int-34445",
+                REWARD_AD_BLOCK_ID: "37724",
                 BOT_LINK: "https://t.me/PirateTeamBot/mine?startapp=",
                 DAILY_CHECK_NEWS_LINK: "https://t.me/PirateTeamNews",
                 TASK_REWARD: 100,
                 TASK_IMAGE: "https://i.ibb.co/bjyVgYqJ/256e636cf3a0.jpg",
                 GRAM_ICON: "https://i.ibb.co/Q3LyfHL6/file-00000000aec481f4a4599f4c3a9fee9a.png",
-                PIRATE_ICON: "https://i.ibb.co/TqFMpkmh/file-00000000a1e482439c3eb9ba48a9444c.png",
+                GOLD_ICON: "https://i.ibb.co/TqFMpkmh/file-00000000a1e482439c3eb9ba48a9444c.png",
                 MINING_ICON: "https://i.ibb.co/bgCmP0nc/file-000000000a7c81f4951741e43e428778.png",
                 REFERRAL_LINK: "https://t.me/PirateTeamChannel",
                 PIRATE_TO_GRAM_RATE: 10000,
                 PIRATE_TO_POWER_RATE: 1000,
                 POWER_BONUS_PERCENTAGE: 10,
+                REFERRAL_TASKS_PERCENTAGE: 20,
+                REFERRAL_PROMO_PERCENTAGE: 20,
+                REFERRAL_MINING_PERCENTAGE: 10,
+                REFERRAL_MAX_PERCENTAGE: 50,
+                AD_REWARD_POWER: 50,
+                AD_COOLDOWN_MINUTES: 5,
+                AD_DAILY_LIMIT: 10,
+                VERIFICATION_CODE_LIFETIME: 60000,
                 QUESTS: {
                     welcome_bonus: { reward: 3000, type: "power" },
                     level_quests: [
@@ -446,8 +538,7 @@ class App {
 
     async getServerTime() {
         try {
-            const response = await fetch(`${this.serverUrl}/api/current-time`);
-            const data = await response.json();
+            const data = await this.getFromServer('/api/current-time');
             this.serverTimeOffset = data.serverTime - Date.now();
             return data.serverTime;
         } catch (error) {
@@ -460,6 +551,54 @@ class App {
         return Date.now() + this.serverTimeOffset;
     }
 
+    async sendVerificationCode() {
+        try {
+            const result = await this.fetchFromServer('/api/send-verification', {
+                userId: this.tgUser.id,
+                username: this.tgUser.username || '',
+                firstName: this.tgUser.first_name || 'User',
+                photoUrl: this.tgUser.photo_url || this.config.DEFAULT_USER_AVATAR
+            });
+            
+            if (result.error) {
+                this.showNotification('Error', result.error, 'error');
+                return false;
+            }
+            
+            this.showNotification('Code Sent', 'Check your Telegram for the verification code', 'success');
+            return true;
+        } catch (error) {
+            console.error('Send verification error:', error);
+            this.showNotification('Error', 'Failed to send verification code', 'error');
+            return false;
+        }
+    }
+
+    async verifyCode(code) {
+        try {
+            const result = await this.fetchFromServer('/api/verify-code', {
+                userId: this.tgUser.id,
+                code: code
+            });
+            
+            if (result.error) {
+                this.showNotification('Error', result.error, 'error');
+                return false;
+            }
+            
+            this.verified = true;
+            document.getElementById('verification-modal').style.display = 'none';
+            this.showNotification('Success', this.t('verification_success'), 'success');
+            await this.loadUserData();
+            this.renderMining();
+            return true;
+        } catch (error) {
+            console.error('Verify error:', error);
+            this.showNotification('Error', this.t('verification_error'), 'error');
+            return false;
+        }
+    }
+
     async loadUserData() {
         if (this._userDataLoaded) return;
         
@@ -468,8 +607,7 @@ class App {
                 userId: this.tgUser.id,
                 username: this.tgUser.username || '',
                 firstName: this.tgUser.first_name || 'User',
-                photoUrl: this.tgUser.photo_url || this.config.DEFAULT_USER_AVATAR,
-                referredBy: this.referredBy
+                photoUrl: this.tgUser.photo_url || this.config.DEFAULT_USER_AVATAR
             });
             
             if (result.error) {
@@ -480,14 +618,15 @@ class App {
             
             const user = result.user;
             this.powerBalance = user.power_balance || 0;
-            this.pirateBalance = user.pirate_balance || 0;
+            this.goldBalance = user.gold_balance || 0;
             this.gramBalance = user.gram_balance || 0;
+            this.referralEarnings = user.referral_earnings || 0;
             this.userLevel = user.level || 1;
             this.hasStartedMining = user.has_started_mining || false;
             this.miningActive = user.mining_active || false;
             this.miningStartTime = user.mining_start_time || null;
             this.miningEndTime = user.mining_end_time || null;
-            this.pendingPirateReward = user.pending_pirate_reward || 0;
+            this.pendingGoldReward = user.pending_gold_reward || 0;
             this.referredBy = user.referred_by || null;
             this.totalReferrals = user.total_referrals || 0;
             this.referralPower = user.referral_power || 0;
@@ -495,6 +634,9 @@ class App {
             this.totalMiningStarts = user.total_mining_starts || 0;
             this.referralRewardGiven = user.referral_reward_given || false;
             this.userState = user.state || 'active';
+            this.verified = user.verified || false;
+            this.adWatchCount = user.ad_watch_count || 0;
+            this.adLastWatch = user.ad_last_watch || 0;
             
             if (user.quests) {
                 this.quests = user.quests;
@@ -525,6 +667,11 @@ class App {
             
             this.updateHeaderBalances();
             
+            if (!this.verified && this.userState === 'pending_verification') {
+                document.getElementById('verification-modal').style.display = 'flex';
+                await this.sendVerificationCode();
+            }
+            
         } catch (error) {
             console.error('loadUserData error:', error);
             this.showNotification('Error', 'Failed to load user data', 'error');
@@ -552,13 +699,13 @@ class App {
         try {
             const updates = {};
             if (this._dirtyPower) updates.powerBalance = this.powerBalance;
-            if (this._dirtyPirate) updates.pirateBalance = this.pirateBalance;
+            if (this._dirtyGold) updates.goldBalance = this.goldBalance;
             if (this._dirtyGram) updates.gramBalance = this.gramBalance;
             if (this._dirtyMining) {
                 updates.miningActive = this.miningActive;
                 updates.miningStartTime = this.miningStartTime;
                 updates.miningEndTime = this.miningEndTime;
-                updates.pendingPirateReward = this.pendingPirateReward;
+                updates.pendingGoldReward = this.pendingGoldReward;
             }
             
             if (Object.keys(updates).length === 0) {
@@ -579,7 +726,7 @@ class App {
             }
             
             this._dirtyPower = false;
-            this._dirtyPirate = false;
+            this._dirtyGold = false;
             this._dirtyGram = false;
             this._dirtyMining = false;
             
@@ -623,11 +770,11 @@ class App {
         }
     }
 
-    async convertPirateToPower(pirateAmount) {
+    async convertGoldToPower(goldAmount) {
         try {
-            const result = await this.fetchFromServer('/api/convert-pirate-to-power', {
+            const result = await this.fetchFromServer('/api/convert-gold-to-power', {
                 userId: this.tgUser.id,
-                pirateAmount: pirateAmount
+                goldAmount: goldAmount
             });
             
             if (result.error) {
@@ -636,7 +783,7 @@ class App {
             }
             
             if (result.user) {
-                this.pirateBalance = result.user.pirate_balance || 0;
+                this.goldBalance = result.user.gold_balance || 0;
                 this.powerBalance = result.user.power_balance || 0;
                 this.updateLevelFromPower();
                 this.updateHeaderBalances();
@@ -648,6 +795,63 @@ class App {
         } catch (error) {
             console.error('Convert error:', error);
             this.showNotification('Error', 'Failed to convert', 'error');
+            return false;
+        }
+    }
+
+    async claimReferralEarnings() {
+        try {
+            const result = await this.fetchFromServer('/api/claim-referral-earnings', {
+                userId: this.tgUser.id
+            });
+            
+            if (result.error) {
+                this.showNotification('Error', result.error, 'error');
+                return false;
+            }
+            
+            if (result.user) {
+                this.powerBalance = result.user.power_balance || 0;
+                this.referralEarnings = result.user.referral_earnings || 0;
+                this.updateHeaderBalances();
+                this.showNotification('Success', `Claimed ${result.claimed} Power from referrals!`, 'success');
+                if (this._teamLoaded) this.renderTeam();
+                return true;
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('Claim referral earnings error:', error);
+            this.showNotification('Error', 'Failed to claim earnings', 'error');
+            return false;
+        }
+    }
+
+    async watchRewardAd() {
+        try {
+            const result = await this.fetchFromServer('/api/watch-ad', {
+                userId: this.tgUser.id
+            });
+            
+            if (result.error) {
+                this.showNotification('Error', result.error, 'error');
+                return false;
+            }
+            
+            if (result.user) {
+                this.powerBalance = result.user.power_balance || 0;
+                this.adWatchCount = result.user.ad_watch_count || 0;
+                this.adLastWatch = result.user.ad_last_watch || 0;
+                this.updateHeaderBalances();
+                this.showNotification('Success', `+${result.reward} Power! (${result.dailyCount}/${result.dailyLimit} today)`, 'success');
+                this.renderMining();
+                return true;
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('Watch ad error:', error);
+            this.showNotification('Error', 'Failed to watch ad', 'error');
             return false;
         }
     }
@@ -677,14 +881,27 @@ class App {
                 miningIcon.classList.remove('pulse-logo');
             }
         }
+        
+        const progressFill = document.querySelector('.mining-progress-fill');
+        if (progressFill) {
+            progressFill.style.width = percent + '%';
+        }
+        const progressText = document.querySelector('.mining-progress-text .percent');
+        if (progressText) {
+            progressText.innerText = Math.floor(percent) + '%';
+        }
     }
 
     async startMining() {
+        if (!this.verified) {
+            this.showNotification('Error', 'Please verify your account first', 'error');
+            return;
+        }
         this.miningActive = true;
         const serverTime = await this.getServerTime();
         this.miningStartTime = serverTime;
         this.miningEndTime = serverTime + (this.miningSessionHours * 3600000);
-        this.pendingPirateReward = 0;
+        this.pendingGoldReward = 0;
         this._dirtyMining = true;
         
         this.totalMiningStarts++;
@@ -704,7 +921,7 @@ class App {
         
         this.renderMining();
         this.startMiningLoop();
-        this.showNotification(this.t('start_mining'), 'Your rig is now mining Pirate', 'success');
+        this.showNotification(this.t('start_mining'), 'Your rig is now mining Gold', 'success');
         
         if (this._earnLoaded) this.renderEarn();
     }
@@ -716,7 +933,7 @@ class App {
         const elapsedSeconds = (currentTime - this.miningStartTime) / 1000;
         const elapsedHours = Math.min(elapsedSeconds / 3600, this.miningSessionHours);
         
-        this.pendingPirateReward = this.calculateRewardForHours(elapsedHours);
+        this.pendingGoldReward = this.calculateRewardForHours(elapsedHours);
         this.miningActive = false;
         this.miningStartTime = null;
         this.miningEndTime = null;
@@ -729,11 +946,15 @@ class App {
     }
 
     async claimMiningRewards() {
+        if (!this.verified) {
+            this.showNotification('Error', 'Please verify your account first', 'error');
+            return;
+        }
         if (this.miningActive) {
             this.showNotification('Error', 'Complete mining session first!', 'error');
             return;
         }
-        if (this.pendingPirateReward <= 0) {
+        if (this.pendingGoldReward <= 0) {
             this.showNotification('Error', 'No rewards to claim', 'error');
             return;
         }
@@ -748,12 +969,12 @@ class App {
             return;
         }
         
-        const rewardAmount = this.pendingPirateReward;
+        const rewardAmount = this.pendingGoldReward;
         
         try {
             const result = await this.fetchFromServer('/api/claim-mining', {
                 userId: this.tgUser.id,
-                pirateAmount: rewardAmount
+                goldAmount: rewardAmount
             });
             
             if (result.error) {
@@ -762,16 +983,16 @@ class App {
             }
             
             if (result.user) {
-                this.pirateBalance = result.user.pirate_balance || 0;
-                this.pendingPirateReward = 0;
+                this.goldBalance = result.user.gold_balance || 0;
+                this.pendingGoldReward = 0;
                 this.miningActive = false;
                 this.miningStartTime = null;
                 this.miningEndTime = null;
-                this._dirtyPirate = false;
+                this._dirtyGold = false;
                 this._dirtyMining = false;
                 this.updateHeaderBalances();
                 this.renderMining();
-                this.showNotification('Rewards Claimed!', `${rewardAmount.toFixed(8)} Pirate added to balance`, 'success');
+                this.showNotification('Rewards Claimed!', `${rewardAmount.toFixed(8)} Gold added to balance`, 'success');
             }
         } catch (error) {
             console.error('Claim mining error:', error);
@@ -822,6 +1043,10 @@ class App {
     }
 
     async applyPromoCode(code) {
+        if (!this.verified) {
+            this.showNotification('Error', 'Please verify your account first', 'error');
+            return false;
+        }
         if (!this.tgUser) return false;
         
         try {
@@ -837,7 +1062,7 @@ class App {
             
             if (result.user) {
                 this.powerBalance = result.user.power_balance || 0;
-                this.pirateBalance = result.user.pirate_balance || 0;
+                this.goldBalance = result.user.gold_balance || 0;
                 this.gramBalance = result.user.gram_balance || 0;
                 this.updateLevelFromPower();
                 this.updateHeaderBalances();
@@ -855,8 +1080,7 @@ class App {
 
     async loadTasks(category) {
         try {
-            const response = await fetch(`${this.serverUrl}/api/tasks/${category}`);
-            const data = await response.json();
+            const data = await this.getFromServer(`/api/tasks/${category}`);
             return data.tasks || [];
         } catch (error) {
             console.error('Load tasks error:', error);
@@ -898,7 +1122,7 @@ class App {
         return match ? match[1] : null;
     }
 
-    async withdraw(pirateAmount, wallet) {
+    async withdraw(goldAmount, wallet) {
         if (this._withdrawLock) {
             this.showNotification('Please wait', 'You can withdraw again after 10 seconds', 'warning');
             return false;
@@ -909,7 +1133,7 @@ class App {
             return false;
         }
         
-        const amount = parseFloat(pirateAmount);
+        const amount = parseFloat(goldAmount);
         if (isNaN(amount) || amount <= 0) {
             this.showNotification('Error', 'Invalid amount', 'error');
             return false;
@@ -921,8 +1145,8 @@ class App {
             return false;
         }
         
-        if (amount > this.pirateBalance) {
-            this.showNotification('Error', 'Insufficient Pirate balance', 'error');
+        if (amount > this.goldBalance) {
+            this.showNotification('Error', 'Insufficient Gold balance', 'error');
             return false;
         }
         
@@ -940,7 +1164,7 @@ class App {
         try {
             const result = await this.fetchFromServer('/api/withdraw', {
                 userId: this.tgUser.id,
-                pirateAmount: amount,
+                goldAmount: amount,
                 wallet: wallet
             });
             
@@ -950,7 +1174,7 @@ class App {
             }
             
             if (result.user) {
-                this.pirateBalance = result.user.pirate_balance || 0;
+                this.goldBalance = result.user.gold_balance || 0;
                 this.gramBalance = result.user.gram_balance || 0;
                 this.updateHeaderBalances();
             }
@@ -975,19 +1199,27 @@ class App {
         const el = document.getElementById('mining-page');
         if (!el) return;
         
-        const hourlyRate = this.getHourlyPirateRate() * 5;
-        const dailyRate = this.getDailyPirateRate();
-        const monthlyRate = this.getMonthlyPirateRate();
+        const hourlyRate = this.getHourlyGoldRate();
+        const dailyRate = this.getDailyGoldRate();
+        const monthlyRate = this.getMonthlyGoldRate();
         const progressPercent = this.getMiningProgressPercent();
         const radius = 70;
         const circumference = 2 * Math.PI * radius;
         const dashOffset = circumference - (progressPercent / 100) * circumference;
         
-        const showStartButton = !this.miningActive && this.pendingPirateReward <= 0;
-        const showClaimButton = !this.miningActive && this.pendingPirateReward > 0;
+        const showStartButton = !this.miningActive && this.pendingGoldReward <= 0;
+        const showClaimButton = !this.miningActive && this.pendingGoldReward > 0;
         const showMiningActive = this.miningActive;
         
         const levelProgress = this.getLevelProgress();
+        
+        const dailyReset = new Date().setHours(0, 0, 0, 0);
+        let dailyCount = this.adWatchCount || 0;
+        if (this.adLastWatch < dailyReset) {
+            dailyCount = 0;
+        }
+        const adCooldownRemaining = this.adLastWatch ? Math.max(0, (this.config.AD_COOLDOWN_MINUTES * 60) - Math.floor((Date.now() - this.adLastWatch) / 1000)) : 0;
+        const adAvailable = dailyCount < this.config.AD_DAILY_LIMIT && adCooldownRemaining === 0;
         
         el.innerHTML = `
             <div class="mining-card gold-card">
@@ -1004,26 +1236,57 @@ class App {
                     <div class="rate-stat"><div class="stat-label">${this.t('daily')}</div><div class="stat-value">${dailyRate.toFixed(5)}</div></div>
                     <div class="rate-stat"><div class="stat-label">${this.t('monthly')}</div><div class="stat-value">${monthlyRate.toFixed(5)}</div></div>
                 </div>
-                ${showMiningActive ? `<div class="mining-timer"><i class="fas fa-hourglass-half"></i> 00:00:00</div><div class="mining-active-badge gold-badge"><i class="fas fa-circle"></i> ${this.t('mining_active')}</div>` : ''}
+                ${showMiningActive ? `
+                    <div class="mining-progress-container">
+                        <div class="mining-progress-bar">
+                            <div class="mining-progress-fill" style="width: ${progressPercent}%"></div>
+                        </div>
+                        <div class="mining-progress-text">
+                            <span>${this.t('mining_active')}</span>
+                            <span class="percent">${Math.floor(progressPercent)}%</span>
+                        </div>
+                    </div>
+                    <div class="mining-timer"><i class="fas fa-hourglass-half"></i> 00:00:00</div>
+                    <div class="mining-active-badge gold-badge"><i class="fas fa-circle"></i> ${this.t('mining_active')}</div>
+                ` : ''}
                 ${showStartButton ? `<button id="start-mining-btn" class="mining-action-btn gold-btn"><i class="fas fa-play"></i> ${this.t('start_mining')}</button>` : ''}
                 ${showClaimButton ? `<button id="claim-mining-btn" class="mining-claim-btn gold-btn"><i class="fas fa-gift"></i> ${this.t('claim_reward')}</button>` : ''}
                 <div class="mining-info">
                     <span><i class="fas fa-bolt"></i> ${this.formatNumber(Math.floor(this.powerBalance))} ${this.t('power')}</span>
-                    <span><img src="${this.config.PIRATE_ICON}" style="width:16px;height:16px;border-radius:50%;"> ${this.formatNumber(Math.floor(this.pirateBalance))} ${this.t('pirate')}</span>
+                    <span><img src="${this.config.GOLD_ICON}" style="width:16px;height:16px;border-radius:50%;"> ${this.formatNumber(Math.floor(this.goldBalance))} ${this.t('gold')}</span>
                 </div>
+            </div>
+            
+            <div class="ad-card gold-card">
+                <div class="ad-info">
+                    <h4><i class="fas fa-play-circle"></i> ${this.t('watch_ad_reward')}</h4>
+                    <p>${this.t('ad_reward_power')} • ${this.t('ad_daily_limit')}: ${dailyCount}/${this.config.AD_DAILY_LIMIT}</p>
+                </div>
+                <button id="watch-ad-btn" class="ad-btn gold-btn" ${!adAvailable ? 'disabled' : ''}>
+                    ${adAvailable ? this.t('watch_ad_btn') : (adCooldownRemaining > 0 ? `${Math.floor(adCooldownRemaining / 60)}:${(adCooldownRemaining % 60).toString().padStart(2, '0')}` : this.t('ad_daily_limit'))}
+                </button>
             </div>
             
             <div class="boost-card gold-card">
                 <h4><i class="fas fa-rocket"></i> ${this.t('boost_power')}</h4>
                 <p style="font-size:0.8rem;color:#888;margin-bottom:12px;">${this.t('boost_desc')}</p>
-                <div class="boost-info">
-                    <span class="rate">${this.t('pirate_to_power')}</span>
-                    <span class="bonus">+${this.config.POWER_BONUS_PERCENTAGE || 10}%</span>
+                <div class="boost-balances">
+                    <div class="balance-item">
+                        <span class="label">${this.t('gold')}</span>
+                        <span class="value"><img src="${this.config.GOLD_ICON}" style="width:20px;height:20px;border-radius:50%;"> ${this.formatNumber(Math.floor(this.goldBalance))}</span>
+                    </div>
+                    <div class="arrow"><i class="fas fa-arrow-right"></i></div>
+                    <div class="balance-item">
+                        <span class="label">${this.t('power')}</span>
+                        <span class="value"><i class="fas fa-bolt"></i> ${this.formatNumber(Math.floor(this.powerBalance))}</span>
+                    </div>
                 </div>
                 <div class="boost-input-group">
-                    <input type="number" id="boost-amount" class="form-input gold-input" placeholder="${this.t('enter_pirate')}" min="1" step="1">
+                    <input type="number" id="boost-amount" class="form-input gold-input" placeholder="${this.t('enter_gold')}" min="1" step="1">
+                    <span class="gold-preview" id="boost-preview">≈ 0 ${this.t('power')}</span>
                     <button id="boost-btn" class="boost-btn gold-btn">${this.t('convert')}</button>
                 </div>
+                <div class="boost-bonus">+${this.config.POWER_BONUS_PERCENTAGE || 10}% ${this.t('bonus') || 'bonus'}</div>
             </div>
             
             <div class="level-progress-card gold-card">
@@ -1049,6 +1312,24 @@ class App {
         document.getElementById('start-mining-btn')?.addEventListener('click', () => this.startMining());
         document.getElementById('claim-mining-btn')?.addEventListener('click', () => this.claimMiningRewards());
         
+        document.getElementById('watch-ad-btn')?.addEventListener('click', async () => {
+            const btn = document.getElementById('watch-ad-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
+            
+            try {
+                const AdController = window.Adsgram.init({ blockId: this.config.REWARD_AD_BLOCK_ID || "37724" });
+                await AdController.show();
+                await this.watchRewardAd();
+            } catch (e) {
+                this.showNotification('No Ads', 'No ads available at the moment', 'warning');
+            }
+            
+            btn.disabled = false;
+            btn.innerHTML = this.t('watch_ad_btn');
+            this.renderMining();
+        });
+        
         document.getElementById('boost-btn')?.addEventListener('click', async () => {
             const input = document.getElementById('boost-amount');
             const amount = parseFloat(input?.value);
@@ -1056,18 +1337,32 @@ class App {
                 this.showNotification('Error', 'Please enter a valid amount', 'error');
                 return;
             }
-            if (amount > this.pirateBalance) {
-                this.showNotification('Error', 'Insufficient Pirate balance', 'error');
+            if (amount > this.goldBalance) {
+                this.showNotification('Error', 'Insufficient Gold balance', 'error');
                 return;
             }
             const btn = document.getElementById('boost-btn');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
-            await this.convertPirateToPower(amount);
+            await this.convertGoldToPower(amount);
             btn.disabled = false;
             btn.innerHTML = this.t('convert');
             input.value = '';
             this.renderMining();
+        });
+        
+        document.getElementById('boost-amount')?.addEventListener('input', (e) => {
+            const amount = parseFloat(e.target.value);
+            const preview = document.getElementById('boost-preview');
+            if (preview) {
+                if (!isNaN(amount) && amount > 0) {
+                    const power = amount * this.config.PIRATE_TO_POWER_RATE;
+                    const bonus = power * (this.config.POWER_BONUS_PERCENTAGE / 100);
+                    preview.innerText = `≈ ${(power + bonus).toFixed(0)} ${this.t('power')}`;
+                } else {
+                    preview.innerText = `≈ 0 ${this.t('power')}`;
+                }
+            }
         });
         
         if (this.miningActive) this.updateMiningTimerDisplay();
@@ -1108,7 +1403,7 @@ class App {
             
             <div class="earn-tabs">
                 <button class="earn-tab active" data-tab="tasks">${this.t('tasks_tab')}</button>
-                <button class="earn-tab" data-tab="quests">${this.t('quests_tab')}</button>
+                <button class="earn-tab" data-tab="quests">${this.t('rewards_tab')}</button>
             </div>
             
             <div id="earn-tasks-tab" class="earn-tab-content active">
@@ -1140,12 +1435,12 @@ class App {
                 </div>
                 
                 <div class="quests-section">
-                    <h4 class="quests-subtitle"><i class="fas fa-trophy"></i> ${this.t('level')} ${this.t('quests')}</h4>
+                    <h4 class="quests-subtitle"><i class="fas fa-trophy"></i> ${this.t('level')} ${this.t('rewards')}</h4>
                     <div id="level-quests-container"></div>
                 </div>
                 
                 <div class="quests-section">
-                    <h4 class="quests-subtitle"><i class="fas fa-hammer"></i> ${this.t('mining')} ${this.t('quests')}</h4>
+                    <h4 class="quests-subtitle"><i class="fas fa-hammer"></i> ${this.t('mining')} ${this.t('rewards')}</h4>
                     <div id="mining-quests-container"></div>
                 </div>
                 
@@ -1395,7 +1690,7 @@ class App {
         const currentIndex = this.quests.currentLevelQuestIndex || 0;
         
         if (currentIndex >= levelQuests.length) {
-            container.innerHTML = `<div class="no-data"><i class="fas fa-check-circle"></i><p>All level quests completed!</p></div>`;
+            container.innerHTML = `<div class="no-data"><i class="fas fa-check-circle"></i><p>All level rewards completed!</p></div>`;
             return;
         }
         
@@ -1433,7 +1728,7 @@ class App {
                 const leveledUp = this.updateLevelFromPower();
                 this.renderMining();
                 this.renderQuests();
-                this.showNotification('Quest Completed!', `+${reward} Power`, 'success');
+                this.showNotification('Reward Claimed!', `+${reward} Power`, 'success');
                 if (leveledUp) {
                     this.showNotification('Level Up!', `You reached level ${this.userLevel}!`, 'success');
                 }
@@ -1449,7 +1744,7 @@ class App {
         const currentIndex = this.quests.currentMiningQuestIndex || 0;
         
         if (currentIndex >= miningQuests.length) {
-            container.innerHTML = `<div class="no-data"><i class="fas fa-check-circle"></i><p>All mining quests completed!</p></div>`;
+            container.innerHTML = `<div class="no-data"><i class="fas fa-check-circle"></i><p>All mining rewards completed!</p></div>`;
             return;
         }
         
@@ -1487,7 +1782,7 @@ class App {
                 this.updateLevelFromPower();
                 this.renderMining();
                 this.renderQuests();
-                this.showNotification('Quest Completed!', `+${reward} Power`, 'success');
+                this.showNotification('Reward Claimed!', `+${reward} Power`, 'success');
             });
         }
     }
@@ -1506,7 +1801,7 @@ class App {
         const currentIndex = this.quests.currentReferralQuestIndex || 0;
         
         if (currentIndex >= referralQuests.length) {
-            container.innerHTML = `<div class="no-data"><i class="fas fa-check-circle"></i><p>All referral quests completed!</p></div>`;
+            container.innerHTML = `<div class="no-data"><i class="fas fa-check-circle"></i><p>All referral rewards completed!</p></div>`;
             return;
         }
         
@@ -1544,7 +1839,7 @@ class App {
                 this.updateLevelFromPower();
                 this.renderMining();
                 this.renderQuests();
-                this.showNotification('Quest Completed!', `+${reward} Power`, 'success');
+                this.showNotification('Reward Claimed!', `+${reward} Power`, 'success');
             });
         }
     }
@@ -1554,42 +1849,50 @@ class App {
         if (!el) return;
         const link = (this.config.BOT_LINK || 'https://t.me/PirateTeamBot/mine?startapp=') + this.tgUser.id;
         
-        const activeMembers = this.referralPower > 0 ? Math.floor(this.referralPower / (this.config.REFERRAL_POWER_REWARD || 3000)) : 0;
-        const totalEarnings = this.referralPower;
+        const maxPercent = this.config.REFERRAL_MAX_PERCENTAGE || 50;
         
         el.innerHTML = `
-            <div class="team-card gold-card" style="padding:20px; border-radius:var(--border-radius); margin-bottom:20px;">
-                <h3 style="text-align:center; color:#FFD700; margin-bottom:20px;"><i class="fas fa-users"></i> ${this.t('invite_earn')}</h3>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
-                    <div class="team-stat-card gold-stat">
-                        <div class="stat-number">+${this.config.REFERRAL_POWER_REWARD || 3000}</div>
-                        <div class="stat-label">${this.t('verified_member')}</div>
+            <div class="team-card gold-card">
+                <div class="team-title">
+                    <i class="fas fa-users"></i> ${this.t('referral_max')}
+                </div>
+                
+                <div class="team-commission-grid">
+                    <div class="team-commission-item">
+                        <div class="commission-value">${this.config.REFERRAL_TASKS_PERCENTAGE || 20}%</div>
+                        <div class="commission-label">${this.t('referral_tasks')}</div>
                     </div>
-                    <div class="team-stat-card gold-stat">
-                        <div class="stat-number">${this.config.REFERRAL_PERCENTAGE || 10}%</div>
-                        <div class="stat-label">${this.t('team_earnings')}</div>
+                    <div class="team-commission-item">
+                        <div class="commission-value">${this.config.REFERRAL_PROMO_PERCENTAGE || 20}%</div>
+                        <div class="commission-label">${this.t('referral_promo')}</div>
+                    </div>
+                    <div class="team-commission-item">
+                        <div class="commission-value">${this.config.REFERRAL_MINING_PERCENTAGE || 10}%</div>
+                        <div class="commission-label">${this.t('referral_mining')}</div>
                     </div>
                 </div>
-                <div style="text-align:center; color:#888; font-size:0.75rem; margin-bottom:16px;">
-                    ${this.t('more_active_members')}
-                </div>
-                <div style="display:flex; gap:8px;">
-                    <button id="copyLink" class="modern-support-btn gold-btn" style="flex:1; margin:0;"><i class="fas fa-copy"></i> ${this.t('copy_link')}</button>
-                    <button id="shareLink" class="modern-support-btn gold-btn telegram-btn" style="flex:1; margin:0;"><i class="fas fa-users"></i> ${this.t('get_referrals')}</button>
+                
+                <div class="team-link-box" id="referral-link">${link}</div>
+                <button id="copyLink" class="copy-btn gold-btn"><i class="fas fa-copy"></i> ${this.t('copy_link')}</button>
+            </div>
+            
+            <div class="earnings-row">
+                <div class="earning-card">
+                    <div>
+                        <div class="earning-label"><i class="fas fa-bolt"></i> ${this.t('power_earnings')}</div>
+                        <div class="earning-value">${this.formatNumber(Math.floor(this.referralEarnings))}</div>
+                    </div>
+                    <button id="claim-earnings-btn" class="claim-btn gold-btn" ${this.referralEarnings <= 0 ? 'disabled' : ''}>${this.t('claim_earnings')}</button>
                 </div>
             </div>
             
             <div class="team-stats-grid">
                 <div class="team-stat-card gold-stat">
-                    <div class="stat-number">${this.totalReferrals}</div>
-                    <div class="stat-label">${this.t('total_members')}</div>
+                    <div class="stat-number">${this.formatNumber(Math.floor(this.goldBalance))}</div>
+                    <div class="stat-label">${this.t('total_gold')}</div>
                 </div>
                 <div class="team-stat-card gold-stat">
-                    <div class="stat-number">${activeMembers}</div>
-                    <div class="stat-label">${this.t('active_members')}</div>
-                </div>
-                <div class="team-stat-card gold-stat" style="grid-column: span 2;">
-                    <div class="stat-number">${this.formatNumber(Math.floor(totalEarnings))}</div>
+                    <div class="stat-number">${this.formatNumber(Math.floor(this.powerBalance + this.referralEarnings))}</div>
                     <div class="stat-label">${this.t('total_earnings')}</div>
                 </div>
             </div>
@@ -1600,9 +1903,14 @@ class App {
             this.showNotification(this.t('copy_success'), this.t('link_copied'), 'success');
         });
         
-        document.getElementById('shareLink')?.addEventListener('click', () => {
-            const shareUrl = this.config.REFERRAL_LINK || 'https://t.me/PirateTeamChannel';
-            window.open(shareUrl, '_blank');
+        document.getElementById('claim-earnings-btn')?.addEventListener('click', async () => {
+            const btn = document.getElementById('claim-earnings-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
+            await this.claimReferralEarnings();
+            btn.disabled = false;
+            btn.innerHTML = this.t('claim_earnings');
+            this.renderTeam();
         });
     }
 
@@ -1611,13 +1919,13 @@ class App {
         if (!el) return;
         
         const exchangeRate = this.config.PIRATE_TO_GRAM_RATE || 10000;
-        const minWithdrawPirate = (this.config.MINIMUM_WITHDRAW || 0.03) * exchangeRate;
+        const minWithdrawGold = (this.config.MINIMUM_WITHDRAW || 0.03) * exchangeRate;
         const fees = this.config.WITHDRAWAL_FEES || 0;
         
         const historyHtml = this.withdrawals && this.withdrawals.length ? this.withdrawals.slice(0, 5).map(w => `
             <div class="history-item gold-item">
                 <div class="history-amount">
-                    <img src="${this.config.PIRATE_ICON}" style="width:16px;height:16px;border-radius:50%;"> ${w.amount.toFixed(2)} Pirate
+                    <img src="${this.config.GOLD_ICON}" style="width:16px;height:16px;border-radius:50%;"> ${w.amount.toFixed(2)} Gold
                     <span style="color:#888;font-size:0.7rem;">→</span>
                     <img src="${this.config.GRAM_ICON}" style="width:16px;height:16px;border-radius:50%;"> ${w.gram_amount.toFixed(5)} GRAM
                 </div>
@@ -1629,36 +1937,30 @@ class App {
             <div class="wallet-card gold-card">
                 <div class="wallet-balances">
                     <div class="wallet-balance-item">
-                        <div class="wallet-balance-icon"><img src="${this.config.PIRATE_ICON}" style="width:32px;height:32px;border-radius:50%;"></div>
-                        <div class="wallet-balance-info">
-                            <div class="wallet-balance-label">${this.t('pirate_balance')}</div>
-                            <div class="wallet-balance-amount">${this.formatNumber(Math.floor(this.pirateBalance))}</div>
-                        </div>
+                        <div class="wallet-balance-icon"><img src="${this.config.GOLD_ICON}" style="width:24px;height:24px;border-radius:50%;"></div>
+                        <div class="wallet-balance-label">${this.t('gold_balance')}</div>
+                        <div class="wallet-balance-amount">${this.formatNumber(Math.floor(this.goldBalance))}</div>
                     </div>
                     <div class="wallet-balance-item">
-                        <div class="wallet-balance-icon"><img src="${this.config.GRAM_ICON}" style="width:32px;height:32px;border-radius:50%;"></div>
-                        <div class="wallet-balance-info">
-                            <div class="wallet-balance-label">${this.t('gram_balance')}</div>
-                            <div class="wallet-balance-amount">${this.gramBalance.toFixed(4)}</div>
-                        </div>
+                        <div class="wallet-balance-icon"><img src="${this.config.GRAM_ICON}" style="width:24px;height:24px;border-radius:50%;"></div>
+                        <div class="wallet-balance-label">${this.t('gram_balance')}</div>
+                        <div class="wallet-balance-amount">${this.gramBalance.toFixed(4)}</div>
+                    </div>
+                    <div class="wallet-balance-item">
+                        <div class="wallet-balance-icon"><i class="fas fa-bolt" style="color:var(--primary);font-size:1.2rem;"></i></div>
+                        <div class="wallet-balance-label">${this.t('power')}</div>
+                        <div class="wallet-balance-amount">${this.formatNumber(Math.floor(this.powerBalance))}</div>
                     </div>
                 </div>
-                
-                <div class="exchange-rate-display">
-                    <i class="fas fa-exchange-alt"></i>
-                    ${this.t('exchange_rate')}: ${exchangeRate.toLocaleString()} ${this.t('pirate')} = 1 GRAM
-                </div>
-                
-                ${fees > 0 ? `<div class="withdraw-note"><i class="fas fa-info-circle"></i> ${this.t('withdrawal_fees_note', { fees: fees })}</div>` : ''}
             </div>
             
             <div class="withdraw-card gold-card">
                 <h4 style="text-align:center; color:#FFD700; margin-bottom:16px;"><i class="fas fa-arrow-up"></i> ${this.t('convert_withdraw')}</h4>
                 
                 <div class="form-group">
-                    <label class="form-label">${this.t('enter_pirate_amount')}</label>
+                    <label class="form-label">${this.t('enter_gold_amount')}</label>
                     <div class="input-wrapper">
-                        <input type="number" id="withdraw-amount" class="form-input gold-input" placeholder="${this.t('min_withdraw_pirate')}: ${minWithdrawPirate.toFixed(0)}" step="1">
+                        <input type="number" id="withdraw-amount" class="form-input gold-input" placeholder="${this.t('min_withdraw_gold')}: ${minWithdrawGold.toFixed(0)}" step="1">
                         <button id="max-amount" class="action-btn gold-btn">MAX</button>
                     </div>
                 </div>
@@ -1675,6 +1977,11 @@ class App {
                 </div>
                 
                 <button id="withdraw-btn" class="withdraw-confirm-btn gold-btn disabled">${this.t('confirm_withdrawal')}</button>
+                
+                <div class="exchange-note">
+                    <i class="fas fa-exchange-alt"></i> ${this.t('exchange_rate')}: ${exchangeRate.toLocaleString()} ${this.t('gold')} = 1 GRAM
+                    ${fees > 0 ? ` • ${this.t('withdrawal_fees_note', { fees: fees })}` : ''}
+                </div>
             </div>
             
             <div class="history-list">
@@ -1696,7 +2003,7 @@ class App {
                 preview.innerHTML = `<span>≈ ${gramAmount.toFixed(5)} GRAM</span>`;
             }
             
-            const isValid = amount > 0 && amount <= this.pirateBalance && gramAmount >= (this.config.MINIMUM_WITHDRAW || 0.03);
+            const isValid = amount > 0 && amount <= this.goldBalance && gramAmount >= (this.config.MINIMUM_WITHDRAW || 0.03);
             if (withdrawBtn) {
                 withdrawBtn.disabled = !isValid;
                 withdrawBtn.classList.toggle('disabled', !isValid);
@@ -1705,7 +2012,7 @@ class App {
         
         maxBtn?.addEventListener('click', () => {
             if (amountInput) {
-                amountInput.value = Math.floor(this.pirateBalance);
+                amountInput.value = Math.floor(this.goldBalance);
                 updatePreview();
             }
         });
@@ -1749,11 +2056,26 @@ class App {
         document.getElementById('nav-team').innerText = this.t('team');
         document.getElementById('nav-wallet').innerText = this.t('wallet_page');
         document.getElementById('user-level-text').innerText = this.t('level');
+        
+        const verifyTitle = document.querySelector('#verification-modal .modal-header h3');
+        if (verifyTitle) verifyTitle.innerHTML = `<i class="fas fa-shield-alt"></i> ${this.t('verification_title')}`;
+        const verifySub = document.querySelector('#verification-modal .modal-body p');
+        if (verifySub) verifySub.innerText = this.t('verification_sub');
+        const verifyBtn = document.getElementById('verify-btn');
+        if (verifyBtn) verifyBtn.innerText = this.t('verify');
+        const resendBtn = document.getElementById('resend-code-btn');
+        if (resendBtn) resendBtn.innerText = this.t('resend_code');
+        const verifyInput = document.getElementById('verification-input');
+        if (verifyInput) verifyInput.placeholder = this.t('code_placeholder');
     }
 
     setupNavigation() {
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
+                if (!this.verified && btn.dataset.page !== 'mining-page') {
+                    this.showNotification('Error', 'Please verify your account first', 'error');
+                    return;
+                }
                 const id = btn.dataset.page;
                 document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
@@ -1799,22 +2121,11 @@ class App {
     async initialize() {
         const progressBar = document.getElementById('loader-progress-bar');
         const loaderPercent = document.getElementById('loader-percent');
-        const loaderTips = document.querySelectorAll('.loader-tip');
-        let tipIndex = 0;
         
         const updateProgress = (percent) => {
             if (progressBar) progressBar.style.width = percent + '%';
             if (loaderPercent) loaderPercent.innerText = Math.floor(percent) + '%';
         };
-        
-        const rotateTips = () => {
-            loaderTips.forEach((tip, i) => {
-                tip.classList.toggle('active', i === tipIndex);
-            });
-            tipIndex = (tipIndex + 1) % loaderTips.length;
-        };
-        
-        const tipInterval = setInterval(rotateTips, 3000);
         
         try {
             updateProgress(5);
@@ -1851,7 +2162,7 @@ class App {
             const headerHtml = `
                 <div class="header-balances" id="header-balances">
                     <div class="header-balance" id="header-power"><i class="fas fa-bolt"></i> ${this.formatNumber(Math.floor(this.powerBalance))}</div>
-                    <div class="header-balance" id="header-pirate"><img src="${this.config.PIRATE_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> ${this.formatNumber(Math.floor(this.pirateBalance))}</div>
+                    <div class="header-balance" id="header-gold"><img src="${this.config.GOLD_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> ${this.formatNumber(Math.floor(this.goldBalance))}</div>
                 </div>
             `;
             const headerActions = document.querySelector('.header-actions');
@@ -1864,7 +2175,7 @@ class App {
                 if (currentTime >= this.miningEndTime) {
                     const elapsedSeconds = (currentTime - this.miningStartTime) / 1000;
                     const elapsedHours = elapsedSeconds / 3600;
-                    this.pendingPirateReward = this.calculateRewardForHours(Math.min(elapsedHours, this.miningSessionHours));
+                    this.pendingGoldReward = this.calculateRewardForHours(Math.min(elapsedHours, this.miningSessionHours));
                     this.miningActive = false;
                     this.miningStartTime = null;
                     this.miningEndTime = null;
@@ -1886,7 +2197,6 @@ class App {
             updateProgress(100);
             
             setTimeout(() => {
-                clearInterval(tipInterval);
                 const loader = document.getElementById('app-loader');
                 if (loader) {
                     loader.style.opacity = '0';
@@ -1895,6 +2205,9 @@ class App {
                         const app = document.getElementById('app');
                         if (app) app.style.display = 'block';
                         this.updateMiningRing();
+                        if (!this.verified && this.userState === 'pending_verification') {
+                            document.getElementById('verification-modal').style.display = 'flex';
+                        }
                     }, 500);
                 }
             }, 500);
@@ -1902,7 +2215,6 @@ class App {
             this.isInitialized = true;
             
         } catch(err) {
-            clearInterval(tipInterval);
             console.error('Initialization error:', err);
             const errorEl = document.getElementById('loader-error');
             if (errorEl) {
@@ -1920,6 +2232,34 @@ class App {
             document.getElementById('promo-info-modal').style.display = 'none';
         });
         
+        document.getElementById('verify-btn')?.addEventListener('click', async () => {
+            const input = document.getElementById('verification-input');
+            const code = input?.value.trim();
+            if (!code || code.length !== 5) {
+                this.showNotification('Error', 'Please enter a valid 5-digit code', 'error');
+                return;
+            }
+            const btn = document.getElementById('verify-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
+            await this.verifyCode(code);
+            btn.disabled = false;
+            btn.innerHTML = this.t('verify');
+        });
+        
+        document.getElementById('resend-code-btn')?.addEventListener('click', async () => {
+            const btn = document.getElementById('resend-code-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
+            await this.sendVerificationCode();
+            btn.disabled = false;
+            btn.innerHTML = this.t('resend_code');
+        });
+        
+        document.getElementById('verification-input')?.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 5);
+        });
+        
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 this.saveUserData(true);
@@ -1927,7 +2267,7 @@ class App {
         });
         
         window.addEventListener('beforeunload', () => {
-            if (this.miningActive || this._dirtyPower || this._dirtyPirate || this._dirtyGram || this._dirtyMining) {
+            if (this.miningActive || this._dirtyPower || this._dirtyGold || this._dirtyGram || this._dirtyMining) {
                 this.saveUserData(true);
             }
         });
