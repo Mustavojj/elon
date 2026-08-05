@@ -614,51 +614,51 @@ body {
     margin: 0 auto 20px;
 }
 
-.mining-icon {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
-    position: relative;
-    z-index: 2;
-    pointer-events: none;
-    transition: box-shadow 0.3s ease;
-    border: 2px solid var(--primary);
-}
-
-.mining-icon.pulse-logo {
-    animation: pulse-logo 1.5s infinite;
-    box-shadow: 0 0 50px var(--primary-glow);
-}
-
-@keyframes pulse-logo {
-    0% {
-        box-shadow: 0 0 0 0 var(--primary-glow);
-        transform: scale(0.98);
-    }
-    70% {
-        box-shadow: 0 0 0 25px rgba(255, 215, 0, 0);
-        transform: scale(1);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
-        transform: scale(0.98);
-    }
-}
-
-.progress-ring {
+.gold-rain {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    border-radius: 50%;
-    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
 }
 
-.progress-ring-circle {
-    transition: stroke-dashoffset 0.5s ease;
-    filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.3));
+.gold-piece {
+    position: absolute;
+    font-size: 1.2rem;
+    animation: fall linear infinite;
+    color: #FFD700;
+    opacity: 0.8;
+}
+
+@keyframes fall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(180px) rotate(720deg); opacity: 0; }
+}
+
+.center-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 3.5rem;
+    color: #FFD700;
+    animation: goldPulse 2s ease-in-out infinite;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+@keyframes goldPulse {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.1);
+        text-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 215, 0, 0.4);
+    }
 }
 
 .mining-card h3 {
@@ -810,31 +810,6 @@ body {
     background: var(--gold-gradient);
 }
 
-.mining-info {
-    display: flex;
-    justify-content: center;
-    gap: 24px;
-    margin-top: 16px;
-    font-size: 0.75rem;
-    color: #888;
-    position: relative;
-    z-index: 2;
-    padding-top: 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.03);
-}
-
-.mining-info span {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.mining-info img {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-}
-
 .ad-card {
     background: var(--bg-card);
     backdrop-filter: blur(12px);
@@ -868,6 +843,11 @@ body {
     font-size: 0.7rem;
     color: #888;
     margin-top: 2px;
+}
+
+.ad-card .ad-info p .bolt {
+    color: var(--primary);
+    font-weight: 600;
 }
 
 .ad-card .ad-btn {
@@ -963,16 +943,20 @@ body {
     display: flex;
     gap: 8px;
     align-items: center;
+    position: relative;
 }
 
 .boost-input-group .form-input {
     flex: 1;
+    padding-right: 80px;
 }
 
 .boost-input-group .gold-preview {
+    position: absolute;
+    right: 12px;
     font-size: 0.7rem;
     color: #888;
-    white-space: nowrap;
+    pointer-events: none;
 }
 
 .boost-btn {
@@ -1006,6 +990,7 @@ body {
     padding: 4px 12px;
     border-radius: 20px;
     display: inline-block;
+    width: 100%;
 }
 
 .level-progress-card {
@@ -1365,10 +1350,19 @@ body {
     color: var(--primary-light);
     font-size: 1.1rem;
     margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
 }
 
 .team-card .team-title i {
     color: var(--primary);
+    font-size: 1.3rem;
+}
+
+.team-card .team-title strong {
+    font-weight: 900;
 }
 
 .team-commission-grid {
@@ -1427,14 +1421,28 @@ body {
     transform: scale(0.95);
 }
 
+.referral-earnings-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--primary-light);
+    margin: 20px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.referral-earnings-title i {
+    color: var(--primary);
+}
+
 .earnings-row {
     display: flex;
-    gap: 12px;
-    margin: 16px 0;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
 }
 
 .earnings-row .earning-card {
-    flex: 1;
     background: var(--bg-card);
     backdrop-filter: blur(12px);
     border-radius: var(--border-radius-sm);
@@ -1444,6 +1452,11 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.earnings-row .earning-card .earning-left {
+    display: flex;
+    flex-direction: column;
 }
 
 .earnings-row .earning-card .earning-label {
@@ -1480,7 +1493,7 @@ body {
 
 .team-stats-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 12px;
     margin-top: 16px;
 }
@@ -1510,6 +1523,10 @@ body {
     margin-top: 4px;
 }
 
+.team-stat-card.full-width {
+    grid-column: span 3;
+}
+
 .wallet-card {
     background: var(--bg-card);
     backdrop-filter: blur(12px);
@@ -1522,15 +1539,15 @@ body {
 
 .wallet-balances {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 8px;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
     margin-bottom: 12px;
 }
 
 .wallet-balance-item {
     background: rgba(0, 0, 0, 0.3);
     border-radius: var(--border-radius-sm);
-    padding: 12px 8px;
+    padding: 16px;
     text-align: center;
     border: 1px solid rgba(255, 215, 0, 0.03);
 }
@@ -1540,18 +1557,23 @@ body {
 }
 
 .wallet-balance-icon img {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
 }
 
+.wallet-balance-icon i {
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
 .wallet-balance-label {
-    font-size: 0.6rem;
+    font-size: 0.65rem;
     color: #888;
 }
 
 .wallet-balance-amount {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--primary-light);
     margin-top: 2px;
@@ -1953,6 +1975,12 @@ body {
     }
     .earnings-row {
         flex-direction: column;
+    }
+    .team-stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .team-stat-card.full-width {
+        grid-column: span 2;
     }
 }
 
