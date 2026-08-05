@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>PIRATE TEAM | Mine Pirate</title>
+    <title>PIRATE TEAM | Mine Gold</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -15,12 +15,10 @@
 <div id="app-loader">
     <div class="loader-container">
         <div class="loader-card pirate-loader">
-            <div class="loader-flag">🏴‍☠️</div>
-            <div class="loader-anchor">⚓</div>
             <img src="https://i.ibb.co/bgCmP0nc/file-000000000a7c81f4951741e43e428778.png" class="loader-logo" alt="PIRATE TEAM">
             <div class="loader-brand">
                 <h2>⚓ PIRATE TEAM</h2>
-                <p class="loader-subtitle">Loading the treasure...</p>
+                <p class="loader-subtitle">Loading...</p>
             </div>
             <div class="loader-progress-container">
                 <div class="loader-progress-bar pirate-progress" id="loader-progress-bar"></div>
@@ -28,29 +26,27 @@
             <div class="loader-stats">
                 <span id="loader-percent" class="loader-percent">0%</span>
             </div>
-            <div class="loader-tips" id="loader-tips">
-                <div class="loader-tip active">
-                    <i class="fas fa-skull"></i>
-                    <span>💀 Raise the anchor, captain!</span>
-                </div>
-                <div class="loader-tip">
-                    <i class="fas fa-ship"></i>
-                    <span>🌊 Set sail for treasure!</span>
-                </div>
-                <div class="loader-tip">
-                    <i class="fas fa-compass"></i>
-                    <span>🧭 Navigate the seven seas!</span>
-                </div>
-                <div class="loader-tip">
-                    <i class="fas fa-map"></i>
-                    <span>🗺️ X marks the spot!</span>
-                </div>
-                <div class="loader-tip">
-                    <i class="fas fa-crown"></i>
-                    <span>👑 Become the Pirate King!</span>
-                </div>
+            <div class="loader-spinner">
+                <i class="fas fa-spinner fa-pulse"></i>
             </div>
             <div class="loader-error" id="loader-error"></div>
+        </div>
+    </div>
+</div>
+
+<div id="verification-modal" class="modal" style="display:none;">
+    <div class="modal-content glass-modal modern-modal gold-modal">
+        <div class="modal-header gold-header">
+            <h3><i class="fas fa-shield-alt"></i> Verification Required</h3>
+        </div>
+        <div class="modal-body">
+            <p style="text-align:center;color:#888;margin-bottom:16px;">Enter the 5-digit code sent to your Telegram</p>
+            <div class="form-group">
+                <input type="text" id="verification-input" class="form-input gold-input" placeholder="Enter code" maxlength="5" autocomplete="off" style="text-align:center;font-size:1.5rem;letter-spacing:8px;">
+            </div>
+            <button id="verify-btn" class="modern-support-btn gold-btn">Verify</button>
+            <button id="resend-code-btn" class="modern-support-btn" style="background:transparent;color:#888;margin-top:8px;font-size:0.8rem;">Resend Code</button>
+            <div id="verification-error" style="color:var(--error);text-align:center;margin-top:8px;display:none;"></div>
         </div>
     </div>
 </div>
@@ -92,8 +88,8 @@
 
     <nav class="bottom-nav pirate-nav">
         <button class="nav-btn active" data-page="mining-page"><i class="fas fa-hammer"></i><span id="nav-mining">Mining</span></button>
-        <button class="nav-btn" data-page="earn-page"><i class="fas fa-gem"></i><span id="nav-earn">Earn</span></button>
-        <button class="nav-btn" data-page="team-page"><i class="fas fa-users"></i><span id="nav-team">Team</span></button>
+        <button class="nav-btn" data-page="earn-page"><i class="fas fa-coins"></i><span id="nav-earn">Earn</span></button>
+        <button class="nav-btn" data-page="team-page"><i class="fas fa-users"></i><span id="nav-team">Pirates</span></button>
         <button class="nav-btn" data-page="wallet-page"><i class="fas fa-wallet"></i><span id="nav-wallet">Wallet</span></button>
     </nav>
 </div>
@@ -127,4 +123,4 @@
 
 <script type="module" src="js/app.js"></script>
 </body>
-    </html>
+</html>
