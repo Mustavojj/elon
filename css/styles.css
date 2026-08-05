@@ -108,30 +108,6 @@ body {
     z-index: 2;
 }
 
-.loader-flag {
-    font-size: 2.5rem;
-    animation: flagWave 2s ease-in-out infinite;
-    display: inline-block;
-}
-
-@keyframes flagWave {
-    0%, 100% { transform: rotate(-5deg) scale(1); }
-    50% { transform: rotate(5deg) scale(1.05); }
-}
-
-.loader-anchor {
-    font-size: 1.5rem;
-    color: var(--primary);
-    animation: anchorSwing 3s ease-in-out infinite;
-    display: inline-block;
-    margin-left: 10px;
-}
-
-@keyframes anchorSwing {
-    0%, 100% { transform: rotate(-10deg); }
-    50% { transform: rotate(10deg); }
-}
-
 .loader-logo {
     width: 80px;
     height: 80px;
@@ -142,7 +118,6 @@ body {
     object-fit: cover;
     border: 2px solid var(--primary);
     box-shadow: 0 0 40px var(--primary-glow), inset 0 0 40px rgba(255, 215, 0, 0.1);
-    margin-top: 10px;
 }
 
 @keyframes float {
@@ -178,7 +153,7 @@ body {
     background: rgba(255, 215, 0, 0.08);
     border-radius: 10px;
     overflow: hidden;
-    margin: 24px 0 16px;
+    margin: 16px 0 12px;
     border: 1px solid rgba(255, 215, 0, 0.05);
 }
 
@@ -208,7 +183,7 @@ body {
     display: flex;
     justify-content: center;
     font-size: 0.7rem;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
 }
 
 .loader-percent {
@@ -217,38 +192,15 @@ body {
     font-size: 0.9rem;
 }
 
-.loader-tips {
-    background: rgba(255, 215, 0, 0.05);
-    border-radius: 12px;
-    padding: 12px 16px;
-    min-height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid rgba(255, 215, 0, 0.05);
-}
-
-.loader-tip {
-    display: none;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.75rem;
-    color: var(--primary-light);
-    animation: fadeTip 0.5s ease;
-}
-
-.loader-tip.active {
-    display: flex;
-}
-
-@keyframes fadeTip {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.loader-tip i {
-    font-size: 1rem;
+.loader-spinner {
+    font-size: 1.5rem;
     color: var(--primary);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 .loader-error {
@@ -719,7 +671,7 @@ body {
 }
 
 .mining-card h3::before {
-    content: '🏴‍☠️ ';
+    content: '⚓ ';
     font-size: 1rem;
 }
 
@@ -755,23 +707,56 @@ body {
     font-family: 'Courier New', monospace;
 }
 
-.mining-timer {
-    font-family: 'Courier New', monospace;
-    font-size: 1.4rem;
-    font-weight: 700;
+.mining-progress-container {
     margin: 16px 0 8px;
-    letter-spacing: 3px;
     position: relative;
     z-index: 2;
-    background: rgba(0, 0, 0, 0.3);
-    padding: 10px 16px;
-    border-radius: 40px;
-    color: var(--primary-light);
+}
+
+.mining-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 215, 0, 0.08);
+    border-radius: 10px;
+    overflow: hidden;
     border: 1px solid rgba(255, 215, 0, 0.05);
 }
 
+.mining-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--gold-gradient);
+    border-radius: 10px;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 15px var(--primary-glow);
+}
+
+.mining-progress-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    color: #888;
+    margin-top: 4px;
+}
+
+.mining-progress-text .percent {
+    color: var(--primary-light);
+    font-weight: 600;
+}
+
+.mining-timer {
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 4px 0 8px;
+    letter-spacing: 2px;
+    position: relative;
+    z-index: 2;
+    color: var(--primary-light);
+}
+
 .mining-timer i {
-    margin-right: 8px;
+    margin-right: 6px;
     color: var(--primary);
 }
 
@@ -783,7 +768,7 @@ body {
     padding: 6px 16px;
     border-radius: 40px;
     display: inline-block;
-    margin-top: 12px;
+    margin-top: 8px;
     border: 1px solid rgba(46, 204, 113, 0.15);
 }
 
@@ -850,19 +835,81 @@ body {
     border-radius: 50%;
 }
 
+.ad-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin: 20px 0 16px;
+    border: 1px solid rgba(255, 215, 0, 0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ad-card .ad-info {
+    flex: 1;
+}
+
+.ad-card .ad-info h4 {
+    color: var(--primary-light);
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ad-card .ad-info h4 i {
+    color: var(--primary);
+}
+
+.ad-card .ad-info p {
+    font-size: 0.7rem;
+    color: #888;
+    margin-top: 2px;
+}
+
+.ad-card .ad-btn {
+    padding: 10px 20px;
+    background: var(--gold-gradient);
+    border: none;
+    border-radius: 40px;
+    color: #0a0a0f;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.ad-card .ad-btn:active {
+    transform: scale(0.95);
+}
+
+.ad-card .ad-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.ad-card .ad-btn .cooldown {
+    font-size: 0.6rem;
+    opacity: 0.7;
+}
+
 .boost-card {
     background: var(--bg-card);
     backdrop-filter: blur(12px);
     border-radius: var(--border-radius);
     padding: 20px;
-    margin: 20px 0;
+    margin: 16px 0;
     border: 1px solid rgba(255, 215, 0, 0.08);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .boost-card h4 {
     color: var(--primary-light);
-    font-size: 1rem;
+    font-size: 0.95rem;
     margin-bottom: 12px;
     display: flex;
     align-items: center;
@@ -873,7 +920,7 @@ body {
     color: var(--primary);
 }
 
-.boost-info {
+.boost-balances {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -884,17 +931,32 @@ body {
     border: 1px solid rgba(255, 215, 0, 0.05);
 }
 
-.boost-info .rate {
-    font-size: 0.8rem;
+.boost-balances .balance-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.boost-balances .balance-item .label {
+    font-size: 0.6rem;
+    color: #888;
+}
+
+.boost-balances .balance-item .value {
+    font-size: 0.9rem;
+    font-weight: 700;
     color: var(--primary-light);
 }
 
-.boost-info .bonus {
-    font-size: 0.7rem;
-    color: var(--success);
-    background: rgba(46, 204, 113, 0.12);
-    padding: 2px 10px;
-    border-radius: 20px;
+.boost-balances .balance-item img {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+}
+
+.boost-balances .arrow {
+    color: var(--primary);
+    font-size: 1.2rem;
 }
 
 .boost-input-group {
@@ -905,6 +967,12 @@ body {
 
 .boost-input-group .form-input {
     flex: 1;
+}
+
+.boost-input-group .gold-preview {
+    font-size: 0.7rem;
+    color: #888;
+    white-space: nowrap;
 }
 
 .boost-btn {
@@ -929,12 +997,23 @@ body {
     cursor: not-allowed;
 }
 
+.boost-bonus {
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--success);
+    margin-top: 8px;
+    background: rgba(46, 204, 113, 0.08);
+    padding: 4px 12px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
 .level-progress-card {
     background: var(--bg-card);
     backdrop-filter: blur(12px);
     border-radius: var(--border-radius);
     padding: 20px;
-    margin: 20px 0;
+    margin: 16px 0;
     border: 1px solid rgba(255, 215, 0, 0.08);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
@@ -1272,9 +1351,136 @@ body {
     cursor: default;
 }
 
+.team-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    border: 1px solid rgba(255, 215, 0, 0.06);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.team-card .team-title {
+    text-align: center;
+    color: var(--primary-light);
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+}
+
+.team-card .team-title i {
+    color: var(--primary);
+}
+
+.team-commission-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.team-commission-item {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--border-radius-sm);
+    padding: 12px 8px;
+    text-align: center;
+    border: 1px solid rgba(255, 215, 0, 0.05);
+}
+
+.team-commission-item .commission-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary-light);
+}
+
+.team-commission-item .commission-label {
+    font-size: 0.6rem;
+    color: #888;
+    margin-top: 2px;
+}
+
+.team-link-box {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-family: monospace;
+    color: #888;
+    word-break: break-all;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255, 215, 0, 0.05);
+}
+
+.team-card .copy-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--gold-gradient);
+    border: none;
+    border-radius: 40px;
+    color: #0a0a0f;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.team-card .copy-btn:active {
+    transform: scale(0.95);
+}
+
+.earnings-row {
+    display: flex;
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.earnings-row .earning-card {
+    flex: 1;
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    border-radius: var(--border-radius-sm);
+    padding: 14px 16px;
+    border: 1px solid rgba(255, 215, 0, 0.06);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.earnings-row .earning-card .earning-label {
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.earnings-row .earning-card .earning-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--primary-light);
+}
+
+.earnings-row .earning-card .claim-btn {
+    padding: 6px 16px;
+    background: var(--gold-gradient);
+    border: none;
+    border-radius: 40px;
+    color: #0a0a0f;
+    font-weight: 600;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.earnings-row .earning-card .claim-btn:active {
+    transform: scale(0.95);
+}
+
+.earnings-row .earning-card .claim-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 .team-stats-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
     margin-top: 16px;
 }
@@ -1304,15 +1510,6 @@ body {
     margin-top: 4px;
 }
 
-.team-card {
-    background: var(--bg-card);
-    backdrop-filter: blur(12px);
-    border-radius: var(--border-radius);
-    padding: 20px;
-    border: 1px solid rgba(255, 215, 0, 0.06);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-}
-
 .wallet-card {
     background: var(--bg-card);
     backdrop-filter: blur(12px);
@@ -1325,53 +1522,39 @@ body {
 
 .wallet-balances {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 16px;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
 }
 
 .wallet-balance-item {
     background: rgba(0, 0, 0, 0.3);
     border-radius: var(--border-radius-sm);
-    padding: 16px;
+    padding: 12px 8px;
     text-align: center;
     border: 1px solid rgba(255, 215, 0, 0.03);
 }
 
 .wallet-balance-icon {
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .wallet-balance-icon img {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
 }
 
 .wallet-balance-label {
-    font-size: 0.7rem;
+    font-size: 0.6rem;
     color: #888;
 }
 
 .wallet-balance-amount {
-    font-size: 1.2rem;
+    font-size: 0.95rem;
     font-weight: 700;
     color: var(--primary-light);
-    margin-top: 4px;
-}
-
-.exchange-rate-display {
-    text-align: center;
-    padding: 12px;
-    background: rgba(255, 215, 0, 0.04);
-    border-radius: 40px;
-    font-size: 0.8rem;
-    color: var(--primary-light);
-    border: 1px solid rgba(255, 215, 0, 0.05);
-}
-
-.exchange-rate-display i {
-    margin-right: 8px;
+    margin-top: 2px;
 }
 
 .withdraw-card {
@@ -1458,6 +1641,16 @@ body {
     color: #888;
     margin: 12px 0;
     text-align: center;
+}
+
+.exchange-note {
+    font-size: 0.7rem;
+    color: #888;
+    text-align: center;
+    margin-top: 8px;
+    padding: 8px;
+    background: rgba(255, 215, 0, 0.03);
+    border-radius: 20px;
 }
 
 .history-list {
@@ -1754,6 +1947,12 @@ body {
     .loader-logo {
         width: 60px;
         height: 60px;
+    }
+    .team-commission-grid {
+        grid-template-columns: 1fr;
+    }
+    .earnings-row {
+        flex-direction: column;
     }
 }
 
