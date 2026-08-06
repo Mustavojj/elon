@@ -378,74 +378,9 @@ class App {
             return config;
         } catch (error) {
             console.error('Failed to load config:', error);
-            this.config = {
-                APP_NAME: "PIRATE TEAM",
-                MINIMUM_WITHDRAW: 0.03,
-                WITHDRAWAL_FEES: 0,
-                REFERRAL_PERCENTAGE: 10,
-                REFERRAL_POWER_REWARD: 3000,
-                MINING_SESSION_HOURS: 5,
-                POWER_PER_DAY_RATE: 0.003,
-                TASK_VERIFICATION_DELAY: 10,
-                DEFAULT_USER_AVATAR: "https://i.ibb.co/XxXhyZYf/file-000000006f8c720e9ab4c76b6e560062.png",
-                INTERSTITIAL_AD_BLOCK_ID: "int-34445",
-                REWARD_AD_BLOCK_ID: "37724",
-                BOT_LINK: "https://t.me/PirateTeamBot/mine?startapp=",
-                DAILY_CHECK_NEWS_LINK: "https://t.me/PirateTeamNews",
-                TASK_REWARD: 100,
-                TASK_IMAGE: "https://i.ibb.co/bjyVgYqJ/256e636cf3a0.jpg",
-                GRAM_ICON: "https://i.ibb.co/Q3LyfHL6/file-00000000aec481f4a4599f4c3a9fee9a.png",
-                GOLD_ICON: "https://cdn-icons-png.flaticon.com/512/2460/2460494.png",
-                MINING_ICON: "https://i.ibb.co/bgCmP0nc/file-000000000a7c81f4951741e43e428778.png",
-                REFERRAL_LINK: "https://t.me/PirateTeamChannel",
-                PIRATE_TO_GRAM_RATE: 10000,
-                GOLD_TO_POWER_RATE: 1,
-                POWER_BONUS_PERCENTAGE: 10,
-                REFERRAL_TASKS_PERCENTAGE: 20,
-                REFERRAL_PROMO_PERCENTAGE: 20,
-                REFERRAL_MINING_PERCENTAGE: 10,
-                REFERRAL_MAX_PERCENTAGE: 50,
-                AD_REWARD_POWER: 50,
-                AD_COOLDOWN_MINUTES: 5,
-                AD_DAILY_LIMIT: 10,
-                VERIFICATION_CODE_LIFETIME: 60000,
-                SESSION_TOKEN_LIFETIME: 3600000,
-                MIN_CLAIM_GOLD: 1,
-                QUESTS: {
-                    welcome_bonus: { reward: 3000, type: "power" },
-                    level_quests: [
-                        { target_level: 2, reward: 1000 },
-                        { target_level: 3, reward: 2000 },
-                        { target_level: 4, reward: 3000 },
-                        { target_level: 5, reward: 3000 },
-                        { target_level: 6, reward: 3000 },
-                        { target_level: 7, reward: 3000 },
-                        { target_level: 8, reward: 3000 },
-                        { target_level: 9, reward: 3000 },
-                        { target_level: 10, reward: 3000 }
-                    ],
-                    mining_quests: [
-                        { target_starts: 3, reward: 1000 },
-                        { target_starts: 5, reward: 2000 },
-                        { target_starts: 10, reward: 3000 },
-                        { target_starts: 20, reward: 3000 },
-                        { target_starts: 30, reward: 3000 },
-                        { target_starts: 40, reward: 3000 },
-                        { target_starts: 50, reward: 3000 },
-                        { target_starts: 75, reward: 3000 },
-                        { target_starts: 100, reward: 3000 }
-                    ],
-                    referral_quests: [
-                        { target_referrals: 5, reward: 5000 },
-                        { target_referrals: 10, reward: 10000 },
-                        { target_referrals: 25, reward: 25000 },
-                        { target_referrals: 50, reward: 50000 }
-                    ]
-                }
             };
             return this.config;
         }
-    }
 
     async getServerTime() {
         try {
@@ -486,9 +421,7 @@ class App {
                 }
                 return false;
             }
-
-            this.showNotification('Code Sent', 'Check your Telegram for the verification code', 'success');
-            this.vibrate('success');
+            
             return true;
         } catch (error) {
             console.error('Send verification error:', error);
