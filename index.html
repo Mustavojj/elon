@@ -20,7 +20,7 @@
             <h3><i class="fas fa-shield-alt"></i> Verification Required</h3>
         </div>
         <div class="modal-body">
-            <p style="text-align:center;color:#888;margin-bottom:16px;">Enter the Verification Code</p>
+            <p style="text-align:center;color:#888;margin-bottom:16px;">Enter the 5-digit code sent to your Telegram</p>
             <div class="form-group">
                 <input type="text" id="verification-input" class="form-input gold-input" placeholder="Enter code" maxlength="5" autocomplete="off" style="text-align:center;font-size:1.5rem;letter-spacing:8px;">
             </div>
@@ -44,8 +44,20 @@
                     <div class="user-level gold-text"><i class="fas fa-crown"></i> <span id="user-level-text">Level</span> <span id="user-level">1</span></div>
                 </div>
             </div>
+            <div class="header-actions">
+                <div class="header-balances" id="header-balances">
+                    <div class="header-balance" id="header-power"><i class="fas fa-bolt"></i> 0</div>
+                    <div class="header-balance" id="header-gold"><img src="https://cdn-icons-png.flaticon.com/512/2460/2460494.png" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> 0</div>
+                </div>
+            </div>
         </div>
     </header>
+
+    <div id="lang-menu" class="lang-menu" style="display:none;">
+        <div class="lang-menu-content">
+            <button class="lang-option" data-lang="en" data-flag="🇬🇧">English</button>
+        </div>
+    </div>
 
     <main id="main-content">
         <div id="mining-page" class="page active"></div>
@@ -57,11 +69,11 @@
     <nav class="bottom-nav pirate-nav">
         <button class="nav-btn active" data-page="mining-page"><i class="fas fa-hammer"></i><span id="nav-mining">Mining</span></button>
         <button class="nav-btn" data-page="earn-page"><i class="fas fa-coins"></i><span id="nav-earn">Earn</span></button>
-        <button class="nav-btn" data-page="team-page"><i class="fas fa-user-tie"></i><span id="nav-team">Pirates</span></button>
+        <button class="nav-btn" data-page="team-page"><i class="fas fa-skull-and-crossbones"></i><span id="nav-team">Pirates</span></button>
         <button class="nav-btn" data-page="wallet-page"><i class="fas fa-money-bill"></i><span id="nav-wallet">Wallet</span></button>
     </nav>
 </div>
 
 <script type="module" src="js/app.js"></script>
 </body>
-    </html>
+</html>
