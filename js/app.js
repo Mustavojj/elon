@@ -1275,7 +1275,7 @@ class App {
 
             ${currentMiningQuest ? `
             <div class="quest-card gold-quest">
-                <div class="quest-icon gold-icon"><i class="fas fa-hammer"></i></div>
+                <div class="quest-icon gold-icon"><i class="fas fa-anchor"></i></div>
                 <div class="quest-info">
                     <h4>${this.t('start_mining_quest', { times: currentMiningQuest.target_starts })}</h4>
                     <div class="quest-reward"><i class="fas fa-bolt"></i> ${this.formatNumber(currentMiningQuest.reward)} ${this.t('power')}</div>
@@ -1466,10 +1466,6 @@ class App {
                     <input type="text" id="promo-input" class="form-input gold-input" placeholder="${this.t('enter_code')}" autocomplete="off">
                     <button id="promo-submit" class="promo-submit-btn gold-btn" disabled>${this.t('claim')}</button>
                 </div>
-            </div>
-
-            <div class="section-header gold-header">
-                <h3><i class="fas fa-star"></i> ${this.t('tasks')}</h3>
             </div>
 
             <div class="section-header gold-header" style="margin-top:0;">
