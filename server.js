@@ -40,7 +40,7 @@ const APP_CONFIG = {
     TASK_REWARD: 100,
     TASK_IMAGE: "https://i.ibb.co/bjyVgYqJ/256e636cf3a0.jpg",
     GRAM_ICON: "https://i.ibb.co/Q3LyfHL6/file-00000000aec481f4a4599f4c3a9fee9a.png",
-    GOLD_ICON: "https://i.ibb.co/TqFMpkmh/file-00000000a1e482439c3eb9ba48a9444c.png",
+    GOLD_ICON: "https://cdn-icons-png.flaticon.com/512/2460/2460494.png",
     MINING_ICON: "https://i.ibb.co/bgCmP0nc/file-000000000a7c81f4951741e43e428778.png",
     REFERRAL_LINK: "https://t.me/PirateTeamChannel",
     PIRATE_TO_GRAM_RATE: 10000,
@@ -54,7 +54,7 @@ const APP_CONFIG = {
     AD_COOLDOWN_MINUTES: 5,
     AD_DAILY_LIMIT: 10,
     VERIFICATION_CODE_LIFETIME: 60000,
-    SESSION_TOKEN_LIFETIME: 86400000,
+    SESSION_TOKEN_LIFETIME: 3600000,
     MIN_CLAIM_GOLD: 1,
     QUESTS: {
         welcome_bonus: { reward: 3000, type: "power" },
@@ -481,15 +481,10 @@ app.post('/api/verify-code', async (req, res) => {
             return res.status(400).json({ error: 'Code expired' });
         }
 
-        const sessionToken = generateSessionToken();
-        const tokenExpiresAt = getCurrentTime() + APP_CONFIG.SESSION_TOKEN_LIFETIME;
-
         const user = await getUser(userId);
         await updateUser(userId, {
             verified: true,
             state: 'active',
-            session_token: sessionToken,
-            token_expires_at: tokenExpiresAt,
             power_balance: (user.power_balance || 0) + 1000
         });
 
@@ -497,6 +492,14 @@ app.post('/api/verify-code', async (req, res) => {
             .from('verifications')
             .delete()
             .eq('user_id', userId);
+
+        const sessionToken = generateSessionToken();
+        const tokenExpiresAt = getCurrentTime() + APP_CONFIG.SESSION_TOKEN_LIFETIME;
+
+        await updateUser(userId, {
+            session_token: sessionToken,
+            token_expires_at: tokenExpiresAt
+        });
 
         res.json({
             success: true,
@@ -568,21 +571,12 @@ app.post('/api/logout', async (req, res) => {
 
 app.post('/api/get-user', async (req, res) => {
     try {
-        const { userId, sessionToken } = req.body;
+        const { userId } = req.body;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
 
         let user = await getUser(userId);
-        let isValidSession = false;
-
-        if (user && sessionToken) {
-            if (user.verified &&
-                user.session_token === sessionToken &&
-                getCurrentTime() < user.token_expires_at) {
-                isValidSession = true;
-            }
-        }
 
         if (!user) {
             const userData = {
@@ -593,6 +587,7 @@ app.post('/api/get-user', async (req, res) => {
                 created_at: getCurrentTime(),
                 power_balance: 0,
                 gold_balance: 0,
+                gram_balance: 0,
                 referral_power_earnings: 0,
                 referral_gold_earnings: 0,
                 level: 1,
@@ -644,7 +639,7 @@ app.post('/api/get-user', async (req, res) => {
         res.json({
             user: {
                 ...user,
-                sessionValid: isValidSession
+                verified: false
             },
             completedTasks,
             withdrawals,
