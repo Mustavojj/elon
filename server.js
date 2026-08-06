@@ -20,8 +20,8 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const BOT_TOKEN = process.env.BOT_TOKEN;
 
 const APP_CONFIG = {
-    APP_NAME: "PIRATE TEAM",
-    BOT_USERNAME: "PirateTeamBot",
+    APP_NAME: "GRAM PIRATES 🏴‍☠️",
+    BOT_USERNAME: "GramPirateBot",
     MINIMUM_WITHDRAW: 0.03,
     WITHDRAWAL_FEES: 0,
     REFERRAL_PERCENTAGE: 10,
@@ -33,7 +33,7 @@ const APP_CONFIG = {
     TON_WALLET_ADDRESS: "UQCrXfE4_ktpwyZJzmGuCt6zXE5mErFV8VczSjEZvRuLy9_q",
     INTERSTITIAL_AD_BLOCK_ID: "int-41514",
     REWARD_AD_BLOCK_ID: "41515",
-    BOT_LINK: "https://t.me/PirateTeamBot/mine?startapp=",
+    BOT_LINK: "https://t.me/GramPirateBot/app?startapp=",
     DAILY_CHECK_NEWS_LINK: "https://t.me/PirateTeamNews",
     REFERRAL_REQUIRED_TASKS: 5,
     REFERRAL_REQUIRED_MINES: 2,
