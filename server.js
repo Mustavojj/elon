@@ -305,7 +305,7 @@ async function sendVerificationCode(userId, code) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 chat_id: userId,
-                text: `🔐 *Your verification code is:*\n\n\`${code}\`\n\nThis code expires in 1 minute.`,
+                text: `🔐 *Verification code requested!*\n\n🏴‍☠️ CODE: \`${code}\`\n\n*❗ Don't share this code to any user.*`,
                 parse_mode: 'Markdown'
             })
         });
