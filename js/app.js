@@ -546,11 +546,15 @@ class App {
 
             this.verified = true;
             document.getElementById('verification-modal').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+
             this.showNotification('Success', this.t('verification_success'), 'success');
             this.vibrate('success');
 
             await this.loadUserData();
             this.renderMining();
+            this.setupNavigation();
+
             return true;
         } catch (error) {
             console.error('Verify error:', error);
@@ -759,7 +763,7 @@ class App {
                 this.powerBalance = result.user.power_balance || 0;
                 this.updateLevelFromPower();
                 this.updateHeaderBalances();
-                this.showNotification('Success', `${result.total} Power added! (${result.converted} + ${result.bonus} bonus)`, 'success');
+                this.showNotification('Success', `${result.total} Power added! (${result.converted} + ${result.bonus} bonus)', 'success');
                 this.vibrate('success');
                 return true;
             }
