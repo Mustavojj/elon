@@ -480,9 +480,7 @@ class App {
             this.verified = true;
             document.getElementById('verification-modal').style.display = 'none';
             document.getElementById('app').style.display = 'block';
-        document.getElementById('app-loader').style.display = 'none';
-            
-            this.showNotification('Success', this.t('verification_success'), 'success');
+            document.getElementById('app-loader').style.display = 'none';
             this.vibrate('success');
 
             await this.loadUserData();
