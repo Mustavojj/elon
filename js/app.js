@@ -115,7 +115,7 @@ const translations = {
         current_power: "Current Power",
         next_level_power: "Next Level Power",
         verification_title: "Verification Required",
-        verification_sub: "Enter the 5-digit code sent to your Telegram",
+        verification_sub: "Enter the 5-digit code",
         verify: "Verify",
         resend: "Resend Code",
         referral_commissions: "Referral Commissions",
@@ -145,8 +145,8 @@ const translations = {
         min_claim: "Min. claim",
         power_claim: "Claim Power",
         gold_claim: "Claim Gold",
-        step1: "Copy Your Referral Link",
-        step2: "Invite More Pirates",
+        step1: "Copy Link",
+        step2: "Invite Pirates",
         step3: "Earn Free GRAM!",
         ad_progress: "Daily Ads"
     }
