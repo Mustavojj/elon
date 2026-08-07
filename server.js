@@ -57,7 +57,7 @@ const APP_CONFIG = {
     SESSION_TOKEN_LIFETIME: 3600000,
     MIN_CLAIM_GOLD: 1,
     QUESTS: {
-        welcome_bonus: { reward: 3000, type: "power" },
+        welcome_bonus: { reward: 1000, type: "power" },
         level_quests: [
             { target_level: 2, reward: 1000 },
             { target_level: 3, reward: 2000 },
