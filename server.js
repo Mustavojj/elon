@@ -19,7 +19,6 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 
-// Logging utility
 const logError = (context, error, additionalInfo = {}) => {
     console.error(`❌ [${context}]`, {
         message: error.message || error,
@@ -110,7 +109,6 @@ logInfo('Server', 'Configuration loaded successfully', {
     supabaseUrl: supabaseUrl ? '✓ Set' : '✗ Missing',
     botToken: BOT_TOKEN ? '✓ Set' : '✗ Missing',
     adminId: process.env.ADMIN_USER_ID ? '✓ Set' : '✗ Missing',
-    oxapayMerchant: process.env.OXAPAY_MERCHANT_ID ? '✓ Set' : '✗ Missing',
     oxapayApiKey: process.env.OXAPAY_API_KEY ? '✓ Set' : '✗ Missing'
 });
 
@@ -384,16 +382,14 @@ async function verifySession(req, res, next) {
 
 class OxaPay {
     constructor(config) {
-        this.merchantId = config.merchantId;
         this.apiKey = config.apiKey;
         this.sandbox = config.sandbox || false;
         this.baseUrl = this.sandbox 
-            ? 'https://sandbox.oxapay.com/api/v1' 
-            : 'https://api.oxapay.com/api/v1';
+            ? 'https://sandbox.oxapay.com/v1' 
+            : 'https://api.oxapay.com/v1';
         
         logInfo('OxaPay', 'Initialized', {
             baseUrl: this.baseUrl,
-            merchantId: this.merchantId ? '✓ Set' : '✗ Missing',
             apiKey: this.apiKey ? '✓ Set' : '✗ Missing',
             sandbox: this.sandbox
         });
@@ -403,12 +399,11 @@ class OxaPay {
         const url = `${this.baseUrl}${endpoint}`;
         const headers = {
             'Content-Type': 'application/json',
-            'X-API-Key': this.apiKey,
-            'X-Merchant-Id': this.merchantId
+            'payout_api_key': this.apiKey
         };
 
         try {
-            logInfo('OxaPay', `Request to ${endpoint}`, { data });
+            logInfo('OxaPay', `Request to ${endpoint}`, { url, data });
 
             const response = await fetch(url, {
                 method: 'POST',
@@ -444,13 +439,19 @@ class OxaPay {
 
     async createPayout(data) {
         try {
-            const result = await this.request('/payouts', {
+            const payload = {
+                address: data.toAddress,
                 amount: data.amount,
                 currency: data.currency || 'GRAM',
                 network: data.network || 'TON',
-                toAddress: data.toAddress,
                 description: data.description || 'Withdrawal'
-            });
+            };
+
+            if (data.memo) {
+                payload.memo = data.memo;
+            }
+
+            const result = await this.request('/payout', payload);
 
             const txId = result.txId || result.transactionId || result.id || result.payoutId;
             
@@ -1324,16 +1325,15 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         }
         
         const oxapay = new OxaPay({
-            merchantId: process.env.OXAPAY_MERCHANT_ID,
             apiKey: process.env.OXAPAY_API_KEY,
             sandbox: process.env.NODE_ENV !== 'production'
         });
         
         const payout = await oxapay.createPayout({
+            toAddress: walletAddress,
             amount: gramAmount,
             currency: 'GRAM',
             network: 'TON',
-            toAddress: walletAddress,
             description: `Withdraw ${gramAmount} GRAM for user ${userId}`
         });
         
@@ -1342,7 +1342,7 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
             return res.status(500).json({ error: payout?.error || 'Payout failed' });
         }
         
-        const txId = payout.txId || payout.transactionId || payout.id;
+        const txId = payout.txId || payout.transactionId || payout.id || payout.payoutId;
         if (!txId) {
             logError('withdraw-gram', 'No transaction ID', { userId, payout });
         }
@@ -1382,7 +1382,7 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         
     } catch (error) {
         logError('withdraw-gram', error, { userId: req.body.userId });
-        res.status(500).json({ error: 'Failed to send withdrawal request' });
+        res.status(500).json({ error: 'Failed to send withdrawal request: ' + error.message });
     }
 });
 
