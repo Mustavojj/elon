@@ -754,49 +754,6 @@ body {
     color: var(--primary);
 }
 
-.boost-balances {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 12px;
-    padding: 10px 14px;
-    margin-bottom: 12px;
-    border: 1px solid rgba(255, 215, 0, 0.05);
-}
-
-.boost-balances .balance-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.boost-balances .balance-item .label {
-    font-size: 0.55rem;
-    color: #888;
-}
-
-.boost-balances .balance-item .value {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--primary-light);
-}
-
-.boost-balances .balance-item img {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-}
-
-.boost-balances .balance-item i {
-    font-size: 1.2rem;
-}
-
-.boost-balances .arrow {
-    color: var(--primary);
-    font-size: 1rem;
-}
-
 .boost-input-group {
     display: flex;
     gap: 8px;
@@ -1057,6 +1014,21 @@ body {
 
 .section-header h3 i {
     color: var(--primary);
+}
+
+.section-header .help-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.section-header .help-btn:hover {
+    color: var(--primary-light);
 }
 
 .tasks-list {
@@ -1492,11 +1464,13 @@ body {
 
 .boost-earnings-section .status-display .status-item .label {
     color: #888;
+    text-align: left;
 }
 
 .boost-earnings-section .status-display .status-item .value {
     color: var(--primary-light);
     font-weight: 600;
+    text-align: right;
 }
 
 .boost-earnings-section .status-display .status-item .value.pending {
