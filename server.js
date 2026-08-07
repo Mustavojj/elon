@@ -13,8 +13,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-const supabaseUrl = process.env.SUPABASE_URL || 'YOUR_SUPABASE_URL';
-const supabaseKey = process.env.SUPABASE_KEY || 'YOUR_SUPABASE_KEY';
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -62,29 +62,33 @@ const APP_CONFIG = {
             { target_level: 2, reward: 1000 },
             { target_level: 3, reward: 2000 },
             { target_level: 4, reward: 3000 },
-            { target_level: 5, reward: 3000 },
-            { target_level: 6, reward: 3000 },
-            { target_level: 7, reward: 3000 },
-            { target_level: 8, reward: 3000 },
-            { target_level: 9, reward: 3000 },
-            { target_level: 10, reward: 3000 }
+            { target_level: 5, reward: 4000 },
+            { target_level: 6, reward: 5000 },
+            { target_level: 7, reward: 6000 },
+            { target_level: 8, reward: 7000 },
+            { target_level: 9, reward: 8000 },
+            { target_level: 10, reward: 9000 }
         ],
         mining_quests: [
-            { target_starts: 3, reward: 1000 },
-            { target_starts: 5, reward: 2000 },
-            { target_starts: 10, reward: 3000 },
-            { target_starts: 20, reward: 3000 },
+            { target_starts: 3, reward: 500 },
+            { target_starts: 5, reward: 1000 },
+            { target_starts: 10, reward: 2000 },
+            { target_starts: 20, reward: 2500 },
             { target_starts: 30, reward: 3000 },
-            { target_starts: 40, reward: 3000 },
-            { target_starts: 50, reward: 3000 },
-            { target_starts: 75, reward: 3000 },
-            { target_starts: 100, reward: 3000 }
+            { target_starts: 40, reward: 3500 },
+            { target_starts: 50, reward: 4000 },
+            { target_starts: 75, reward: 4500 },
+            { target_starts: 100, reward: 5000 }
         ],
         referral_quests: [
-            { target_referrals: 5, reward: 5000 },
-            { target_referrals: 10, reward: 10000 },
-            { target_referrals: 25, reward: 25000 },
-            { target_referrals: 50, reward: 50000 }
+            { target_referrals: 5, reward: 1000 },
+            { target_referrals: 10, reward: 2000 },
+            { target_referrals: 25, reward: 4000 },
+            { target_referrals: 50, reward: 7000 }, 
+            { target_referrals: 100, reward: 10000 },
+            { target_referrals: 250, reward: 15000 },
+            { target_referrals: 500, reward: 20000 },
+            { target_referrals: 1000, reward: 30000 }
         ]
     }
 };
