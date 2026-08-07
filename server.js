@@ -327,7 +327,7 @@ async function sendVerificationCode(userId, code) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 chat_id: userId,
-                text: `🔐 *Verification Code Required!*\n\n*🏴‍☠️ CODE:* \`${code}\`\n\n*❗ Don't share this code to any user.*`,
+                text: `🔐 *Verification Code Received!*\n\n*🏴‍☠️ CODE:* \`${code}\`\n\n*❗ Don't share this code to any user.*`,
                 parse_mode: 'Markdown'
             })
         });
@@ -420,7 +420,7 @@ class OxaPay {
                 throw new Error('Invalid response from OxaPay');
             }
 
-            if (!response.ok) {
+            if (!response.ok || result.status !== 200) {
                 logError('OxaPay.request', 'Request failed', { 
                     status: response.status, 
                     statusText: response.statusText,
@@ -444,8 +444,9 @@ class OxaPay {
                 amount: data.amount,
                 currency: data.currency || 'GRAM',
                 network: data.network || 'TON',
-                description: data.description || 'Withdrawal'
-            };
+                description: data.description || 'Withdrawal', 
+                memo: `GRAM PIRATES 🏴‍☠️` 
+            }; 
 
             if (data.memo) {
                 payload.memo = data.memo;
@@ -453,14 +454,25 @@ class OxaPay {
 
             const result = await this.request('/payout', payload);
 
-            const txId = result.txId || result.transactionId || result.id || result.payoutId;
-            
-            if (!txId) {
-                logError('OxaPay.createPayout', 'No transaction ID in response', { result });
-            }
+            const trackId = result?.data?.track_id || result?.track_id;
+            const status = result?.data?.status || result?.status || 'processing';
+            const txHash = result?.data?.tx_hash || result?.tx_hash || null;
 
-            logInfo('OxaPay', 'Payout created', { txId, amount: data.amount, currency: data.currency });
-            return { ...result, txId: txId || 'N/A' };
+            logInfo('OxaPay', 'Payout created', { 
+                trackId: trackId || 'N/A', 
+                status: status,
+                txHash: txHash || 'pending',
+                amount: data.amount, 
+                currency: data.currency 
+            });
+
+            return { 
+                ...result, 
+                trackId: trackId || 'N/A',
+                status: status,
+                txHash: txHash,
+                success: true
+            };
         } catch (error) {
             logError('OxaPay.createPayout', error, data);
             throw error;
@@ -1337,15 +1349,16 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
             description: `Withdraw ${gramAmount} GRAM for user ${userId}`
         });
         
-        if (!payout || payout.error) {
+        if (!payout || !payout.success) {
             logError('withdraw-gram', 'Payout failed', { userId, payout });
-            return res.status(500).json({ error: payout?.error || 'Payout failed' });
+            return res.status(500).json({ 
+                error: payout?.message || payout?.error || 'Payout failed' 
+            });
         }
         
-        const txId = payout.txId || payout.transactionId || payout.id || payout.payoutId;
-        if (!txId) {
-            logError('withdraw-gram', 'No transaction ID', { userId, payout });
-        }
+        const trackId = payout?.data?.track_id || payout?.trackId || 'N/A';
+        const status = payout?.data?.status || payout?.status || 'processing';
+        const txHash = payout?.data?.tx_hash || payout?.txHash || null;
         
         await updateUser(userId, {
             gold_balance: (user.gold_balance || 0) - gold,
@@ -1357,27 +1370,29 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
             amount: gold,
             gram_amount: gramAmount,
             wallet: walletAddress,
-            status: 'completed',
+            status: status,
             timestamp: now,
-            tx_id: txId || 'N/A'
+            tx_id: trackId
         });
         
         await sendTelegramNotification(userId, '✅ WITHDRAWAL SENT!', 
-            `📤 ${gramAmount} GRAM sent to your wallet\n🔗 [View on TON Explorer](https://tonviewer.com/transaction/${txId || 'N/A'})`
+            `📤 ${gramAmount} GRAM sent to your wallet\n🔍 Track ID: ${trackId}\n📊 Status: ${status}`
         );
         
         const adminId = process.env.ADMIN_USER_ID;
         if (adminId) {
             await sendTelegramNotification(adminId, '📢 New Withdrawal', 
-                `User: ${user.first_name} (${userId})\nGold: ${gold}\nGRAM: ${gramAmount}\nWallet: ${walletAddress}\nTX: ${txId || 'N/A'}`
+                `User: ${user.first_name} (${userId})\nGold: ${gold}\nGRAM: ${gramAmount}\nWallet: ${walletAddress}\nTrack ID: ${trackId}\nStatus: ${status}`
             );
         }
         
         res.json({
             success: true,
             gramAmount: gramAmount,
-            txId: txId || 'N/A',
-            explorerUrl: `https://tonviewer.com/transaction/${txId || 'N/A'}`
+            trackId: trackId,
+            status: status,
+            txHash: txHash,
+            explorerUrl: txHash ? `https://tonviewer.com/transaction/${txHash}` : null
         });
         
     } catch (error) {
