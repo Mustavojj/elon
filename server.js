@@ -351,6 +351,41 @@ async function verifySession(req, res, next) {
     }
 }
 
+// OxaPay integration for automatic payouts
+class OxaPay {
+    constructor(config) {
+        this.merchantId = config.merchantId;
+        this.apiKey = config.apiKey;
+        this.sandbox = config.sandbox || false;
+        this.baseUrl = this.sandbox 
+            ? 'https://sandbox.oxapay.com/api/v1' 
+            : 'https://api.oxapay.com/api/v1';
+    }
+
+    async request(endpoint, data) {
+        const response = await fetch(`${this.baseUrl}${endpoint}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': this.apiKey,
+                'X-Merchant-Id': this.merchantId
+            },
+            body: JSON.stringify(data)
+        });
+        return response.json();
+    }
+
+    async createPayout(data) {
+        return this.request('/payouts', {
+            amount: data.amount,
+            currency: data.currency || 'GRAM',
+            network: data.network || 'TON',
+            toAddress: data.toAddress,
+            description: data.description || 'Withdrawal'
+        });
+    }
+}
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -523,7 +558,9 @@ app.post('/api/verify-code', async (req, res) => {
 
         await updateUser(userId, {
             session_token: sessionToken,
-            token_expires_at: tokenExpiresAt
+            token_expires_at: tokenExpiresAt,
+            verified: true,
+            state: 'active'
         });
 
         res.json({
@@ -636,7 +673,9 @@ app.post('/api/get-user', async (req, res) => {
                 total_referrals: 0,
                 referral_power: 0,
                 ad_watch_count: 0,
-                ad_last_watch: 0
+                ad_last_watch: 0,
+                promotion: null,
+                last_withdraw_time: 0
             };
             user = await createUser(userData);
 
@@ -1087,6 +1126,143 @@ app.post('/api/check-membership', async (req, res) => {
 
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Setup promotion endpoint
+app.post('/api/setup-promotion', verifySession, async (req, res) => {
+    try {
+        const { userId, channel, link } = req.body;
+        if (!userId || !channel) {
+            return res.status(400).json({ error: 'userId and channel required' });
+        }
+
+        const user = await getUser(userId);
+        if (!user || !user.verified) {
+            return res.status(403).json({ error: 'User not verified' });
+        }
+
+        // Validate channel link
+        if (!channel.startsWith('https://t.me/')) {
+            return res.status(400).json({ error: 'Invalid channel link' });
+        }
+
+        const promotionData = {
+            channel: channel,
+            link: link || `https://t.me/${APP_CONFIG.BOT_USERNAME}/app?startapp=${userId}`,
+            status: 'pending',
+            submitted_at: getCurrentTime()
+        };
+
+        const updatedUser = await updateUser(userId, {
+            promotion: promotionData
+        });
+
+        // Notify admin
+        const adminId = process.env.ADMIN_USER_ID;
+        if (adminId) {
+            await sendTelegramNotification(adminId, '📢 New Promotion Request', 
+                `User: ${user.first_name} (${userId})\nChannel: ${channel}\nLink: ${promotionData.link}`
+            );
+        }
+
+        res.json({
+            success: true,
+            promotion: promotionData
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Withdraw with OxaPay
+app.post('/api/withdraw-gram', verifySession, async (req, res) => {
+    try {
+        const { userId, walletAddress, goldAmount } = req.body;
+        
+        if (!userId || !walletAddress || !goldAmount) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+        
+        const gold = parseFloat(goldAmount);
+        if (isNaN(gold) || gold <= 0) {
+            return res.status(400).json({ error: 'Invalid amount' });
+        }
+        
+        if (gold < 500) {
+            return res.status(400).json({ error: 'Minimum withdrawal: 500 Gold' });
+        }
+        
+        if (gold > 2000) {
+            return res.status(400).json({ error: 'Maximum withdrawal: 2000 Gold' });
+        }
+        
+        const user = await getUser(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        if ((user.gold_balance || 0) < gold) {
+            return res.status(400).json({ error: 'Insufficient Gold balance' });
+        }
+        
+        const gramAmount = gold / 10000;
+        
+        const now = Date.now();
+        const cooldownMs = 6 * 3600000;
+        if (user.last_withdraw_time && (now - user.last_withdraw_time) < cooldownMs) {
+            const remaining = Math.ceil((cooldownMs - (now - user.last_withdraw_time)) / 3600000);
+            return res.status(400).json({ error: `Wait ${remaining}h before next withdrawal` });
+        }
+        
+        const oxapay = new OxaPay({
+            merchantId: process.env.OXAPAY_MERCHANT_ID,
+            apiKey: process.env.OXAPAY_API_KEY,
+            sandbox: process.env.NODE_ENV !== 'production'
+        });
+        
+        const payout = await oxapay.createPayout({
+            amount: gramAmount,
+            currency: 'GRAM',
+            network: 'TON',
+            toAddress: walletAddress,
+            description: `Withdraw ${gramAmount} GRAM for user ${userId}`
+        });
+        
+        await updateUser(userId, {
+            gold_balance: (user.gold_balance || 0) - gold,
+            last_withdraw_time: now
+        });
+        
+        await createWithdrawal({
+            user_id: userId,
+            amount: gold,
+            gram_amount: gramAmount,
+            wallet: walletAddress,
+            status: 'completed',
+            timestamp: now,
+            tx_id: payout.id
+        });
+        
+        await sendTelegramNotification(userId, '✅ Withdrawal Successful', 
+            `💰 ${gramAmount} GRAM sent to your wallet\n🔗 [View on TON Explorer](https://tonviewer.com/transaction/${payout.txId})`
+        );
+        
+        const adminId = process.env.ADMIN_USER_ID;
+        if (adminId) {
+            await sendTelegramNotification(adminId, '📢 New Withdrawal', 
+                `User: ${user.first_name} (${userId})\nGold: ${gold}\nGRAM: ${gramAmount}\nWallet: ${walletAddress}\nTX: ${payout.txId}`
+            );
+        }
+        
+        res.json({
+            success: true,
+            gramAmount: gramAmount,
+            txId: payout.txId,
+            explorerUrl: `https://tonviewer.com/transaction/${payout.txId}`
+        });
+        
+    } catch (error) {
+        console.error('Withdraw error:', error);
+        res.status(500).json({ error: 'Failed to send withdrawal request' });
     }
 });
 
