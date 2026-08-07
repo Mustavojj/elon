@@ -913,11 +913,15 @@ app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
             return res.status(403).json({ error: 'User not verified' });
         }
 
+        // Check if user has promotion bonus (25% extra)
+        const hasPromotionBonus = user.promotion?.status === 'approved';
+        const bonusMultiplier = hasPromotionBonus ? 1.25 : 1;
+
         let amount = 0;
         let updates = {};
 
         if (type === 'power') {
-            amount = user.referral_power_earnings || 0;
+            amount = (user.referral_power_earnings || 0) * bonusMultiplier;
             if (amount < APP_CONFIG.MIN_CLAIM_GOLD) {
                 return res.status(400).json({ error: `Minimum claim: ${APP_CONFIG.MIN_CLAIM_GOLD} Power` });
             }
@@ -926,7 +930,7 @@ app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
                 referral_power_earnings: 0
             };
         } else if (type === 'gold') {
-            amount = user.referral_gold_earnings || 0;
+            amount = (user.referral_gold_earnings || 0) * bonusMultiplier;
             if (amount < APP_CONFIG.MIN_CLAIM_GOLD) {
                 return res.status(400).json({ error: `Minimum claim: ${APP_CONFIG.MIN_CLAIM_GOLD} Gold` });
             }
@@ -948,7 +952,8 @@ app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
             success: true,
             user: updatedUser,
             claimed: amount,
-            type: type
+            type: type,
+            bonusApplied: hasPromotionBonus
         });
 
     } catch (error) {
@@ -1145,6 +1150,21 @@ app.post('/api/setup-promotion', verifySession, async (req, res) => {
         // Validate channel link
         if (!channel.startsWith('https://t.me/')) {
             return res.status(400).json({ error: 'Invalid channel link' });
+        }
+
+        // Check if bot is admin in the channel
+        const channelUsername = channel.replace('https://t.me/', '');
+        const botInfo = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getMe`).then(r => r.json());
+        const botId = botInfo.result.id;
+
+        const botMember = await fetch(
+            `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=@${channelUsername}&user_id=${botId}`
+        ).then(r => r.json());
+
+        const isBotAdmin = ['administrator', 'creator'].includes(botMember.result?.status);
+
+        if (!isBotAdmin) {
+            return res.status(400).json({ error: 'Bot is not an admin in the channel' });
         }
 
         const promotionData = {
