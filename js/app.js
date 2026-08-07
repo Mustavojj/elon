@@ -1307,25 +1307,19 @@ class App {
         document.getElementById('claim-mining-btn')?.addEventListener('click', () => this.claimMiningRewards());
 
         document.getElementById('claim-welcome-quest')?.addEventListener('click', async () => {
-            try {
-                const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-34445" });
-                await AdController.show();
-            } catch (e) {
-                this.showNotification('No Ads', 'No ads available at the moment', 'warning');
-                this.vibrate('warning');
-                return;
-            }
 
-            const reward = this.config?.QUESTS?.welcome_bonus?.reward || 3000;
-            this.powerBalance += reward;
-            this._dirtyPower = true;
-            this.quests.welcomeBonusClaimed = true;
-            await this.saveUserData(true);
-            this.updateLevelFromPower();
-            this.renderMining();
-            this.showNotification('Reward Claimed!', `+${reward} Power`, 'success');
-            this.vibrate('success');
+        const result = await this.fetchFromServer('/api/claim-welcome-bonus', {
+        userId: this.tgUser.id
         });
+    
+    if (result.success) {
+        this.powerBalance = result.user.power_balance;
+        this.quests.welcomeBonusClaimed = true;
+        this.updateLevelFromPower();
+        this.renderMining();
+        this.showNotification('Reward Claimed!', `+${result.reward} Power`, 'success');
+    }
+});
 
         document.getElementById('claim-level-quest')?.addEventListener('click', async () => {
             try {
