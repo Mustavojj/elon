@@ -19,23 +19,6 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 
-const logError = (context, error, additionalInfo = {}) => {
-    console.error(`❌ [${context}]`, {
-        message: error.message || error,
-        stack: error.stack,
-        timestamp: new Date().toISOString(),
-        ...additionalInfo
-    });
-};
-
-const logInfo = (context, message, data = {}) => {
-    console.log(`✅ [${context}]`, message, data);
-};
-
-const logWarn = (context, message, data = {}) => {
-    console.warn(`⚠️ [${context}]`, message, data);
-};
-
 const APP_CONFIG = {
     APP_NAME: "GRAM PIRATES 🏴‍☠️",
     BOT_USERNAME: "GramPirateBot",
@@ -104,13 +87,6 @@ const APP_CONFIG = {
         ]
     }
 };
-
-logInfo('Server', 'Configuration loaded successfully', { 
-    supabaseUrl: supabaseUrl ? '✓ Set' : '✗ Missing',
-    botToken: BOT_TOKEN ? '✓ Set' : '✗ Missing',
-    adminId: process.env.ADMIN_USER_ID ? '✓ Set' : '✗ Missing',
-    oxapayApiKey: process.env.OXAPAY_API_KEY ? '✓ Set' : '✗ Missing'
-});
 
 function getCurrentTime() {
     return Date.now();
@@ -297,9 +273,7 @@ async function updateStats(statName, increment) {
                 .from('stats')
                 .insert([{ key: statName, value: increment }]);
         }
-    } catch (error) {
-        logError('updateStats', error, { statName, increment });
-    }
+    } catch (error) {}
 }
 
 async function sendTelegramNotification(userId, title, message) {
@@ -314,9 +288,7 @@ async function sendTelegramNotification(userId, title, message) {
                 parse_mode: 'Markdown'
             })
         });
-    } catch (error) {
-        logError('sendTelegramNotification', error, { userId, title });
-    }
+    } catch (error) {}
 }
 
 async function sendVerificationCode(userId, code) {
@@ -327,13 +299,12 @@ async function sendVerificationCode(userId, code) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 chat_id: userId,
-                text: `🔐 *Verification Code Received!*\n\n*🏴‍☠️ CODE:* \`${code}\`\n\n*❗ Don't share this code to any user.*`,
+                text: `🔐 *Verification Code Required!*\n\n*🏴‍☠️ CODE:* \`${code}\`\n\n*❗ Don't share this code to any user.*`,
                 parse_mode: 'Markdown'
             })
         });
         return true;
     } catch (error) {
-        logError('sendVerificationCode', error, { userId });
         return false;
     }
 }
@@ -342,7 +313,6 @@ async function verifySession(req, res, next) {
     const { userId, sessionToken } = req.body;
 
     if (!userId || !sessionToken) {
-        logWarn('verifySession', 'Session required', { userId });
         return res.status(401).json({ error: 'Session required' });
     }
 
@@ -354,28 +324,23 @@ async function verifySession(req, res, next) {
             .single();
 
         if (error || !user) {
-            logWarn('verifySession', 'Invalid session', { userId, error });
             return res.status(401).json({ error: 'Invalid session' });
         }
 
         if (!user.verified) {
-            logWarn('verifySession', 'User not verified', { userId });
             return res.status(403).json({ error: 'User not verified' });
         }
 
         if (user.session_token !== sessionToken) {
-            logWarn('verifySession', 'Invalid token', { userId });
             return res.status(401).json({ error: 'Invalid token' });
         }
 
         if (getCurrentTime() > user.token_expires_at) {
-            logWarn('verifySession', 'Session expired', { userId });
             return res.status(401).json({ error: 'Session expired' });
         }
 
         next();
     } catch (error) {
-        logError('verifySession', error, { userId });
         res.status(500).json({ error: 'Session verification failed' });
     }
 }
@@ -387,12 +352,6 @@ class OxaPay {
         this.baseUrl = this.sandbox 
             ? 'https://sandbox.oxapay.com/v1' 
             : 'https://api.oxapay.com/v1';
-        
-        logInfo('OxaPay', 'Initialized', {
-            baseUrl: this.baseUrl,
-            apiKey: this.apiKey ? '✓ Set' : '✗ Missing',
-            sandbox: this.sandbox
-        });
     }
 
     async request(endpoint, data) {
@@ -403,8 +362,6 @@ class OxaPay {
         };
 
         try {
-            logInfo('OxaPay', `Request to ${endpoint}`, { url, data });
-
             const response = await fetch(url, {
                 method: 'POST',
                 headers: headers,
@@ -416,23 +373,15 @@ class OxaPay {
             try {
                 result = JSON.parse(responseText);
             } catch (e) {
-                logError('OxaPay.request', 'Failed to parse response', { responseText });
                 throw new Error('Invalid response from OxaPay');
             }
 
             if (!response.ok || result.status !== 200) {
-                logError('OxaPay.request', 'Request failed', { 
-                    status: response.status, 
-                    statusText: response.statusText,
-                    result 
-                });
                 throw new Error(result.message || result.error || `HTTP ${response.status}: ${response.statusText}`);
             }
 
-            logInfo('OxaPay', `Response from ${endpoint}`, { result });
             return result;
         } catch (error) {
-            logError('OxaPay.request', error, { endpoint, data });
             throw error;
         }
     }
@@ -444,27 +393,15 @@ class OxaPay {
                 amount: data.amount,
                 currency: data.currency || 'GRAM',
                 network: data.network || 'TON',
-                description: data.description || 'Withdrawal', 
-                memo: `GRAM PIRATES 🏴‍☠️` 
-            }; 
-
-            if (data.memo) {
-                payload.memo = data.memo;
-            }
+                description: data.description || 'Withdrawal',
+                memo: data.memo || 'GRAM PIRATES 🏴‍☠️'
+            };
 
             const result = await this.request('/payout', payload);
 
             const trackId = result?.data?.track_id || result?.track_id;
             const status = result?.data?.status || result?.status || 'processing';
             const txHash = result?.data?.tx_hash || result?.tx_hash || null;
-
-            logInfo('OxaPay', 'Payout created', { 
-                trackId: trackId || 'N/A', 
-                status: status,
-                txHash: txHash || 'pending',
-                amount: data.amount, 
-                currency: data.currency 
-            });
 
             return { 
                 ...result, 
@@ -474,9 +411,92 @@ class OxaPay {
                 success: true
             };
         } catch (error) {
-            logError('OxaPay.createPayout', error, data);
             throw error;
         }
+    }
+
+    async getPayoutStatus(trackId) {
+        try {
+            const result = await this.request('/payout/status', { track_id: trackId });
+            const status = result?.data?.status || result?.status || 'processing';
+            const txHash = result?.data?.tx_hash || result?.tx_hash || null;
+            const amount = result?.data?.amount || 0;
+            const currency = result?.data?.currency || 'GRAM';
+            
+            return {
+                status: status,
+                txHash: txHash,
+                amount: amount,
+                currency: currency,
+                completed: status === 'completed'
+            };
+        } catch (error) {
+            return { status: 'unknown', completed: false };
+        }
+    }
+}
+
+async function checkPayoutStatus(trackId, userId, goldAmount, walletAddress) {
+    try {
+        const oxapay = new OxaPay({
+            apiKey: process.env.OXAPAY_API_KEY,
+            sandbox: process.env.NODE_ENV !== 'production'
+        });
+
+        const status = await oxapay.getPayoutStatus(trackId);
+
+        if (status.completed && status.txHash) {
+            const user = await getUser(userId);
+            if (!user) return;
+
+            await updateUser(userId, {
+                last_withdraw_time: Date.now()
+            });
+
+            await createWithdrawal({
+                user_id: userId,
+                amount: goldAmount,
+                gram_amount: goldAmount / 10000,
+                wallet: walletAddress,
+                status: 'completed',
+                timestamp: Date.now(),
+                tx_id: status.txHash
+            });
+
+            await sendTelegramNotification(userId, '✅ WITHDRAWAL CONFIRMED!', 
+                `✅ ${goldAmount / 10000} GRAM sent to your wallet\n🔗 [View on TON Explorer](https://tonviewer.com/transaction/${status.txHash})`
+            );
+
+            const adminId = process.env.ADMIN_USER_ID;
+            if (adminId) {
+                await sendTelegramNotification(adminId, '✅ Withdrawal Completed', 
+                    `User: ${user.first_name} (${userId})\nGold: ${goldAmount}\nGRAM: ${goldAmount / 10000}\nWallet: ${walletAddress}\nTX: ${status.txHash}`
+                );
+            }
+
+            return true;
+        }
+
+        return false;
+    } catch (error) {
+        return false;
+    }
+}
+
+async function pollPayoutStatus(trackId, userId, goldAmount, walletAddress, attempts = 0) {
+    const maxAttempts = 30;
+    const delay = 30000;
+
+    if (attempts >= maxAttempts) {
+        return;
+    }
+
+    const completed = await checkPayoutStatus(trackId, userId, goldAmount, walletAddress);
+
+    if (!completed) {
+        setTimeout(() => {
+            pollPayoutStatus(trackId, userId, goldAmount, walletAddress, attempts + 1);
+        }, delay);
     }
 }
 
@@ -528,7 +548,6 @@ app.post('/api/claim-welcome-bonus', verifySession, async (req, res) => {
             reward: reward
         });
     } catch (error) {
-        logError('claim-welcome-bonus', error, { userId: req.body.userId });
         res.status(500).json({ error: error.message });
     }
 });
@@ -573,7 +592,6 @@ app.post('/api/send-verification', async (req, res) => {
         res.json({ success: true, message: 'Verification code sent' });
 
     } catch (error) {
-        logError('send-verification', error, { userId: req.body.userId });
         res.status(500).json({ error: error.message });
     }
 });
@@ -615,7 +633,6 @@ app.post('/api/resend-verification', async (req, res) => {
         res.json({ success: true, message: 'New code sent' });
 
     } catch (error) {
-        logError('resend-verification', error, { userId: req.body.userId });
         res.status(500).json({ error: error.message });
     }
 });
@@ -668,7 +685,6 @@ app.post('/api/verify-code', async (req, res) => {
         });
 
     } catch (error) {
-        logError('verify-code', error, { userId: req.body.userId });
         res.status(500).json({ error: error.message });
     }
 });
@@ -704,7 +720,6 @@ app.post('/api/refresh-session', async (req, res) => {
         });
 
     } catch (error) {
-        logError('refresh-session', error, { userId: req.body.userId });
         res.status(500).json({ error: error.message });
     }
 });
@@ -726,7 +741,6 @@ app.post('/api/logout', async (req, res) => {
         res.json({ success: true });
 
     } catch (error) {
-        logError('logout', error, { userId: req.body.userId });
         res.status(500).json({ error: error.message });
     }
 });
@@ -811,7 +825,6 @@ app.post('/api/get-user', async (req, res) => {
         });
 
     } catch (error) {
-        logError('get-user', error, { userId: req.body.userId });
         res.status(500).json({ error: error.message });
     }
 });
@@ -843,7 +856,6 @@ app.post('/api/update-mining', verifySession, async (req, res) => {
         res.json({ success: true, user: updatedUser });
 
     } catch (error) {
-        logError('update-mining', error, { userId: req.body.userId });
         res.status(500).json({ error: error.message });
     }
 });
@@ -891,7 +903,6 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        logError('claim-mining', error, { userId: req.body.userId });
         res.status(500).json({ error: error.message });
     }
 });
@@ -955,7 +966,6 @@ app.post('/api/complete-task', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        logError('complete-task', error, { userId: req.body.userId, taskId: req.body.taskId });
         res.status(500).json({ error: error.message });
     }
 });
@@ -999,7 +1009,6 @@ app.post('/api/convert-gold-to-power', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        logError('convert-gold-to-power', error, { userId: req.body.userId });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1059,7 +1068,6 @@ app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        logError('claim-referral-earnings', error, { userId: req.body.userId, type: req.body.type });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1137,7 +1145,6 @@ app.post('/api/apply-promo', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        logError('apply-promo', error, { userId: req.body.userId, code: req.body.code });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1188,7 +1195,6 @@ app.post('/api/watch-ad', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        logError('watch-ad', error, { userId: req.body.userId });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1199,7 +1205,6 @@ app.get('/api/tasks/:category', async (req, res) => {
         const tasks = await getTasks(category);
         res.json({ tasks });
     } catch (error) {
-        logError('get-tasks', error, { category: req.params.category });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1236,7 +1241,6 @@ app.post('/api/check-membership', async (req, res) => {
         res.json({ isMember });
 
     } catch (error) {
-        logError('check-membership', error, { userId: req.body.userId, channel: req.body.channel });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1295,7 +1299,6 @@ app.post('/api/setup-promotion', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        logError('setup-promotion', error, { userId: req.body.userId });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1346,11 +1349,11 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
             amount: gramAmount,
             currency: 'GRAM',
             network: 'TON',
-            description: `Withdraw ${gramAmount} GRAM for user ${userId}`
+            description: `Withdraw ${gramAmount} GRAM for user ${userId}`,
+            memo: 'GRAM PIRATES 🏴‍☠️'
         });
         
         if (!payout || !payout.success) {
-            logError('withdraw-gram', 'Payout failed', { userId, payout });
             return res.status(500).json({ 
                 error: payout?.message || payout?.error || 'Payout failed' 
             });
@@ -1376,15 +1379,17 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         });
         
         await sendTelegramNotification(userId, '✅ WITHDRAWAL SENT!', 
-            `📤 ${gramAmount} GRAM sent to your wallet\n🔍 Track ID: ${trackId}\n📊 Status: ${status}`
+            `📤 ${gramAmount} GRAM sent to your wallet\n🔍 Track ID: ${trackId}\n📊 Status: ${status}\n⏳ Please wait for confirmation...`
         );
         
         const adminId = process.env.ADMIN_USER_ID;
         if (adminId) {
-            await sendTelegramNotification(adminId, '📢 New Withdrawal', 
+            await sendTelegramNotification(adminId, '📢 New Withdrawal Request', 
                 `User: ${user.first_name} (${userId})\nGold: ${gold}\nGRAM: ${gramAmount}\nWallet: ${walletAddress}\nTrack ID: ${trackId}\nStatus: ${status}`
             );
         }
+        
+        pollPayoutStatus(trackId, userId, gold, walletAddress);
         
         res.json({
             success: true,
@@ -1396,7 +1401,6 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         });
         
     } catch (error) {
-        logError('withdraw-gram', error, { userId: req.body.userId });
         res.status(500).json({ error: 'Failed to send withdrawal request: ' + error.message });
     }
 });
@@ -1467,7 +1471,6 @@ app.post('/api/withdraw', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        logError('withdraw', error, { userId: req.body.userId });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1483,7 +1486,6 @@ app.post('/api/get-withdrawals', verifySession, async (req, res) => {
         res.json({ withdrawals });
 
     } catch (error) {
-        logError('get-withdrawals', error, { userId: req.body.userId });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1499,7 +1501,6 @@ app.post('/api/get-referrals', verifySession, async (req, res) => {
         res.json({ referrals });
 
     } catch (error) {
-        logError('get-referrals', error, { userId: req.body.userId });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1507,15 +1508,14 @@ app.post('/api/get-referrals', verifySession, async (req, res) => {
 const PORT = process.env.PORT || 8080;
 
 const server = app.listen(PORT, '0.0.0.0', () => {
-    logInfo('Server', `🏴‍☠️ PIRATE TEAM server running on port ${PORT}`);
+    console.log(`🏴‍☠️ PIRATE TEAM server running on port ${PORT}`);
 });
 
 server.on('error', (error) => {
-    logError('Server', error);
+    console.error('Server error:', error);
 });
 
 process.on('SIGTERM', () => {
-    logInfo('Server', 'Received SIGTERM, shutting down gracefully');
     server.close(() => {
         process.exit(0);
     });
