@@ -25,7 +25,6 @@ const APP_CONFIG = {
     MINIMUM_WITHDRAW: 0.03,
     WITHDRAWAL_FEES: 0,
     REFERRAL_PERCENTAGE: 10,
-    REFERRAL_POWER_REWARD: 3000,
     MINING_SESSION_HOURS: 12,
     POWER_PER_DAY_RATE: 0.003,
     TASK_VERIFICATION_DELAY: 10,
@@ -34,15 +33,11 @@ const APP_CONFIG = {
     INTERSTITIAL_AD_BLOCK_ID: "int-41677",
     REWARD_AD_BLOCK_ID: "41675",
     BOT_LINK: "https://t.me/GramPirateBot/app?startapp=",
-    DAILY_CHECK_NEWS_LINK: "https://t.me/PirateTeamNews",
-    REFERRAL_REQUIRED_TASKS: 5,
-    REFERRAL_REQUIRED_MINES: 2,
     TASK_REWARD: 100,
     TASK_IMAGE: "https://i.ibb.co/bjyVgYqJ/256e636cf3a0.jpg",
     GRAM_ICON: "https://i.ibb.co/Q3LyfHL6/file-00000000aec481f4a4599f4c3a9fee9a.png",
     GOLD_ICON: "https://cdn-icons-png.flaticon.com/512/2460/2460494.png",
     MINING_ICON: "https://i.ibb.co/bgCmP0nc/file-000000000a7c81f4951741e43e428778.png",
-    REFERRAL_LINK: "https://t.me/PirateTeamChannel",
     PIRATE_TO_GRAM_RATE: 10000,
     GOLD_TO_POWER_RATE: 1,
     POWER_BONUS_PERCENTAGE: 10,
@@ -304,7 +299,7 @@ async function sendVerificationCode(userId, code) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 chat_id: userId,
-                text: `🔐 *Verification code requested!*\n\n🏴‍☠️ CODE: \`${code}\`\n\n*❗ Don't share this code to any user.*`,
+                text: `🔐 *Verification Code Required!*\n\n*🏴‍☠️ CODE:* \`${code}\`\n\n*❗ Don't share this code to any user.*`,
                 parse_mode: 'Markdown'
             })
         });
@@ -843,8 +838,6 @@ app.post('/api/complete-task', verifySession, async (req, res) => {
             }
         }
 
-        await checkReferralReward(userId);
-
         res.json({
             success: true,
             user: updatedUser,
@@ -1174,7 +1167,7 @@ app.post('/api/setup-promotion', verifySession, async (req, res) => {
 
         const adminId = process.env.ADMIN_USER_ID;
         if (adminId) {
-            await sendTelegramNotification(adminId, '📢 New Promotion Request', 
+            await sendTelegramNotification(adminId, '🆕 New Promotion Request!', 
                 `User: ${user.first_name} (${userId})\nChannel: ${channel}\nLink: ${promotionData.link}`
             );
         }
@@ -1254,8 +1247,8 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
             tx_id: payout.id
         });
         
-        await sendTelegramNotification(userId, '✅ Withdrawal Successful', 
-            `💰 ${gramAmount} GRAM sent to your wallet\n🔗 [View on TON Explorer](https://tonviewer.com/transaction/${payout.txId})`
+        await sendTelegramNotification(userId, '✅ WITHDRAWAL SENT!', 
+            `📤 ${gramAmount} GRAM sent to your wallet\n🔗 [View on TON Explorer](https://tonviewer.com/transaction/${payout.txId})`
         );
         
         const adminId = process.env.ADMIN_USER_ID;
@@ -1377,35 +1370,6 @@ app.post('/api/get-referrals', verifySession, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
-async function checkReferralReward(userId) {
-    try {
-        const user = await getUser(userId);
-        if (!user || user.referral_reward_given) return;
-
-        const conditionsMet = (user.total_tasks_completed || 0) >= APP_CONFIG.REFERRAL_REQUIRED_TASKS ||
-            (user.total_mining_starts || 0) >= APP_CONFIG.REFERRAL_REQUIRED_MINES;
-
-        if (conditionsMet && user.referred_by) {
-            const referrer = await getUser(user.referred_by);
-            if (referrer && referrer.verified) {
-                const rewardPower = APP_CONFIG.REFERRAL_POWER_REWARD;
-                await updateUser(user.referred_by, {
-                    power_balance: (referrer.power_balance || 0) + rewardPower,
-                    referral_power: (referrer.referral_power || 0) + rewardPower
-                });
-
-                await updateUser(userId, { referral_reward_given: true });
-
-                await sendTelegramNotification(
-                    user.referred_by,
-                    'Referral Bonus',
-                    `You received ${rewardPower} Power! Your referral ${user.first_name} completed the requirements.`
-                );
-            }
-        }
-    } catch (error) {}
-}
 
 const PORT = process.env.PORT || 8080;
 
