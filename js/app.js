@@ -6,7 +6,7 @@ const translations = {
         daily: "DAILY",
         monthly: "MONTHLY",
         start_mining: "START MINING",
-        claim_reward: "CLAIM REWARD",
+        claim_reward: "CLAIM {amount} GOLD",
         mining_note: "Rewards can be collected after mining session ends",
         next_level_reward: "Next level reward",
         power: "Power",
@@ -105,9 +105,9 @@ const translations = {
         main_task_complete: "Complete",
         partner_task_complete: "Complete",
         boost_power: "Boost Your Power",
-        boost_desc: "Convert Gold to Power",
-        gold_to_power: "1,000 Gold = 1,000 Power",
-        convert: "Convert",
+        boost_desc: "Exchange Gold To Power",
+        gold_to_power: "1 Power = 1 Gold",
+        convert: "Exchange",
         enter_gold: "Enter Gold amount",
         level_progress: "Level Progress",
         next_level: "Next Level",
@@ -148,7 +148,26 @@ const translations = {
         step1: "Copy Link",
         step2: "Invite Pirates",
         step3: "Earn Free GRAM!",
-        ad_progress: "Daily Ads"
+        ad_progress: "Daily Ads",
+        boost_earnings: "Boost Earnings",
+        enter_channel_link: "Enter channel link",
+        enter_referral_link: "Enter referral link",
+        upgrade_bot: "Upgrade the bot as admin",
+        upgrade_bot_link: "https://t.me/{bot}?startchannel&admin=post_messages+invite_users",
+        confirm_boost: "Confirm (check if bot admin)",
+        channel: "Channel",
+        referral_link: "Referral Link",
+        status: "Status",
+        pending: "Pending",
+        approved: "Approved",
+        do_not_remove_bot: "Do not remove the bot from admins",
+        you_will_receive: "You will receive +25% earnings",
+        bot_post_note: "The bot will post promotional codes one time every day along with your referral link.",
+        exchange_rate_note: "Exchange Rate: 1 Power = 1 GOLD",
+        bonus_note: "You will receive +10% bonus",
+        wait_cooldown: "Wait {h}h before next withdrawal",
+        min_withdraw_gold_amount: "Minimum withdrawal: 500 Gold",
+        max_withdraw_gold_amount: "Maximum withdrawal: 2000 Gold"
     }
 };
 
@@ -223,6 +242,8 @@ class App {
         this.config = {};
         this.mainTasks = [];
         this.partnerTasks = [];
+        
+        this.promotionData = null;
 
         this.loadSettings();
     }
@@ -536,6 +557,7 @@ class App {
             this.userState = user.state || 'pending_verification';
             this.adWatchCount = user.ad_watch_count || 0;
             this.adLastWatch = user.ad_last_watch || 0;
+            this.promotionData = user.promotion || null;
 
             this.verified = false;
             this.userState = 'pending_verification';
@@ -1077,9 +1099,14 @@ class App {
             return false;
         }
 
-        const gramAmount = amount / (this.config.PIRATE_TO_GRAM_RATE || 10000);
-        if (gramAmount < (this.config.MINIMUM_WITHDRAW || 0.03)) {
-            this.showNotification('Error', `Minimum withdrawal: ${this.config.MINIMUM_WITHDRAW} GRAM`, 'error');
+        if (amount < 500) {
+            this.showNotification('Error', this.t('min_withdraw_gold_amount'), 'error');
+            this.vibrate('error');
+            return false;
+        }
+
+        if (amount > 2000) {
+            this.showNotification('Error', this.t('max_withdraw_gold_amount'), 'error');
             this.vibrate('error');
             return false;
         }
@@ -1103,10 +1130,10 @@ class App {
         setTimeout(() => { this._withdrawLock = false; }, 10000);
 
         try {
-            const result = await this.fetchFromServer('/api/withdraw', {
+            const result = await this.fetchFromServer('/api/withdraw-gram', {
                 userId: this.tgUser.id,
                 goldAmount: amount,
-                wallet: wallet
+                walletAddress: wallet
             });
 
             if (result.error) {
@@ -1126,7 +1153,7 @@ class App {
                 if (this.withdrawals.length > 10) this.withdrawals = this.withdrawals.slice(0, 10);
             }
 
-            this.showNotification('Withdrawn!', `${result.gramAmount.toFixed(5)} GRAM requested`, 'success');
+            this.showNotification('Withdrawn!', `${result.gramAmount.toFixed(5)} GRAM sent to your wallet`, 'success');
             this.vibrate('success');
             if (this._walletLoaded) this.renderWallet();
             return true;
@@ -1168,18 +1195,23 @@ class App {
         const levelIndex = this.quests.currentLevelQuestIndex || 0;
         const currentLevelQuest = levelIndex < levelQuests.length ? levelQuests[levelIndex] : null;
         const levelQuestComplete = currentLevelQuest ? this.userLevel >= currentLevelQuest.target_level : false;
+        const levelProgress = currentLevelQuest ? Math.min(100, (this.powerBalance / this.getRequiredPowerForLevel(currentLevelQuest.target_level)) * 100) : 0;
 
         const miningQuests = this.config?.QUESTS?.mining_quests || [];
         const miningIndex = this.quests.currentMiningQuestIndex || 0;
         const currentMiningQuest = miningIndex < miningQuests.length ? miningQuests[miningIndex] : null;
         const miningQuestComplete = currentMiningQuest ? this.totalMiningStarts >= currentMiningQuest.target_starts : false;
+        const miningProgress = currentMiningQuest ? Math.min(100, (this.totalMiningStarts / currentMiningQuest.target_starts) * 100) : 0;
 
         const referralQuests = this.config?.QUESTS?.referral_quests || [];
         const referralIndex = this.quests.currentReferralQuestIndex || 0;
         const currentReferralQuest = referralIndex < referralQuests.length ? referralQuests[referralIndex] : null;
         const referralQuestComplete = currentReferralQuest ? this.totalReferrals >= currentReferralQuest.target_referrals : false;
+        const referralProgress = currentReferralQuest ? Math.min(100, (this.totalReferrals / currentReferralQuest.target_referrals) * 100) : 0;
 
         const welcomeBonusClaimed = this.quests.welcomeBonusClaimed || false;
+
+        const claimText = this.t('claim_reward', { amount: Math.floor(this.pendingGoldReward) });
 
         el.innerHTML = `
             <div class="mining-card gold-card">
@@ -1210,17 +1242,19 @@ class App {
                     <div class="mining-active-badge gold-badge"><i class="fas fa-circle"></i> ${this.t('mining_active')}</div>
                 ` : ''}
                 ${showStartButton ? `<button id="start-mining-btn" class="mining-action-btn gold-btn"><i class="fas fa-play"></i> ${this.t('start_mining')}</button>` : ''}
-                ${showClaimButton ? `<button id="claim-mining-btn" class="mining-claim-btn gold-btn"><i class="fas fa-gift"></i> ${this.t('claim_reward')}</button>` : ''}
+                ${showClaimButton ? `<button id="claim-mining-btn" class="mining-claim-btn gold-btn"><i class="fas fa-gift"></i> ${claimText}</button>` : ''}
             </div>
 
             ${!welcomeBonusClaimed ? `
             <div class="quest-card gold-quest">
-                <div class="quest-icon gold-icon"><i class="fas fa-gift"></i></div>
-                <div class="quest-info">
-                    <h4>${this.t('welcome_bonus')}</h4>
-                    <div class="quest-reward"><i class="fas fa-bolt"></i> ${this.formatNumber(this.config?.QUESTS?.welcome_bonus?.reward || 3000)} ${this.t('power')}</div>
+                <div class="quest-header">
+                    <div class="quest-icon gold-icon"><i class="fas fa-gift"></i></div>
+                    <div class="quest-info">
+                        <h4>${this.t('welcome_bonus')}</h4>
+                        <div class="quest-reward"><i class="fas fa-bolt"></i> ${this.formatNumber(this.config?.QUESTS?.welcome_bonus?.reward || 3000)} ${this.t('power')}</div>
+                    </div>
+                    <button id="claim-welcome-quest" class="quest-claim-btn gold-btn"><i class="fas fa-gift"></i> ${this.t('claim_quest')}</button>
                 </div>
-                <button id="claim-welcome-quest" class="quest-claim-btn gold-btn"><i class="fas fa-gift"></i> ${this.t('claim_quest')}</button>
             </div>
             ` : ''}
 
@@ -1238,12 +1272,13 @@ class App {
                         <span class="value"><i class="fas fa-bolt"></i> ${this.formatNumber(Math.floor(this.powerBalance))}</span>
                     </div>
                 </div>
+                <div style="font-size:0.65rem;color:#888;margin-bottom:6px;">${this.t('exchange_rate_note')}</div>
                 <div class="boost-input-group">
                     <input type="number" id="boost-amount" class="form-input gold-input" placeholder="${this.t('enter_gold')}" min="1" step="1">
                     <button id="boost-btn" class="boost-btn gold-btn">${this.t('convert')}</button>
                 </div>
                 <div class="boost-preview" id="boost-preview">≈ 0 ${this.t('power')}</div>
-                <div class="boost-bonus">+${this.config.POWER_BONUS_PERCENTAGE || 10}% ${this.t('bonus')}</div>
+                <div class="boost-bonus">${this.t('bonus_note')}</div>
             </div>
 
             <div class="ad-card gold-card">
@@ -1263,37 +1298,52 @@ class App {
 
             ${currentLevelQuest ? `
             <div class="quest-card gold-quest">
-                <div class="quest-icon gold-icon"><i class="fas fa-trophy"></i></div>
-                <div class="quest-info">
-                    <h4>${this.t('up_to_level', { level: currentLevelQuest.target_level })}</h4>
-                    <div class="quest-reward"><i class="fas fa-bolt"></i> ${this.formatNumber(currentLevelQuest.reward)} ${this.t('power')}</div>
-                    <div class="quest-progress"><i class="fas fa-chart-line"></i> ${this.t('progress')}: ${this.userLevel}/${currentLevelQuest.target_level}</div>
+                <div class="quest-header">
+                    <div class="quest-icon gold-icon"><i class="fas fa-trophy"></i></div>
+                    <div class="quest-info">
+                        <h4>${this.t('up_to_level', { level: currentLevelQuest.target_level })}</h4>
+                        <div class="quest-reward"><i class="fas fa-bolt"></i> ${this.formatNumber(currentLevelQuest.reward)} ${this.t('power')}</div>
+                        <div class="quest-progress-bar">
+                            <div class="quest-progress-fill" style="width: ${levelProgress}%"></div>
+                        </div>
+                        <div style="font-size:0.55rem;color:#888;margin-top:2px;">${Math.floor(levelProgress)}%</div>
+                    </div>
+                    ${levelQuestComplete ? `<button id="claim-level-quest" class="quest-claim-btn gold-btn"><i class="fas fa-trophy"></i> ${this.t('claim_quest')}</button>` : `<button class="quest-claim-btn locked" disabled><i class="fas fa-lock"></i> Locked</button>`}
                 </div>
-                ${levelQuestComplete ? `<button id="claim-level-quest" class="quest-claim-btn gold-btn"><i class="fas fa-trophy"></i> ${this.t('claim_quest')}</button>` : `<button class="quest-claim-btn locked" disabled><i class="fas fa-lock"></i> Locked</button>`}
             </div>
             ` : ''}
 
             ${currentMiningQuest ? `
             <div class="quest-card gold-quest">
-                <div class="quest-icon gold-icon"><i class="fas fa-anchor"></i></div>
-                <div class="quest-info">
-                    <h4>${this.t('start_mining_quest', { times: currentMiningQuest.target_starts })}</h4>
-                    <div class="quest-reward"><i class="fas fa-bolt"></i> ${this.formatNumber(currentMiningQuest.reward)} ${this.t('power')}</div>
-                    <div class="quest-progress"><i class="fas fa-chart-line"></i> ${this.t('progress')}: ${this.totalMiningStarts}/${currentMiningQuest.target_starts}</div>
+                <div class="quest-header">
+                    <div class="quest-icon gold-icon"><i class="fas fa-anchor"></i></div>
+                    <div class="quest-info">
+                        <h4>${this.t('start_mining_quest', { times: currentMiningQuest.target_starts })}</h4>
+                        <div class="quest-reward"><i class="fas fa-bolt"></i> ${this.formatNumber(currentMiningQuest.reward)} ${this.t('power')}</div>
+                        <div class="quest-progress-bar">
+                            <div class="quest-progress-fill" style="width: ${miningProgress}%"></div>
+                        </div>
+                        <div style="font-size:0.55rem;color:#888;margin-top:2px;">${Math.floor(miningProgress)}%</div>
+                    </div>
+                    ${miningQuestComplete ? `<button id="claim-mining-quest" class="quest-claim-btn gold-btn"><i class="fas fa-hammer"></i> ${this.t('claim_quest')}</button>` : `<button class="quest-claim-btn locked" disabled><i class="fas fa-lock"></i> Locked</button>`}
                 </div>
-                ${miningQuestComplete ? `<button id="claim-mining-quest" class="quest-claim-btn gold-btn"><i class="fas fa-hammer"></i> ${this.t('claim_quest')}</button>` : `<button class="quest-claim-btn locked" disabled><i class="fas fa-lock"></i> Locked</button>`}
             </div>
             ` : ''}
 
             ${currentReferralQuest ? `
             <div class="quest-card gold-quest">
-                <div class="quest-icon gold-icon"><i class="fas fa-users"></i></div>
-                <div class="quest-info">
-                    <h4>${this.t('target_referrals', { target: currentReferralQuest.target_referrals })}</h4>
-                    <div class="quest-reward"><i class="fas fa-bolt"></i> ${this.formatNumber(currentReferralQuest.reward)} ${this.t('power')}</div>
-                    <div class="quest-progress"><i class="fas fa-chart-line"></i> ${this.t('progress')}: ${this.totalReferrals}/${currentReferralQuest.target_referrals}</div>
+                <div class="quest-header">
+                    <div class="quest-icon gold-icon"><i class="fas fa-users"></i></div>
+                    <div class="quest-info">
+                        <h4>${this.t('target_referrals', { target: currentReferralQuest.target_referrals })}</h4>
+                        <div class="quest-reward"><i class="fas fa-bolt"></i> ${this.formatNumber(currentReferralQuest.reward)} ${this.t('power')}</div>
+                        <div class="quest-progress-bar">
+                            <div class="quest-progress-fill" style="width: ${referralProgress}%"></div>
+                        </div>
+                        <div style="font-size:0.55rem;color:#888;margin-top:2px;">${Math.floor(referralProgress)}%</div>
+                    </div>
+                    ${referralQuestComplete ? `<button id="claim-referral-quest" class="quest-claim-btn gold-btn"><i class="fas fa-users"></i> ${this.t('claim_quest')}</button>` : `<button class="quest-claim-btn locked" disabled><i class="fas fa-lock"></i> Locked</button>`}
                 </div>
-                ${referralQuestComplete ? `<button id="claim-referral-quest" class="quest-claim-btn gold-btn"><i class="fas fa-users"></i> ${this.t('claim_quest')}</button>` : `<button class="quest-claim-btn locked" disabled><i class="fas fa-lock"></i> Locked</button>`}
             </div>
             ` : ''}
         `;
@@ -1307,19 +1357,18 @@ class App {
         document.getElementById('claim-mining-btn')?.addEventListener('click', () => this.claimMiningRewards());
 
         document.getElementById('claim-welcome-quest')?.addEventListener('click', async () => {
-
-        const result = await this.fetchFromServer('/api/claim-welcome-bonus', {
-        userId: this.tgUser.id
+            const result = await this.fetchFromServer('/api/claim-welcome-bonus', {
+                userId: this.tgUser.id
+            });
+            
+            if (result.success) {
+                this.powerBalance = result.user.power_balance;
+                this.quests.welcomeBonusClaimed = true;
+                this.updateLevelFromPower();
+                this.renderMining();
+                this.showNotification('Reward Claimed!', `+${result.reward} Power`, 'success');
+            }
         });
-    
-    if (result.success) {
-        this.powerBalance = result.user.power_balance;
-        this.quests.welcomeBonusClaimed = true;
-        this.updateLevelFromPower();
-        this.renderMining();
-        this.showNotification('Reward Claimed!', `+${result.reward} Power`, 'success');
-    }
-});
 
         document.getElementById('claim-level-quest')?.addEventListener('click', async () => {
             try {
@@ -1764,6 +1813,43 @@ class App {
                     <div class="stat-label">${this.t('total_pirates')}</div>
                 </div>
             </div>
+
+            <div class="boost-earnings-section">
+                <div class="section-title"><i class="fas fa-rocket"></i> ${this.t('boost_earnings')}</div>
+                
+                ${this.promotionData ? `
+                <div class="status-display">
+                    <div class="status-item">
+                        <span class="label">${this.t('channel')}</span>
+                        <span class="value">${this.promotionData.channel || '—'}</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">${this.t('referral_link')}</span>
+                        <span class="value">${this.promotionData.link || '—'}</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">${this.t('status')}</span>
+                        <span class="value ${this.promotionData.status === 'approved' ? 'approved' : 'pending'}">${this.t(this.promotionData.status || 'pending')}</span>
+                    </div>
+                </div>
+                <div class="note"><i class="fas fa-info-circle"></i> ${this.t('do_not_remove_bot')}</div>
+                ` : `
+                <div class="form-group">
+                    <label>${this.t('enter_channel_link')}</label>
+                    <input type="text" id="channel-link-input" class="form-input" placeholder="https://t.me/yourchannel">
+                </div>
+                <div class="form-group">
+                    <label>${this.t('enter_referral_link')}</label>
+                    <input type="text" id="referral-link-input" class="form-input" value="${link}" readonly>
+                </div>
+                <a href="${this.t('upgrade_bot_link', { bot: this.config.BOT_USERNAME || 'GramPirateBot' })}" target="_blank" class="admin-btn gold-btn">
+                    <i class="fas fa-robot"></i> ${this.t('upgrade_bot')}
+                </a>
+                <div class="note"><i class="fas fa-info-circle"></i> ${this.t('you_will_receive')}</div>
+                <div class="note"><i class="fas fa-info-circle"></i> ${this.t('bot_post_note')}</div>
+                <button id="confirm-boost-btn" class="confirm-btn gold-btn">${this.t('confirm_boost')}</button>
+                `}
+            </div>
         `;
 
         document.getElementById('copyLink')?.addEventListener('click', () => {
@@ -1793,6 +1879,47 @@ class App {
             this.renderTeam();
             this.vibrate('success');
         });
+
+        document.getElementById('confirm-boost-btn')?.addEventListener('click', async () => {
+            const channelInput = document.getElementById('channel-link-input');
+            const linkInput = document.getElementById('referral-link-input');
+            const channel = channelInput?.value?.trim();
+            const refLink = linkInput?.value?.trim();
+
+            if (!channel) {
+                this.showNotification('Error', 'Please enter a channel link', 'error');
+                this.vibrate('error');
+                return;
+            }
+
+            const btn = document.getElementById('confirm-boost-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
+
+            try {
+                const result = await this.fetchFromServer('/api/setup-promotion', {
+                    userId: this.tgUser.id,
+                    channel: channel,
+                    link: refLink || link
+                });
+
+                if (result.error) {
+                    this.showNotification('Error', result.error, 'error');
+                    this.vibrate('error');
+                } else {
+                    this.promotionData = result.promotion;
+                    this.showNotification('Success', 'Promotion setup submitted for review', 'success');
+                    this.vibrate('success');
+                    this.renderTeam();
+                }
+            } catch (e) {
+                this.showNotification('Error', 'Failed to submit request', 'error');
+                this.vibrate('error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = this.t('confirm_boost');
+        });
     }
 
     renderWallet() {
@@ -1800,8 +1927,8 @@ class App {
         if (!el) return;
 
         const exchangeRate = this.config.PIRATE_TO_GRAM_RATE || 10000;
-        const minWithdrawGold = (this.config.MINIMUM_WITHDRAW || 0.03) * exchangeRate;
-        const fees = this.config.WITHDRAWAL_FEES || 0;
+        const minWithdrawGold = 500;
+        const maxWithdrawGold = 2000;
 
         const historyHtml = this.withdrawals && this.withdrawals.length ? this.withdrawals.slice(0, 5).map(w => `
             <div class="history-item gold-item">
@@ -1836,7 +1963,7 @@ class App {
                 <div class="form-group">
                     <label class="form-label">${this.t('enter_gold_amount')}</label>
                     <div class="input-wrapper">
-                        <input type="number" id="withdraw-amount" class="form-input gold-input" placeholder="${this.t('min_withdraw_gold')}: ${minWithdrawGold.toFixed(0)}" step="1">
+                        <input type="number" id="withdraw-amount" class="form-input gold-input" placeholder="${this.t('min_withdraw_gold')}: ${minWithdrawGold} - ${this.t('max_withdraw_gold')}: ${maxWithdrawGold}" step="1">
                         <button id="max-amount" class="action-btn gold-btn">MAX</button>
                     </div>
                 </div>
@@ -1856,7 +1983,7 @@ class App {
 
                 <div class="exchange-note">
                     <i class="fas fa-exchange-alt"></i> ${this.t('exchange_rate')}: ${exchangeRate.toLocaleString()} ${this.t('gold')} = 1 GRAM
-                    ${fees > 0 ? ` • ${this.t('withdrawal_fees_note', { fees: fees })}` : ''}
+                    <br><span style="color:#888;font-size:0.6rem;">${this.t('min_withdraw_gold_amount')} • ${this.t('max_withdraw_gold_amount')}</span>
                 </div>
             </div>
 
@@ -1879,7 +2006,7 @@ class App {
                 preview.innerHTML = `<span>≈ ${gramAmount.toFixed(5)} GRAM</span>`;
             }
 
-            const isValid = amount > 0 && amount <= this.goldBalance && gramAmount >= (this.config.MINIMUM_WITHDRAW || 0.03);
+            const isValid = amount >= 500 && amount <= 2000 && amount <= this.goldBalance;
             if (withdrawBtn) {
                 withdrawBtn.disabled = !isValid;
                 withdrawBtn.classList.toggle('disabled', !isValid);
@@ -1888,7 +2015,7 @@ class App {
 
         maxBtn?.addEventListener('click', () => {
             if (amountInput) {
-                amountInput.value = Math.floor(this.goldBalance);
+                amountInput.value = Math.min(Math.floor(this.goldBalance), 2000);
                 updatePreview();
             }
         });
@@ -1932,6 +2059,7 @@ class App {
                 } else if (id === 'earn-page') {
                     this.renderEarn();
                 } else if (id === 'team-page') {
+                    this._teamLoaded = true;
                     this.renderTeam();
                 } else if (id === 'wallet-page') {
                     this._walletLoaded = true;
