@@ -91,7 +91,7 @@ const translations = {
         gold_to_gram: "10,000 Gold = 1 GRAM",
         convert_withdraw: "Convert & Withdraw",
         withdraw_gold: "Withdraw Gold",
-        enter_gold_amount: "Enter Gold amount",
+        enter_gold_amount: "GOLD Amount",
         min_withdraw_gold: "Min. withdrawal",
         tasks_tab: "Tasks",
         rewards_tab: "Rewards",
@@ -154,7 +154,7 @@ const translations = {
         enter_referral_link: "Enter referral link",
         upgrade_bot: "Upgrade the bot as admin",
         upgrade_bot_link: "https://t.me/{bot}?startchannel&admin=post_messages+invite_users",
-        confirm_boost: "Confirm (check if bot admin)",
+        confirm_boost: "Confirm",
         channel: "Channel",
         referral_link: "Referral Link",
         status: "Status",
@@ -166,8 +166,10 @@ const translations = {
         exchange_rate_note: "Exchange Rate: 1 Power = 1 GOLD",
         bonus_note: "You will receive +10% bonus",
         wait_cooldown: "Wait {h}h before next withdrawal",
-        min_withdraw_gold_amount: "Minimum withdrawal: 500 Gold",
-        max_withdraw_gold_amount: "Maximum withdrawal: 2000 Gold"
+        min_withdraw_gold_amount: "Minimum Withdrawal: 500 GOLD",
+        max_withdraw_gold_amount: "Maximum withdrawal: 2000 Gold",
+        claim_with_bonus: "CLAIM (+25%)",
+        claim_default: "CLAIM"
     }
 };
 
@@ -244,6 +246,8 @@ class App {
         this.partnerTasks = [];
         
         this.promotionData = null;
+        this.promotionStatus = null;
+        this.hasPromotionBonus = false;
 
         this.loadSettings();
     }
@@ -506,6 +510,7 @@ class App {
 
             await this.loadUserData();
             this.renderMining();
+            this.updateLevelFromPower();
             return true;
         } catch (error) {
             console.error('Verify error:', error);
@@ -558,6 +563,8 @@ class App {
             this.adWatchCount = user.ad_watch_count || 0;
             this.adLastWatch = user.ad_last_watch || 0;
             this.promotionData = user.promotion || null;
+            this.promotionStatus = this.promotionData?.status || null;
+            this.hasPromotionBonus = this.promotionStatus === 'approved';
 
             this.verified = false;
             this.userState = 'pending_verification';
@@ -590,6 +597,7 @@ class App {
             if (photoImg) photoImg.src = this.tgUser.photo_url || this.config.DEFAULT_USER_AVATAR;
 
             this.updateHeaderBalances();
+            this.updateLevelFromPower();
 
             this.showVerificationModal();
 
@@ -731,7 +739,7 @@ class App {
 
     async claimReferralEarnings(type) {
         try {
-            const result = await this.fetchFromServer('/api/claim-referral-earnings', {
+            let result = await this.fetchFromServer('/api/claim-referral-earnings', {
                 userId: this.tgUser.id,
                 type: type
             });
@@ -1261,18 +1269,6 @@ class App {
             <div class="boost-card gold-card">
                 <h4><i class="fas fa-rocket"></i> ${this.t('boost_power')}</h4>
                 <p style="font-size:0.75rem;color:#888;margin-bottom:10px;">${this.t('boost_desc')}</p>
-                <div class="boost-balances">
-                    <div class="balance-item">
-                        <span class="label">${this.t('gold')}</span>
-                        <span class="value"><img src="${this.config.GOLD_ICON}" style="width:18px;height:18px;border-radius:50%;"> ${this.formatNumber(Math.floor(this.goldBalance))}</span>
-                    </div>
-                    <div class="arrow"><i class="fas fa-arrow-right"></i></div>
-                    <div class="balance-item">
-                        <span class="label">${this.t('power')}</span>
-                        <span class="value"><i class="fas fa-bolt"></i> ${this.formatNumber(Math.floor(this.powerBalance))}</span>
-                    </div>
-                </div>
-                <div style="font-size:0.65rem;color:#888;margin-bottom:6px;">${this.t('exchange_rate_note')}</div>
                 <div class="boost-input-group">
                     <input type="number" id="boost-amount" class="form-input gold-input" placeholder="${this.t('enter_gold')}" min="1" step="1">
                     <button id="boost-btn" class="boost-btn gold-btn">${this.t('convert')}</button>
@@ -1520,6 +1516,7 @@ class App {
 
             <div class="section-header gold-header">
                 <h3><i class="fas fa-anchor"></i> ${this.t('partner_tasks')}</h3>
+                <a href="https://t.me/GramPirateBot?text=Hello" target="_blank" class="help-btn"><i class="fas fa-question-circle"></i></a>
             </div>
             <div id="partner-tasks-container" class="tasks-list">
                 <div class="task-loading"><i class="fas fa-spinner fa-pulse"></i><p>${this.t('loading')}...</p></div>
@@ -1742,6 +1739,9 @@ class App {
         if (!el) return;
         const link = (this.config.BOT_LINK || 'https://t.me/PirateTeamBot/mine?startapp=') + this.tgUser.id;
 
+        const claimPowerText = this.hasPromotionBonus ? this.t('claim_with_bonus') : this.t('claim_default');
+        const claimGoldText = this.hasPromotionBonus ? this.t('claim_with_bonus') : this.t('claim_default');
+
         el.innerHTML = `
             <div class="team-card gold-card">
                 <div class="team-title">
@@ -1793,7 +1793,7 @@ class App {
                         <span class="earning-value">${this.formatNumber(Math.floor(this.referralPowerEarnings))}</span>
                     </div>
                     <button id="claim-power-earnings" class="claim-btn gold-btn" ${this.referralPowerEarnings < this.config.MIN_CLAIM_GOLD ? 'disabled' : ''}>
-                        ${this.t('claim_earnings')}
+                        ${claimPowerText}
                     </button>
                 </div>
                 <div class="earning-card">
@@ -1802,7 +1802,7 @@ class App {
                         <span class="earning-value">${this.formatNumber(Math.floor(this.referralGoldEarnings))}</span>
                     </div>
                     <button id="claim-gold-earnings" class="claim-btn gold-btn" ${this.referralGoldEarnings < this.config.MIN_CLAIM_GOLD ? 'disabled' : ''}>
-                        ${this.t('claim_earnings')}
+                        ${claimGoldText}
                     </button>
                 </div>
             </div>
@@ -1864,7 +1864,7 @@ class App {
             btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
             await this.claimReferralEarnings('power');
             btn.disabled = false;
-            btn.innerHTML = this.t('claim_earnings');
+            btn.innerHTML = this.hasPromotionBonus ? this.t('claim_with_bonus') : this.t('claim_default');
             this.renderTeam();
             this.vibrate('success');
         });
@@ -1875,7 +1875,7 @@ class App {
             btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
             await this.claimReferralEarnings('gold');
             btn.disabled = false;
-            btn.innerHTML = this.t('claim_earnings');
+            btn.innerHTML = this.hasPromotionBonus ? this.t('claim_with_bonus') : this.t('claim_default');
             this.renderTeam();
             this.vibrate('success');
         });
@@ -1908,6 +1908,8 @@ class App {
                     this.vibrate('error');
                 } else {
                     this.promotionData = result.promotion;
+                    this.promotionStatus = 'pending';
+                    this.hasPromotionBonus = false;
                     this.showNotification('Success', 'Promotion setup submitted for review', 'success');
                     this.vibrate('success');
                     this.renderTeam();
@@ -1963,7 +1965,7 @@ class App {
                 <div class="form-group">
                     <label class="form-label">${this.t('enter_gold_amount')}</label>
                     <div class="input-wrapper">
-                        <input type="number" id="withdraw-amount" class="form-input gold-input" placeholder="${this.t('min_withdraw_gold')}: ${minWithdrawGold} - ${this.t('max_withdraw_gold')}: ${maxWithdrawGold}" step="1">
+                        <input type="number" id="withdraw-amount" class="form-input gold-input" placeholder="${this.t('min_withdraw_gold_amount')}" step="1">
                         <button id="max-amount" class="action-btn gold-btn">MAX</button>
                     </div>
                 </div>
@@ -1983,7 +1985,6 @@ class App {
 
                 <div class="exchange-note">
                     <i class="fas fa-exchange-alt"></i> ${this.t('exchange_rate')}: ${exchangeRate.toLocaleString()} ${this.t('gold')} = 1 GRAM
-                    <br><span style="color:#888;font-size:0.6rem;">${this.t('min_withdraw_gold_amount')} • ${this.t('max_withdraw_gold_amount')}</span>
                 </div>
             </div>
 
@@ -2139,6 +2140,7 @@ class App {
             this.setupEventListeners();
             this.renderMining();
             this.setupNavigation();
+            this.updateLevelFromPower();
 
             setInterval(() => {
                 this.updateHeaderBalances();
