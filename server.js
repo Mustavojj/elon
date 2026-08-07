@@ -397,6 +397,10 @@ class OxaPay {
                 memo: data.memo || 'GRAM PIRATES 🏴‍☠️'
             };
 
+            if (data.callback_url) {
+                payload.callback_url = data.callback_url;
+            }
+
             const result = await this.request('/payout', payload);
 
             const trackId = result?.data?.track_id || result?.track_id;
@@ -447,21 +451,16 @@ async function checkPayoutStatus(trackId, userId, goldAmount, walletAddress) {
 
         if (status.completed && status.txHash) {
             const user = await getUser(userId);
-            if (!user) return;
+            if (!user) return false;
 
-            await updateUser(userId, {
-                last_withdraw_time: Date.now()
-            });
-
-            await createWithdrawal({
-                user_id: userId,
-                amount: goldAmount,
-                gram_amount: goldAmount / 10000,
-                wallet: walletAddress,
-                status: 'completed',
-                timestamp: Date.now(),
-                tx_id: status.txHash
-            });
+            await supabase
+                .from('withdrawals')
+                .update({ 
+                    status: 'completed', 
+                    tx_id: status.txHash,
+                    timestamp: Date.now()
+                })
+                .eq('tx_id', trackId);
 
             await sendTelegramNotification(userId, '✅ WITHDRAWAL CONFIRMED!', 
                 `✅ ${goldAmount / 10000} GRAM sent to your wallet\n🔗 [View on TON Explorer](https://tonviewer.com/transaction/${status.txHash})`
@@ -484,7 +483,7 @@ async function checkPayoutStatus(trackId, userId, goldAmount, walletAddress) {
 }
 
 async function pollPayoutStatus(trackId, userId, goldAmount, walletAddress, attempts = 0) {
-    const maxAttempts = 30;
+    const maxAttempts = 60;
     const delay = 30000;
 
     if (attempts >= maxAttempts) {
@@ -499,6 +498,52 @@ async function pollPayoutStatus(trackId, userId, goldAmount, walletAddress, atte
         }, delay);
     }
 }
+
+app.post('/api/oxapay-webhook', async (req, res) => {
+    try {
+        const { track_id, status, tx_hash, amount, currency, address } = req.body;
+
+        if (status === 'completed' && tx_hash) {
+            const { data: withdrawal } = await supabase
+                .from('withdrawals')
+                .select('user_id, amount')
+                .eq('tx_id', track_id)
+                .eq('status', 'processing')
+                .single();
+
+            if (withdrawal) {
+                const userId = withdrawal.userId;
+
+                await supabase
+                    .from('withdrawals')
+                    .update({ 
+                        status: 'completed', 
+                        tx_id: tx_hash,
+                        timestamp: Date.now()
+                    })
+                    .eq('tx_id', track_id);
+
+                const user = await getUser(userId);
+                if (user) {
+                    await sendTelegramNotification(userId, '✅ WITHDRAWAL CONFIRMED!', 
+                        `✅ ${withdrawal.amount / 10000} GRAM sent to your wallet\n🔗 [View on TON Explorer](https://tonviewer.com/transaction/${tx_hash})`
+                    );
+                }
+
+                const adminId = process.env.ADMIN_USER_ID;
+                if (adminId) {
+                    await sendTelegramNotification(adminId, '✅ Withdrawal Completed', 
+                        `User: ${userId}\nAmount: ${withdrawal.amount / 10000} GRAM\nTX: ${tx_hash}`
+                    );
+                }
+            }
+        }
+
+        res.sendStatus(200);
+    } catch (error) {
+        res.sendStatus(500);
+    }
+});
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -1350,7 +1395,8 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
             currency: 'GRAM',
             network: 'TON',
             description: `Withdraw ${gramAmount} GRAM for user ${userId}`,
-            memo: 'GRAM PIRATES 🏴‍☠️'
+            memo: 'GRAM PIRATES 🏴‍☠️',
+            callback_url: 'https://elon-production-9fd2.up.railway.app/api/oxapay-webhook'
         });
         
         if (!payout || !payout.success) {
