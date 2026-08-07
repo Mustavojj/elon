@@ -200,7 +200,7 @@ class App {
         this.miningInterval = null;
         this.uiUpdateInterval = null;
         this.pendingGoldReward = 0;
-        this.miningSessionHours = 5;
+        this.miningSessionHours = 12;
         this.withdrawals = [];
         this.totalReferrals = 0;
         this.referralPower = 0;
@@ -508,9 +508,10 @@ class App {
             document.getElementById('app-loader').style.display = 'none';
             this.vibrate('success');
 
+            this._userDataLoaded = false;
             await this.loadUserData();
-            this.renderMining();
             this.updateLevelFromPower();
+            this.renderMining();
             return true;
         } catch (error) {
             console.error('Verify error:', error);
@@ -571,6 +572,7 @@ class App {
 
             if (user.quests) {
                 this.quests = user.quests;
+                this.quests.welcomeBonusClaimed = user.quests.welcome_bonus_claimed || false;
             }
 
             if (result.completedTasks) {
@@ -599,7 +601,9 @@ class App {
             this.updateHeaderBalances();
             this.updateLevelFromPower();
 
-            this.showVerificationModal();
+            if (!this.verified) {
+                this.showVerificationModal();
+            }
 
         } catch (error) {
             console.error('loadUserData error:', error);
@@ -1217,7 +1221,7 @@ class App {
         const referralQuestComplete = currentReferralQuest ? this.totalReferrals >= currentReferralQuest.target_referrals : false;
         const referralProgress = currentReferralQuest ? Math.min(100, (this.totalReferrals / currentReferralQuest.target_referrals) * 100) : 0;
 
-        const welcomeBonusClaimed = this.quests.welcomeBonusClaimed || false;
+        const welcomeBonusClaimed = this.quests.welcomeBonusClaimed || this.powerBalance > 1000;
 
         const claimText = this.t('claim_reward', { amount: Math.floor(this.pendingGoldReward) });
 
