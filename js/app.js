@@ -509,15 +509,95 @@ class App {
             this.vibrate('success');
 
             this._userDataLoaded = false;
-            await this.loadUserData();
+            await this.loadUserDataAfterVerification();
             this.updateLevelFromPower();
             this.renderMining();
+            
+            if (this.miningActive && this.miningEndTime) {
+                this.startMiningLoop();
+            }
+            
             return true;
         } catch (error) {
             console.error('Verify error:', error);
             this.showNotification('Error', this.t('verification_error'), 'error');
             this.vibrate('error');
             return false;
+        }
+    }
+
+    async loadUserDataAfterVerification() {
+        try {
+            const result = await this.fetchFromServer('/api/get-user', {
+                userId: this.tgUser.id,
+                username: this.tgUser.username || '',
+                firstName: this.tgUser.first_name || 'User',
+                photoUrl: this.tgUser.photo_url || this.config.DEFAULT_USER_AVATAR
+            });
+
+            if (result.error) {
+                console.error('Error loading user:', result.error);
+                return;
+            }
+
+            const user = result.user;
+            this.powerBalance = user.power_balance || 0;
+            this.goldBalance = user.gold_balance || 0;
+            this.gramBalance = user.gram_balance || 0;
+            this.referralPowerEarnings = user.referral_power_earnings || 0;
+            this.referralGoldEarnings = user.referral_gold_earnings || 0;
+            this.userLevel = user.level || 1;
+            this.hasStartedMining = user.has_started_mining || false;
+            this.miningActive = user.mining_active || false;
+            this.miningStartTime = user.mining_start_time || null;
+            this.miningEndTime = user.mining_end_time || null;
+            this.pendingGoldReward = user.pending_gold_reward || 0;
+            this.referredBy = user.referred_by || null;
+            this.totalReferrals = user.total_referrals || 0;
+            this.referralPower = user.referral_power || 0;
+            this.totalTasksCompleted = user.total_tasks_completed || 0;
+            this.totalMiningStarts = user.total_mining_starts || 0;
+            this.referralRewardGiven = user.referral_reward_given || false;
+            this.userState = user.state || 'pending_verification';
+            this.adWatchCount = user.ad_watch_count || 0;
+            this.adLastWatch = user.ad_last_watch || 0;
+            this.promotionData = user.promotion || null;
+            this.promotionStatus = this.promotionData?.status || null;
+            this.hasPromotionBonus = this.promotionStatus === 'approved';
+
+            if (user.quests) {
+                this.quests = user.quests;
+                this.quests.welcomeBonusClaimed = user.quests.welcome_bonus_claimed || false;
+            }
+
+            if (result.completedTasks) {
+                this.userCompletedTasks = new Set(result.completedTasks);
+            }
+
+            if (result.withdrawals) {
+                this.withdrawals = result.withdrawals;
+            }
+
+            if (result.referrals) {
+                this.totalReferrals = result.referrals.length;
+            }
+
+            this._userDataLoaded = true;
+
+            const nameSpan = document.getElementById('user-name');
+            if (nameSpan) nameSpan.innerText = this.truncateName(this.tgUser.first_name || 'User');
+            const levelSpan = document.getElementById('user-level');
+            if (levelSpan) levelSpan.innerText = this.userLevel;
+            const levelBadge = document.getElementById('user-level-badge');
+            if (levelBadge) levelBadge.innerText = this.userLevel;
+            const photoImg = document.getElementById('user-photo');
+            if (photoImg) photoImg.src = this.tgUser.photo_url || this.config.DEFAULT_USER_AVATAR;
+
+            this.updateHeaderBalances();
+            this.updateLevelFromPower();
+
+        } catch (error) {
+            console.error('loadUserDataAfterVerification error:', error);
         }
     }
 
@@ -566,9 +646,6 @@ class App {
             this.promotionData = user.promotion || null;
             this.promotionStatus = this.promotionData?.status || null;
             this.hasPromotionBonus = this.promotionStatus === 'approved';
-
-            this.verified = false;
-            this.userState = 'pending_verification';
 
             if (user.quests) {
                 this.quests = user.quests;
