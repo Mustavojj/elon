@@ -26,13 +26,13 @@ const APP_CONFIG = {
     WITHDRAWAL_FEES: 0,
     REFERRAL_PERCENTAGE: 10,
     REFERRAL_POWER_REWARD: 3000,
-    MINING_SESSION_HOURS: 5,
+    MINING_SESSION_HOURS: 12,
     POWER_PER_DAY_RATE: 0.003,
     TASK_VERIFICATION_DELAY: 10,
     DEFAULT_USER_AVATAR: "https://i.ibb.co/XxXhyZYf/file-000000006f8c720e9ab4c76b6e560062.png",
     TON_WALLET_ADDRESS: "UQCrXfE4_ktpwyZJzmGuCt6zXE5mErFV8VczSjEZvRuLy9_q",
-    INTERSTITIAL_AD_BLOCK_ID: "int-41677",
-    REWARD_AD_BLOCK_ID: "41675",
+    INTERSTITIAL_AD_BLOCK_ID: "int-41634",
+    REWARD_AD_BLOCK_ID: "41636",
     BOT_LINK: "https://t.me/GramPirateBot/app?startapp=",
     DAILY_CHECK_NEWS_LINK: "https://t.me/PirateTeamNews",
     REFERRAL_REQUIRED_TASKS: 5,
@@ -99,11 +99,6 @@ function generateVerificationCode() {
 
 function generateSessionToken() {
     return crypto.randomBytes(32).toString('hex');
-}
-
-function extractChatIdFromUrl(url) {
-    const match = url.match(/t\.me\/([^\/\?]+)/);
-    return match ? match[1] : null;
 }
 
 async function getUser(userId) {
@@ -351,7 +346,6 @@ async function verifySession(req, res, next) {
     }
 }
 
-// OxaPay integration for automatic payouts
 class OxaPay {
     constructor(config) {
         this.merchantId = config.merchantId;
@@ -414,7 +408,7 @@ app.post('/api/claim-welcome-bonus', verifySession, async (req, res) => {
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
-        if (user.quests?.welcome_bonus_claimed) {
+        if (user.quests?.welcome_bonus_claimed || user.power_balance > 1000) {
             return res.status(400).json({ error: 'Already claimed' });
         }
 
@@ -913,7 +907,6 @@ app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
             return res.status(403).json({ error: 'User not verified' });
         }
 
-        // Check if user has promotion bonus (25% extra)
         const hasPromotionBonus = user.promotion?.status === 'approved';
         const bonusMultiplier = hasPromotionBonus ? 1.25 : 1;
 
@@ -1134,7 +1127,6 @@ app.post('/api/check-membership', async (req, res) => {
     }
 });
 
-// Setup promotion endpoint
 app.post('/api/setup-promotion', verifySession, async (req, res) => {
     try {
         const { userId, channel, link } = req.body;
@@ -1147,12 +1139,10 @@ app.post('/api/setup-promotion', verifySession, async (req, res) => {
             return res.status(403).json({ error: 'User not verified' });
         }
 
-        // Validate channel link
         if (!channel.startsWith('https://t.me/')) {
             return res.status(400).json({ error: 'Invalid channel link' });
         }
 
-        // Check if bot is admin in the channel
         const channelUsername = channel.replace('https://t.me/', '');
         const botInfo = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getMe`).then(r => r.json());
         const botId = botInfo.result.id;
@@ -1178,7 +1168,6 @@ app.post('/api/setup-promotion', verifySession, async (req, res) => {
             promotion: promotionData
         });
 
-        // Notify admin
         const adminId = process.env.ADMIN_USER_ID;
         if (adminId) {
             await sendTelegramNotification(adminId, '📢 New Promotion Request', 
@@ -1196,7 +1185,6 @@ app.post('/api/setup-promotion', verifySession, async (req, res) => {
     }
 });
 
-// Withdraw with OxaPay
 app.post('/api/withdraw-gram', verifySession, async (req, res) => {
     try {
         const { userId, walletAddress, goldAmount } = req.body;
