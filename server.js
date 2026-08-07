@@ -371,6 +371,38 @@ app.get('/api/current-time', (req, res) => {
     res.json({ serverTime: getCurrentTime() });
 });
 
+app.post('/api/claim-welcome-bonus', verifySession, async (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!userId) return res.status(400).json({ error: 'userId required' });
+
+        const user = await getUser(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        if (user.quests?.welcome_bonus_claimed) {
+            return res.status(400).json({ error: 'Already claimed' });
+        }
+
+        const reward = APP_CONFIG.QUESTS.welcome_bonus.reward || 1000;
+
+        const updatedUser = await updateUser(userId, {
+            power_balance: (user.power_balance || 0) + reward,
+            quests: {
+                ...user.quests,
+                welcome_bonus_claimed: true
+            }
+        });
+
+        res.json({
+            success: true,
+            user: updatedUser,
+            reward: reward
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.post('/api/send-verification', async (req, res) => {
     try {
         const { userId } = req.body;
@@ -480,13 +512,6 @@ app.post('/api/verify-code', async (req, res) => {
         if (getCurrentTime() > verification.expires_at) {
             return res.status(400).json({ error: 'Code expired' });
         }
-
-        const user = await getUser(userId);
-        await updateUser(userId, {
-            verified: true,
-            state: 'active',
-            power_balance: (user.power_balance || 0) + 1000
-        });
 
         await supabase
             .from('verifications')
