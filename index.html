@@ -15,17 +15,20 @@
 <div id="app-loader" style="display:none;"></div>
 
 <div id="verification-modal" class="modal" style="display:none;">
-    <div class="modal-content glass-modal modern-modal gold-modal">
+    <div class="modal-content glass-modal modern-modal gold-modal" style="max-width:280px;width:90%;">
         <div class="modal-header gold-header">
             <h3><i class="fas fa-shield-alt"></i> Verification Required</h3>
         </div>
         <div class="modal-body">
-            <p style="text-align:center;color:#888;margin-bottom:16px;">Enter the Verification Code</p>
+            <p style="text-align:center;color:#888;margin-bottom:16px;font-size:0.85rem;">Enter the Verification Code</p>
             <div class="form-group">
-                <input type="text" id="verification-input" class="form-input gold-input" placeholder="Enter code" maxlength="5" autocomplete="off" style="text-align:center;font-size:1.5rem;letter-spacing:8px;">
+                <input type="text" id="verification-input" class="form-input gold-input" placeholder="Enter code" maxlength="5" autocomplete="off" style="text-align:center;font-size:1.3rem;letter-spacing:6px;padding:8px 12px;">
             </div>
-            <button id="verify-btn" class="modern-support-btn gold-btn">Verify</button>
-            <button id="resend-code-btn" class="modern-support-btn" style="background:transparent;color:#888;margin-top:8px;font-size:0.8rem;">Resend Code</button>
+            <button id="verify-btn" class="modern-support-btn gold-btn" style="font-size:0.85rem;padding:10px;">Verify</button>
+            <a href="https://t.me/GramPirateBot" target="_blank" style="display:block;text-align:center;margin-top:10px;color:#888;font-size:0.75rem;text-decoration:none;border:1px solid rgba(255,215,0,0.1);border-radius:40px;padding:8px;background:rgba(255,215,0,0.05);">
+                <i class="fas fa-robot"></i> Get Code
+            </a>
+            <button id="resend-code-btn" class="modern-support-btn" style="background:transparent;color:#888;margin-top:6px;font-size:0.7rem;padding:6px;">Resend Code</button>
             <div id="verification-error" style="color:var(--error);text-align:center;margin-top:8px;display:none;"></div>
         </div>
     </div>
