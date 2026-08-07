@@ -31,7 +31,7 @@ const APP_CONFIG = {
     TASK_VERIFICATION_DELAY: 10,
     DEFAULT_USER_AVATAR: "https://i.ibb.co/XxXhyZYf/file-000000006f8c720e9ab4c76b6e560062.png",
     TON_WALLET_ADDRESS: "UQCrXfE4_ktpwyZJzmGuCt6zXE5mErFV8VczSjEZvRuLy9_q",
-    INTERSTITIAL_AD_BLOCK_ID: "int-41635",
+    INTERSTITIAL_AD_BLOCK_ID: "int-41634",
     REWARD_AD_BLOCK_ID: "41636",
     BOT_LINK: "https://t.me/GramPirateBot/app?startapp=",
     DAILY_CHECK_NEWS_LINK: "https://t.me/PirateTeamNews",
