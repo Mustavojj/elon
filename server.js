@@ -276,17 +276,30 @@ async function updateStats(statName, increment) {
     } catch (error) {}
 }
 
-async function sendTelegramNotification(userId, title, message) {
+async function sendTelegramNotification(userId, title, message, inlineButton = null) {
     if (!BOT_TOKEN) return;
     try {
+        const payload = {
+            chat_id: userId,
+            text: `*${title}*\n\n${message}`,
+            parse_mode: 'Markdown'
+        };
+
+        if (inlineButton) {
+            payload.reply_markup = {
+                inline_keyboard: [
+                    [{
+                        text: inlineButton.text,
+                        url: inlineButton.url
+                    }]
+                ]
+            };
+        }
+
         await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: userId,
-                text: `*${title}*\n\n${message}`,
-                parse_mode: 'Markdown'
-            })
+            body: JSON.stringify(payload)
         });
     } catch (error) {}
 }
@@ -397,10 +410,6 @@ class OxaPay {
                 memo: data.memo || 'GRAM PIRATES 🏴‍☠️'
             };
 
-            if (data.callback_url) {
-                payload.callback_url = data.callback_url;
-            }
-
             const result = await this.request('/payout', payload);
 
             const trackId = result?.data?.track_id || result?.track_id;
@@ -418,132 +427,7 @@ class OxaPay {
             throw error;
         }
     }
-
-    async getPayoutStatus(trackId) {
-        try {
-            const result = await this.request('/payout/status', { track_id: trackId });
-            const status = result?.data?.status || result?.status || 'processing';
-            const txHash = result?.data?.tx_hash || result?.tx_hash || null;
-            const amount = result?.data?.amount || 0;
-            const currency = result?.data?.currency || 'GRAM';
-            
-            return {
-                status: status,
-                txHash: txHash,
-                amount: amount,
-                currency: currency,
-                completed: status === 'completed'
-            };
-        } catch (error) {
-            return { status: 'unknown', completed: false };
-        }
-    }
 }
-
-async function checkPayoutStatus(trackId, userId, goldAmount, walletAddress) {
-    try {
-        const oxapay = new OxaPay({
-            apiKey: process.env.OXAPAY_API_KEY,
-            sandbox: process.env.NODE_ENV !== 'production'
-        });
-
-        const status = await oxapay.getPayoutStatus(trackId);
-
-        if (status.completed && status.txHash) {
-            const user = await getUser(userId);
-            if (!user) return false;
-
-            await supabase
-                .from('withdrawals')
-                .update({ 
-                    status: 'completed', 
-                    tx_id: status.txHash,
-                    timestamp: Date.now()
-                })
-                .eq('tx_id', trackId);
-
-            await sendTelegramNotification(userId, '✅ WITHDRAWAL CONFIRMED!', 
-                `✅ ${goldAmount / 10000} GRAM sent to your wallet\n🔗 [View on TON Explorer](https://tonviewer.com/transaction/${status.txHash})`
-            );
-
-            const adminId = process.env.ADMIN_USER_ID;
-            if (adminId) {
-                await sendTelegramNotification(adminId, '✅ Withdrawal Completed', 
-                    `User: ${user.first_name} (${userId})\nGold: ${goldAmount}\nGRAM: ${goldAmount / 10000}\nWallet: ${walletAddress}\nTX: ${status.txHash}`
-                );
-            }
-
-            return true;
-        }
-
-        return false;
-    } catch (error) {
-        return false;
-    }
-}
-
-async function pollPayoutStatus(trackId, userId, goldAmount, walletAddress, attempts = 0) {
-    const maxAttempts = 60;
-    const delay = 30000;
-
-    if (attempts >= maxAttempts) {
-        return;
-    }
-
-    const completed = await checkPayoutStatus(trackId, userId, goldAmount, walletAddress);
-
-    if (!completed) {
-        setTimeout(() => {
-            pollPayoutStatus(trackId, userId, goldAmount, walletAddress, attempts + 1);
-        }, delay);
-    }
-}
-
-app.post('/api/oxapay-webhook', async (req, res) => {
-    try {
-        const { track_id, status, tx_hash, amount, currency, address } = req.body;
-
-        if (status === 'completed' && tx_hash) {
-            const { data: withdrawal } = await supabase
-                .from('withdrawals')
-                .select('user_id, amount')
-                .eq('tx_id', track_id)
-                .eq('status', 'processing')
-                .single();
-
-            if (withdrawal) {
-                const userId = withdrawal.userId;
-
-                await supabase
-                    .from('withdrawals')
-                    .update({ 
-                        status: 'completed', 
-                        tx_id: tx_hash,
-                        timestamp: Date.now()
-                    })
-                    .eq('tx_id', track_id);
-
-                const user = await getUser(userId);
-                if (user) {
-                    await sendTelegramNotification(userId, '✅ WITHDRAWAL CONFIRMED!', 
-                        `✅ ${withdrawal.amount / 10000} GRAM sent to your wallet\n🔗 [View on TON Explorer](https://tonviewer.com/transaction/${tx_hash})`
-                    );
-                }
-
-                const adminId = process.env.ADMIN_USER_ID;
-                if (adminId) {
-                    await sendTelegramNotification(adminId, '✅ Withdrawal Completed', 
-                        `User: ${userId}\nAmount: ${withdrawal.amount / 10000} GRAM\nTX: ${tx_hash}`
-                    );
-                }
-            }
-        }
-
-        res.sendStatus(200);
-    } catch (error) {
-        res.sendStatus(500);
-    }
-});
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -1395,8 +1279,7 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
             currency: 'GRAM',
             network: 'TON',
             description: `Withdraw ${gramAmount} GRAM for user ${userId}`,
-            memo: 'GRAM PIRATES 🏴‍☠️',
-            callback_url: 'https://elon-production-9fd2.up.railway.app/api/oxapay-webhook'
+            memo: 'GRAM PIRATES 🏴‍☠️'
         });
         
         if (!payout || !payout.success) {
@@ -1425,17 +1308,16 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         });
         
         await sendTelegramNotification(userId, '✅ WITHDRAWAL SENT!', 
-            `📤 ${gramAmount} GRAM sent to your wallet\n🔍 Track ID: ${trackId}\n📊 Status: ${status}\n⏳ Please wait for confirmation...`
+            `📤 ${gramAmount} GRAM sent to your wallet\n🔍 Track ID: ${trackId}\n📊 Status: ${status}`,
+            { text: 'Earn More', url: 'https://t.me/GramPirateBot/app' }
         );
         
         const adminId = process.env.ADMIN_USER_ID;
         if (adminId) {
-            await sendTelegramNotification(adminId, '📢 New Withdrawal Request', 
+            await sendTelegramNotification(adminId, '📢 New Withdrawal', 
                 `User: ${user.first_name} (${userId})\nGold: ${gold}\nGRAM: ${gramAmount}\nWallet: ${walletAddress}\nTrack ID: ${trackId}\nStatus: ${status}`
             );
         }
-        
-        pollPayoutStatus(trackId, userId, gold, walletAddress);
         
         res.json({
             success: true,
