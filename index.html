@@ -14,6 +14,20 @@
 
 <div id="app-loader" style="display:none;"></div>
 
+<div id="ban-modal" class="modal" style="display:none;">
+    <div class="modal-content glass-modal modern-modal gold-modal" style="max-width:320px;width:90%;margin:0 auto;position:relative;background:rgba(15,15,15,0.95);border-radius:24px;border:1px solid rgba(255,215,0,0.12);box-shadow:0 8px 40px rgba(0,0,0,0.8);text-align:center;padding:30px 24px;">
+        <div style="font-size:60px;margin-bottom:16px;">🚫</div>
+        <h3 style="color:#FF4444;font-size:1.3rem;font-weight:700;margin-bottom:8px;">Account Banned</h3>
+        <p style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:20px;line-height:1.5;">
+            Your account has been banned.<br>
+            Please contact support for more information.
+        </p>
+        <button id="close-app-btn" class="gold-btn" style="padding:12px 40px;background:linear-gradient(135deg,#FFD700,#D4A800);border:none;border-radius:60px;color:#0a0a0f;font-weight:700;font-size:1rem;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 20px rgba(255,215,0,0.3);">
+            <i class="fas fa-times"></i> Close App
+        </button>
+    </div>
+</div>
+
 <div id="verification-modal" class="modal" style="display:flex;align-items:center;justify-content:center;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);backdrop-filter:blur(12px);z-index:10001;padding:20px;margin:0;">
     <div class="modal-content glass-modal modern-modal gold-modal" style="max-width:320px;width:90%;margin:0 auto;position:relative;background:rgba(15,15,15,0.95);border-radius:24px;border:1px solid rgba(255,215,0,0.12);box-shadow:0 8px 40px rgba(0,0,0,0.8);">
         <div class="modal-header gold-header" style="border-bottom:1px solid rgba(255,215,0,0.08);padding:16px 20px;">
