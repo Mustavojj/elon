@@ -720,7 +720,25 @@ app.post('/api/get-user', async (req, res) => {
                 promotion: null,
                 last_withdraw_time: 0
             };
+
+            const referredBy = req.body.referredBy || null;
+            if (referredBy && referredBy !== userId) {
+                userData.referred_by = referredBy;
+            }
+
             user = await createUser(userData);
+
+            if (referredBy && referredBy !== userId) {
+                const referrer = await getUser(referredBy);
+                if (referrer) {
+                    await updateUser(referredBy, {
+                        total_referrals: (referrer.total_referrals || 0) + 1
+                    });
+                    await sendTelegramNotification(referredBy, '🆕 New Referral!', 
+                        `🏴‍☠️ ${user.first_name} joined using your referral link!`
+                    );
+                }
+            }
 
             const code = generateVerificationCode();
             const expiresAt = getCurrentTime() + APP_CONFIG.VERIFICATION_CODE_LIFETIME;
@@ -1289,10 +1307,10 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         }
         
         const trackId = payout?.data?.track_id || payout?.trackId || 'N/A';
-        const status = 'completed';
+        const status = payout?.data?.status || payout?.status || 'processing';
         const txHash = payout?.data?.tx_hash || payout?.txHash || null;
         
-        await updateUser(userId, {
+        const updatedUser = await updateUser(userId, {
             gold_balance: (user.gold_balance || 0) - gold,
             last_withdraw_time: now
         });
@@ -1321,6 +1339,7 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         
         res.json({
             success: true,
+            user: updatedUser,
             gramAmount: gramAmount,
             trackId: trackId,
             status: status,
@@ -1383,7 +1402,7 @@ app.post('/api/withdraw', verifySession, async (req, res) => {
             gram_amount: totalGram,
             fees: APP_CONFIG.WITHDRAWAL_FEES || 0,
             wallet: wallet,
-            status: 'completed',
+            status: 'pending',
             timestamp: getCurrentTime()
         };
 
