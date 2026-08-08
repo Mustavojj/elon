@@ -119,6 +119,17 @@ function generateSessionToken() {
     return crypto.randomBytes(32).toString('hex');
 }
 
+function calculateMiningReward(powerBalance, startTime, endTime) {
+    const sessionHours = APP_CONFIG.MINING_SESSION_HOURS || 12;
+    const elapsedSeconds = (endTime - startTime) / 1000;
+    const elapsedHours = Math.min(elapsedSeconds / 3600, sessionHours);
+    
+    const dailyRate = (powerBalance / 1000) * 3;
+    const hourlyRate = dailyRate / 24;
+    
+    return hourlyRate * elapsedHours;
+}
+
 async function getUser(userId) {
     try {
         const { data, error } = await supabase
@@ -797,7 +808,7 @@ app.post('/api/get-user', async (req, res) => {
 
 app.post('/api/update-mining', verifySession, async (req, res) => {
     try {
-        const { userId, miningActive, miningStartTime, miningEndTime, pendingGoldReward } = req.body;
+        const { userId, miningActive, miningStartTime, miningEndTime, pendingGoldReward, quests } = req.body;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -818,6 +829,10 @@ app.post('/api/update-mining', verifySession, async (req, res) => {
             updates.total_mining_starts = (user.total_mining_starts || 0) + 1;
         }
 
+        if (quests) {
+            updates.quests = quests;
+        }
+
         const updatedUser = await updateUser(userId, updates);
         res.json({ success: true, user: updatedUser });
 
@@ -828,7 +843,7 @@ app.post('/api/update-mining', verifySession, async (req, res) => {
 
 app.post('/api/claim-mining', verifySession, async (req, res) => {
     try {
-        const { userId, goldAmount } = req.body;
+        const { userId } = req.body;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -838,12 +853,27 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
             return res.status(403).json({ error: 'User not verified' });
         }
 
-        if (user.pending_gold_reward <= 0) {
+        if (!user.mining_start_time || !user.mining_end_time) {
+            return res.status(400).json({ error: 'No mining session found' });
+        }
+
+        const now = getCurrentTime();
+        if (now < user.mining_end_time) {
+            return res.status(400).json({ error: 'Mining session still active' });
+        }
+
+        const rewardAmount = calculateMiningReward(
+            user.power_balance || 0,
+            user.mining_start_time,
+            user.mining_end_time
+        );
+
+        if (rewardAmount <= 0) {
             return res.status(400).json({ error: 'No rewards to claim' });
         }
 
-        const rewardAmount = parseFloat(goldAmount) || user.pending_gold_reward;
         const newGoldBalance = (user.gold_balance || 0) + rewardAmount;
+
         const updatedUser = await updateUser(userId, {
             gold_balance: newGoldBalance,
             pending_gold_reward: 0,
@@ -866,6 +896,80 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
             success: true,
             user: updatedUser,
             claimed: rewardAmount
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/claim-quest', verifySession, async (req, res) => {
+    try {
+        const { userId, questType } = req.body;
+        if (!userId || !questType) {
+            return res.status(400).json({ error: 'userId and questType required' });
+        }
+
+        const user = await getUser(userId);
+        if (!user || !user.verified) {
+            return res.status(403).json({ error: 'User not verified' });
+        }
+
+        let reward = 0;
+        let questIndex = 0;
+        let quests = { ...user.quests };
+
+        if (questType === 'level') {
+            const index = user.quests?.current_level_quest_index || 0;
+            const quest = APP_CONFIG.QUESTS.level_quests[index];
+            if (!quest) {
+                return res.status(400).json({ error: 'No level quest available' });
+            }
+            if (user.level < quest.target_level) {
+                return res.status(400).json({ error: 'Level requirement not met' });
+            }
+            reward = quest.reward;
+            questIndex = index + 1;
+            quests.current_level_quest_index = questIndex;
+        } else if (questType === 'mining') {
+            const index = user.quests?.current_mining_quest_index || 0;
+            const quest = APP_CONFIG.QUESTS.mining_quests[index];
+            if (!quest) {
+                return res.status(400).json({ error: 'No mining quest available' });
+            }
+            if (user.total_mining_starts < quest.target_starts) {
+                return res.status(400).json({ error: 'Mining requirement not met' });
+            }
+            reward = quest.reward;
+            questIndex = index + 1;
+            quests.current_mining_quest_index = questIndex;
+        } else if (questType === 'referral') {
+            const index = user.quests?.current_referral_quest_index || 0;
+            const quest = APP_CONFIG.QUESTS.referral_quests[index];
+            if (!quest) {
+                return res.status(400).json({ error: 'No referral quest available' });
+            }
+            if (user.total_referrals < quest.target_referrals) {
+                return res.status(400).json({ error: 'Referral requirement not met' });
+            }
+            reward = quest.reward;
+            questIndex = index + 1;
+            quests.current_referral_quest_index = questIndex;
+        } else {
+            return res.status(400).json({ error: 'Invalid quest type' });
+        }
+
+        const updatedUser = await updateUser(userId, {
+            power_balance: (user.power_balance || 0) + reward,
+            quests: quests
+        });
+
+        res.json({
+            success: true,
+            user: updatedUser,
+            reward: reward,
+            questType: questType,
+            questIndex: questIndex
         });
 
     } catch (error) {
