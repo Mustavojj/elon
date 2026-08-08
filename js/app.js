@@ -759,7 +759,6 @@ class App {
             const result = await this.fetchFromServer('/api/complete-task', {
                 userId: this.tgUser.id,
                 taskId: taskId,
-                reward: reward,
                 isPartner: isPartner,
                 taskOwner: taskOwner
             });
