@@ -120,14 +120,10 @@ function generateSessionToken() {
 }
 
 function calculateMiningReward(powerBalance, startTime, endTime) {
-    const sessionHours = APP_CONFIG.MINING_SESSION_HOURS || 12;
-    const elapsedSeconds = (endTime - startTime) / 1000;
-    const elapsedHours = Math.min(elapsedSeconds / 3600, sessionHours);
-    
+    const sessionHours = (endTime - startTime) / 3600000;
     const dailyRate = (powerBalance / 1000) * 3;
     const hourlyRate = dailyRate / 24;
-    
-    return hourlyRate * elapsedHours;
+    return hourlyRate * sessionHours;
 }
 
 async function checkUserBanned(userId) {
@@ -906,6 +902,85 @@ app.post('/api/update-mining', verifySession, async (req, res) => {
     }
 });
 
+app.post('/api/start-mining', verifySession, async (req, res) => {
+    try {
+        const { userId, serverTime } = req.body;
+        if (!userId) {
+            return res.status(400).json({ error: 'userId required' });
+        }
+
+        const user = await getUser(userId);
+        if (!user || !user.verified) {
+            return res.status(403).json({ error: 'User not verified' });
+        }
+
+        if (user.mining_active) {
+            return res.status(400).json({ error: 'Mining already active' });
+        }
+
+        const currentTime = serverTime || getCurrentTime();
+        const sessionHours = APP_CONFIG.MINING_SESSION_HOURS || 12;
+        const miningEndTime = currentTime + (sessionHours * 3600000);
+
+        const updatedUser = await updateUser(userId, {
+            mining_active: true,
+            mining_start_time: currentTime,
+            mining_end_time: miningEndTime,
+            pending_gold_reward: 0,
+            total_mining_starts: (user.total_mining_starts || 0) + 1
+        });
+
+        res.json({
+            success: true,
+            user: updatedUser
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/stop-mining', verifySession, async (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!userId) {
+            return res.status(400).json({ error: 'userId required' });
+        }
+
+        const user = await getUser(userId);
+        if (!user || !user.verified) {
+            return res.status(403).json({ error: 'User not verified' });
+        }
+
+        if (!user.mining_active) {
+            return res.status(400).json({ error: 'No active mining session' });
+        }
+
+        const currentTime = getCurrentTime();
+        const rewardAmount = calculateMiningReward(
+            user.power_balance || 0,
+            user.mining_start_time,
+            currentTime
+        );
+
+        const updatedUser = await updateUser(userId, {
+            mining_active: false,
+            mining_start_time: null,
+            mining_end_time: null,
+            pending_gold_reward: rewardAmount
+        });
+
+        res.json({
+            success: true,
+            user: updatedUser,
+            reward: rewardAmount
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.post('/api/claim-mining', verifySession, async (req, res) => {
     try {
         const { userId } = req.body;
@@ -918,31 +993,20 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
             return res.status(403).json({ error: 'User not verified' });
         }
 
-        if (!user.mining_start_time || !user.mining_end_time) {
-            return res.status(400).json({ error: 'No mining session found' });
-        }
-
-        const now = getCurrentTime();
-        if (now < user.mining_end_time) {
+        if (user.mining_active) {
             return res.status(400).json({ error: 'Mining session still active' });
         }
 
-        const rewardAmount = calculateMiningReward(
-            user.power_balance || 0,
-            user.mining_start_time,
-            user.mining_end_time
-        );
-
-        if (rewardAmount <= 0) {
+        if (!user.pending_gold_reward || user.pending_gold_reward <= 0) {
             return res.status(400).json({ error: 'No rewards to claim' });
         }
 
+        const rewardAmount = user.pending_gold_reward;
         const newGoldBalance = (user.gold_balance || 0) + rewardAmount;
 
         const updatedUser = await updateUser(userId, {
             gold_balance: newGoldBalance,
             pending_gold_reward: 0,
-            mining_active: false,
             mining_start_time: null,
             mining_end_time: null
         });
@@ -1068,7 +1132,7 @@ app.post('/api/complete-task', verifySession, async (req, res) => {
 
         const { data: task, error: taskError } = await supabase
             .from('tasks')
-            .select('reward')
+            .select('reward, total')
             .eq('id', taskId)
             .single();
 
@@ -1086,6 +1150,11 @@ app.post('/api/complete-task', verifySession, async (req, res) => {
         if (completed) {
             return res.status(400).json({ error: 'Task already completed' });
         }
+
+        await supabase
+            .from('tasks')
+            .update({ total: (task.total || 0) + 1 })
+            .eq('id', taskId);
 
         await supabase
             .from('user_completed_tasks')
