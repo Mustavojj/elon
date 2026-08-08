@@ -4,6 +4,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
+import rateLimit from 'express-rate-limit';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,6 +19,24 @@ const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { error: 'Too many requests, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+const strictLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000,
+    max: 20,
+    message: { error: 'Too many requests, please slow down.' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+app.use('/api/', limiter);
 
 const APP_CONFIG = {
     APP_NAME: "GRAM PIRATES 🏴‍☠️",
@@ -481,7 +500,7 @@ app.post('/api/claim-welcome-bonus', verifySession, async (req, res) => {
     }
 });
 
-app.post('/api/send-verification', async (req, res) => {
+app.post('/api/send-verification', strictLimiter, async (req, res) => {
     try {
         const { userId } = req.body;
         if (!userId) {
@@ -525,7 +544,7 @@ app.post('/api/send-verification', async (req, res) => {
     }
 });
 
-app.post('/api/resend-verification', async (req, res) => {
+app.post('/api/resend-verification', strictLimiter, async (req, res) => {
     try {
         const { userId } = req.body;
         if (!userId) {
@@ -566,7 +585,7 @@ app.post('/api/resend-verification', async (req, res) => {
     }
 });
 
-app.post('/api/verify-code', async (req, res) => {
+app.post('/api/verify-code', strictLimiter, async (req, res) => {
     try {
         const { userId, code } = req.body;
         if (!userId || !code) {
@@ -856,7 +875,7 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
 
 app.post('/api/complete-task', verifySession, async (req, res) => {
     try {
-        const { userId, taskId, reward, isPartner, taskOwner } = req.body;
+        const { userId, taskId, isPartner, taskOwner } = req.body;
         if (!userId || !taskId) {
             return res.status(400).json({ error: 'userId and taskId required' });
         }
@@ -871,7 +890,17 @@ app.post('/api/complete-task', verifySession, async (req, res) => {
             return res.status(400).json({ error: 'Task already completed' });
         }
 
-        const rewardAmount = parseFloat(reward) || APP_CONFIG.TASK_REWARD;
+        const { data: task, error: taskError } = await supabase
+            .from('tasks')
+            .select('reward')
+            .eq('id', taskId)
+            .single();
+
+        if (taskError || !task) {
+            return res.status(404).json({ error: 'Task not found' });
+        }
+
+        const rewardAmount = task.reward;
 
         await supabase
             .from('user_completed_tasks')
