@@ -1501,7 +1501,7 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         });
         
         await sendTelegramNotification(userId, '✅ Withdrawal Requested!', 
-            `📤 ${gramAmount} GRAM sent to your wallet\n🔥 Earn More Power for more earnings`,
+            `📤 ${gramAmount} GRAM sent to your wallet\n\n💸 Earn More Power for more earnings`,
             { text: '🏴‍☠️ Earn More', url: 'https://t.me/GramPirateBot/app' }
         );
         
@@ -1577,7 +1577,7 @@ app.post('/api/withdraw', verifySession, async (req, res) => {
             gram_amount: totalGram,
             fees: APP_CONFIG.WITHDRAWAL_FEES || 0,
             wallet: wallet,
-            status: 'pending',
+            status: 'completed',
             timestamp: getCurrentTime()
         };
 
