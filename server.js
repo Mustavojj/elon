@@ -14,6 +14,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
+app.get('/', (req, res) => {
+    res.status(200).send('🏴‍☠️ PIRATE TEAM API');
+});
+
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
