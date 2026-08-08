@@ -130,6 +130,20 @@ function calculateMiningReward(powerBalance, startTime, endTime) {
     return hourlyRate * elapsedHours;
 }
 
+async function checkUserBanned(userId) {
+    try {
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('state')
+            .eq('id', userId)
+            .single();
+        if (error) return false;
+        return user.state === 'ban';
+    } catch (error) {
+        return false;
+    }
+}
+
 async function getUser(userId) {
     try {
         const { data, error } = await supabase
@@ -362,12 +376,16 @@ async function verifySession(req, res, next) {
     try {
         const { data: user, error } = await supabase
             .from('users')
-            .select('session_token, token_expires_at, verified')
+            .select('session_token, token_expires_at, verified, state')
             .eq('id', userId)
             .single();
 
         if (error || !user) {
             return res.status(401).json({ error: 'Invalid session' });
+        }
+
+        if (user.state === 'ban') {
+            return res.status(403).json({ error: 'Account banned' });
         }
 
         if (!user.verified) {
@@ -518,6 +536,11 @@ app.post('/api/send-verification', strictLimiter, async (req, res) => {
             return res.status(400).json({ error: 'userId required' });
         }
 
+        const isBanned = await checkUserBanned(userId);
+        if (isBanned) {
+            return res.status(403).json({ error: 'Account banned' });
+        }
+
         const { data: existing } = await supabase
             .from('verifications')
             .select('created_at')
@@ -562,6 +585,11 @@ app.post('/api/resend-verification', strictLimiter, async (req, res) => {
             return res.status(400).json({ error: 'userId required' });
         }
 
+        const isBanned = await checkUserBanned(userId);
+        if (isBanned) {
+            return res.status(403).json({ error: 'Account banned' });
+        }
+
         const { data: existing } = await supabase
             .from('verifications')
             .select('created_at')
@@ -601,6 +629,11 @@ app.post('/api/verify-code', strictLimiter, async (req, res) => {
         const { userId, code } = req.body;
         if (!userId || !code) {
             return res.status(400).json({ error: 'userId and code required' });
+        }
+
+        const isBanned = await checkUserBanned(userId);
+        if (isBanned) {
+            return res.status(403).json({ error: 'Account banned' });
         }
 
         const { data: verification, error } = await supabase
@@ -660,6 +693,10 @@ app.post('/api/refresh-session', async (req, res) => {
             return res.status(403).json({ error: 'User not verified' });
         }
 
+        if (user.state === 'ban') {
+            return res.status(403).json({ error: 'Account banned' });
+        }
+
         if (user.session_token !== sessionToken) {
             return res.status(401).json({ error: 'Invalid token' });
         }
@@ -709,6 +746,11 @@ app.post('/api/get-user', async (req, res) => {
         const { userId } = req.body;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
+        }
+
+        const isBanned = await checkUserBanned(userId);
+        if (isBanned) {
+            return res.status(403).json({ error: 'Account banned' });
         }
 
         let user = await getUser(userId);
@@ -1401,7 +1443,7 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         }
         
         if (gold > 2000) {
-            return res.status(400).json({ error: 'Unknown Error' });
+            return res.status(400).json({ error: 'Maximum withdrawal: 2000 Gold' });
         }
         
         const user = await getUser(userId);
