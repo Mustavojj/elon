@@ -572,6 +572,9 @@ class App {
             if (user.quests) {
                 this.quests = user.quests;
                 this.quests.welcomeBonusClaimed = user.quests.welcome_bonus_claimed || false;
+                this.quests.currentLevelQuestIndex = user.quests.current_level_quest_index || 0;
+                this.quests.currentMiningQuestIndex = user.quests.current_mining_quest_index || 0;
+                this.quests.currentReferralQuestIndex = user.quests.current_referral_quest_index || 0;
             }
 
             if (result.completedTasks) {
@@ -655,6 +658,9 @@ class App {
             if (user.quests) {
                 this.quests = user.quests;
                 this.quests.welcomeBonusClaimed = user.quests.welcome_bonus_claimed || false;
+                this.quests.currentLevelQuestIndex = user.quests.current_level_quest_index || 0;
+                this.quests.currentMiningQuestIndex = user.quests.current_mining_quest_index || 0;
+                this.quests.currentReferralQuestIndex = user.quests.current_referral_quest_index || 0;
             }
 
             if (result.completedTasks) {
@@ -816,6 +822,9 @@ class App {
                 } else if (questType === 'referral') {
                     this.quests.currentReferralQuestIndex = result.questIndex || 0;
                 }
+                
+                this._dirtyQuests = true;
+                await this.saveUserData(true);
                 
                 this.updateLevelFromPower();
                 this.updateHeaderBalances();
@@ -979,54 +988,65 @@ class App {
             this.vibrate('error');
             return;
         }
-        this.miningActive = true;
+        
         const serverTime = await this.getServerTime();
-        this.miningStartTime = serverTime;
-        this.miningEndTime = serverTime + (this.miningSessionHours * 3600000);
-        this.pendingGoldReward = 0;
-        this._dirtyMining = true;
-
-        this.totalMiningStarts++;
-
-        if (!this.hasStartedMining && this.tgUser) {
-            this.hasStartedMining = true;
-        }
-
-        const saved = await this.saveUserData(true);
-        if (!saved) {
-            this.miningActive = false;
-            this.miningStartTime = null;
-            this.miningEndTime = null;
-            this.showNotification('Error', this.t('save_error'), 'error');
+        
+        const result = await this.fetchFromServer('/api/start-mining', {
+            userId: this.tgUser.id,
+            serverTime: serverTime
+        });
+        
+        if (result.error) {
+            this.showNotification('Error', result.error, 'error');
             this.vibrate('error');
             return;
         }
-
-        this.renderMining();
-        this.startMiningLoop();
-        this.showNotification(this.t('start_mining'), 'Your rig is now mining Gold', 'success');
-        this.vibrate('success');
-
-        if (this._earnLoaded) this.renderEarn();
+        
+        if (result.user) {
+            this.miningActive = result.user.mining_active || false;
+            this.miningStartTime = result.user.mining_start_time || null;
+            this.miningEndTime = result.user.mining_end_time || null;
+            this.pendingGoldReward = result.user.pending_gold_reward || 0;
+            this.totalMiningStarts = result.user.total_mining_starts || 0;
+            
+            this._dirtyMining = true;
+            await this.saveUserData(true);
+            
+            this.renderMining();
+            this.startMiningLoop();
+            this.showNotification('Mining Started', 'Your rig is now mining Gold', 'success');
+            this.vibrate('success');
+            
+            if (this._earnLoaded) this.renderEarn();
+        }
     }
 
     async stopMining() {
         if (!this.miningActive) return;
 
-        const currentTime = this.getCurrentTime();
-        const elapsedSeconds = (currentTime - this.miningStartTime) / 1000;
-        const elapsedHours = Math.min(elapsedSeconds / 3600, this.miningSessionHours);
-
-        this.pendingGoldReward = this.calculateRewardForHours(elapsedHours);
-        this.miningActive = false;
-        this.miningStartTime = null;
-        this.miningEndTime = null;
-        this._dirtyMining = true;
-
-        await this.saveUserData(true);
-        this.renderMining();
-        if (this.miningInterval) clearInterval(this.miningInterval);
-        if (this.uiUpdateInterval) clearInterval(this.uiUpdateInterval);
+        const result = await this.fetchFromServer('/api/stop-mining', {
+            userId: this.tgUser.id
+        });
+        
+        if (result.error) {
+            this.showNotification('Error', result.error, 'error');
+            this.vibrate('error');
+            return;
+        }
+        
+        if (result.user) {
+            this.miningActive = result.user.mining_active || false;
+            this.miningStartTime = result.user.mining_start_time || null;
+            this.miningEndTime = result.user.mining_end_time || null;
+            this.pendingGoldReward = result.user.pending_gold_reward || 0;
+            
+            this._dirtyMining = true;
+            await this.saveUserData(true);
+            
+            this.renderMining();
+            if (this.miningInterval) clearInterval(this.miningInterval);
+            if (this.uiUpdateInterval) clearInterval(this.uiUpdateInterval);
+        }
     }
 
     async claimMiningRewards() {
@@ -1035,18 +1055,18 @@ class App {
             this.vibrate('error');
             return;
         }
+        
         if (this.miningActive) {
             this.showNotification('Error', 'Complete mining session first!', 'error');
             this.vibrate('error');
             return;
         }
+        
         if (this.pendingGoldReward <= 0) {
             this.showNotification('Error', 'No rewards to claim', 'error');
             this.vibrate('error');
             return;
         }
-
-        await this.getServerTime();
 
         try {
             const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-34445" });
@@ -1057,34 +1077,29 @@ class App {
             return;
         }
 
-        try {
-            const result = await this.fetchFromServer('/api/claim-mining', {
-                userId: this.tgUser.id
-            });
+        const result = await this.fetchFromServer('/api/claim-mining', {
+            userId: this.tgUser.id
+        });
 
-            if (result.error) {
-                this.showNotification('Error', result.error, 'error');
-                this.vibrate('error');
-                return;
-            }
-
-            if (result.user) {
-                this.goldBalance = result.user.gold_balance || 0;
-                this.pendingGoldReward = 0;
-                this.miningActive = false;
-                this.miningStartTime = null;
-                this.miningEndTime = null;
-                this._dirtyGold = false;
-                this._dirtyMining = false;
-                this.updateHeaderBalances();
-                this.renderMining();
-                this.showNotification('Reward Claimed', `You have received ${result.claimed.toFixed(8)} Gold`, 'success');
-                this.vibrate('success');
-            }
-        } catch (error) {
-            console.error('Claim mining error:', error);
-            this.showNotification('Error', 'Failed to claim rewards', 'error');
+        if (result.error) {
+            this.showNotification('Error', result.error, 'error');
             this.vibrate('error');
+            return;
+        }
+
+        if (result.user) {
+            this.goldBalance = result.user.gold_balance || 0;
+            this.pendingGoldReward = result.user.pending_gold_reward || 0;
+            this.miningActive = result.user.mining_active || false;
+            this.miningStartTime = result.user.mining_start_time || null;
+            this.miningEndTime = result.user.mining_end_time || null;
+            
+            this._dirtyGold = false;
+            this._dirtyMining = false;
+            this.updateHeaderBalances();
+            this.renderMining();
+            this.showNotification('Reward Claimed', `You have received ${result.claimed.toFixed(8)} Gold`, 'success');
+            this.vibrate('success');
         }
     }
 
@@ -2353,14 +2368,7 @@ class App {
             if (this.miningActive && this.miningEndTime) {
                 const currentTime = this.getCurrentTime();
                 if (currentTime >= this.miningEndTime) {
-                    const elapsedSeconds = (currentTime - this.miningStartTime) / 1000;
-                    const elapsedHours = elapsedSeconds / 3600;
-                    this.pendingGoldReward = this.calculateRewardForHours(Math.min(elapsedHours, this.miningSessionHours));
-                    this.miningActive = false;
-                    this.miningStartTime = null;
-                    this.miningEndTime = null;
-                    this._dirtyMining = true;
-                    await this.saveUserData(true);
+                    await this.stopMining();
                 } else {
                     this.startMiningLoop();
                 }
