@@ -1482,7 +1482,7 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         }
         
         const trackId = payout?.data?.track_id || payout?.trackId || 'N/A';
-        const status = payout?.data?.status || payout?.status || 'processing';
+        const status = 'completed';
         const txHash = payout?.data?.tx_hash || payout?.txHash || null;
         
         const updatedUser = await updateUser(userId, {
