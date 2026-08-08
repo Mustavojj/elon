@@ -20,33 +20,6 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 
-// ============================================
-// نظام تسجيل الأخطاء
-// ============================================
-async function logError(error, context = {}) {
-    try {
-        const errorLog = {
-            message: error.message || error,
-            stack: error.stack || null,
-            context: context,
-            timestamp: getCurrentTime()
-        };
-        
-        await supabase
-            .from('error_logs')
-            .insert([{ 
-                error: errorLog.message,
-                stack: errorLog.stack,
-                context: errorLog.context,
-                timestamp: errorLog.timestamp
-            }]);
-            
-        console.error('❌ Error:', errorLog.message, context);
-    } catch (e) {
-        console.error('Failed to log error:', e);
-    }
-}
-
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
@@ -238,7 +211,6 @@ async function getTasks(category, userId) {
         
         return availableTasks || [];
     } catch (error) {
-        await logError(error, { category, userId, function: 'getTasks' });
         return [];
     }
 }
@@ -252,7 +224,6 @@ async function getCompletedTasks(userId) {
         if (error) throw error;
         return data ? data.map(t => t.task_id) : [];
     } catch (error) {
-        await logError(error, { userId, function: 'getCompletedTasks' });
         return [];
     }
 }
@@ -268,7 +239,6 @@ async function getWithdrawals(userId) {
         if (error) throw error;
         return data || [];
     } catch (error) {
-        await logError(error, { userId, function: 'getWithdrawals' });
         return [];
     }
 }
@@ -282,7 +252,6 @@ async function getReferrals(userId) {
         if (error) throw error;
         return data || [];
     } catch (error) {
-        await logError(error, { userId, function: 'getReferrals' });
         return [];
     }
 }
@@ -297,7 +266,6 @@ async function getPromoCode(code) {
         if (error && error.code !== 'PGRST116') throw error;
         return data;
     } catch (error) {
-        await logError(error, { code, function: 'getPromoCode' });
         return null;
     }
 }
@@ -312,7 +280,6 @@ async function usePromoCode(userId, code) {
         if (error) throw error;
         return data;
     } catch (error) {
-        await logError(error, { userId, code, function: 'usePromoCode' });
         throw error;
     }
 }
@@ -337,7 +304,6 @@ async function incrementPromoUses(code) {
         if (error) throw error;
         return data;
     } catch (error) {
-        await logError(error, { code, function: 'incrementPromoUses' });
         throw error;
     }
 }
@@ -352,7 +318,6 @@ async function createWithdrawal(withdrawalData) {
         if (error) throw error;
         return data;
     } catch (error) {
-        await logError(error, { withdrawalData, function: 'createWithdrawal' });
         throw error;
     }
 }
@@ -375,9 +340,7 @@ async function updateStats(statName, increment) {
                 .from('stats')
                 .insert([{ key: statName, value: increment }]);
         }
-    } catch (error) {
-        await logError(error, { statName, increment, function: 'updateStats' });
-    }
+    } catch (error) {}
 }
 
 async function sendTelegramNotification(userId, title, message, inlineButton = null) {
@@ -405,9 +368,7 @@ async function sendTelegramNotification(userId, title, message, inlineButton = n
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-    } catch (error) {
-        await logError(error, { userId, title, function: 'sendTelegramNotification' });
-    }
+    } catch (error) {}
 }
 
 async function sendVerificationCode(userId, code) {
@@ -424,7 +385,6 @@ async function sendVerificationCode(userId, code) {
         });
         return true;
     } catch (error) {
-        await logError(error, { userId, function: 'sendVerificationCode' });
         return false;
     }
 }
@@ -465,7 +425,6 @@ async function verifySession(req, res, next) {
 
         next();
     } catch (error) {
-        await logError(error, { userId, function: 'verifySession' });
         res.status(500).json({ error: 'Session verification failed' });
     }
 }
@@ -507,7 +466,6 @@ class OxaPay {
 
             return result;
         } catch (error) {
-            await logError(error, { endpoint, data, function: 'OxaPay.request' });
             throw error;
         }
     }
@@ -537,7 +495,6 @@ class OxaPay {
                 success: true
             };
         } catch (error) {
-            await logError(error, { data, function: 'OxaPay.createPayout' });
             throw error;
         }
     }
@@ -591,7 +548,6 @@ app.post('/api/claim-welcome-bonus', verifySession, async (req, res) => {
             reward: reward
         });
     } catch (error) {
-        await logError(error, { userId, function: 'claim-welcome-bonus' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -641,7 +597,6 @@ app.post('/api/send-verification', strictLimiter, async (req, res) => {
         res.json({ success: true, message: 'Verification code sent' });
 
     } catch (error) {
-        await logError(error, { userId, function: 'send-verification' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -688,7 +643,6 @@ app.post('/api/resend-verification', strictLimiter, async (req, res) => {
         res.json({ success: true, message: 'New code sent' });
 
     } catch (error) {
-        await logError(error, { userId, function: 'resend-verification' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -746,7 +700,6 @@ app.post('/api/verify-code', strictLimiter, async (req, res) => {
         });
 
     } catch (error) {
-        await logError(error, { userId, function: 'verify-code' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -786,7 +739,6 @@ app.post('/api/refresh-session', async (req, res) => {
         });
 
     } catch (error) {
-        await logError(error, { userId, function: 'refresh-session' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -808,7 +760,6 @@ app.post('/api/logout', async (req, res) => {
         res.json({ success: true });
 
     } catch (error) {
-        await logError(error, { userId, function: 'logout' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -916,7 +867,6 @@ app.post('/api/get-user', async (req, res) => {
         });
 
     } catch (error) {
-        await logError(error, { userId, function: 'get-user' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -952,7 +902,6 @@ app.post('/api/update-mining', verifySession, async (req, res) => {
         res.json({ success: true, user: updatedUser });
 
     } catch (error) {
-        await logError(error, { userId, function: 'update-mining' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1015,7 +964,6 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        await logError(error, { userId, function: 'claim-mining' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1035,7 +983,6 @@ app.post('/api/claim-quest', verifySession, async (req, res) => {
         let reward = 0;
         let newIndex = 0;
         let quests = { ...user.quests };
-        let levelUpdated = false;
 
         if (questType === 'level') {
             const index = user.quests?.current_level_quest_index || 0;
@@ -1103,7 +1050,6 @@ app.post('/api/claim-quest', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        await logError(error, { userId, questType, function: 'claim-quest' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1167,7 +1113,6 @@ app.post('/api/complete-task', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        await logError(error, { userId, taskId, isPartner, function: 'complete-task' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1211,7 +1156,6 @@ app.post('/api/convert-gold-to-power', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        await logError(error, { userId, goldAmount, function: 'convert-gold-to-power' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1271,7 +1215,6 @@ app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        await logError(error, { userId, type, function: 'claim-referral-earnings' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1349,7 +1292,6 @@ app.post('/api/apply-promo', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        await logError(error, { userId, code, function: 'apply-promo' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1400,7 +1342,6 @@ app.post('/api/watch-ad', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        await logError(error, { userId, function: 'watch-ad' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1418,7 +1359,6 @@ app.post('/api/tasks/:category', async (req, res) => {
         res.json({ tasks });
         
     } catch (error) {
-        await logError(error, { category, function: 'tasks' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1455,7 +1395,6 @@ app.post('/api/check-membership', async (req, res) => {
         res.json({ isMember });
 
     } catch (error) {
-        await logError(error, { userId, channel, function: 'check-membership' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1514,7 +1453,6 @@ app.post('/api/setup-promotion', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        await logError(error, { userId, channel, function: 'setup-promotion' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1617,7 +1555,6 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         });
         
     } catch (error) {
-        await logError(error, { userId, walletAddress, goldAmount, function: 'withdraw-gram' });
         res.status(500).json({ error: 'Failed to send withdrawal request: ' + error.message });
     }
 });
@@ -1688,7 +1625,6 @@ app.post('/api/withdraw', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        await logError(error, { userId, goldAmount, function: 'withdraw' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1704,7 +1640,6 @@ app.post('/api/get-withdrawals', verifySession, async (req, res) => {
         res.json({ withdrawals });
 
     } catch (error) {
-        await logError(error, { userId, function: 'get-withdrawals' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1720,7 +1655,6 @@ app.post('/api/get-referrals', verifySession, async (req, res) => {
         res.json({ referrals });
 
     } catch (error) {
-        await logError(error, { userId, function: 'get-referrals' });
         res.status(500).json({ error: error.message });
     }
 });
