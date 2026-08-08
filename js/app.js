@@ -331,6 +331,7 @@ class App {
 
         this.updateHeaderBalances();
 
+        // تحديث المستوى في قاعدة البيانات إذا تغير
         if (oldLevel !== newLevel && this.tgUser) {
             this.saveUserData(true);
             this.renderMining();
@@ -806,6 +807,16 @@ class App {
             if (result.user) {
                 this.powerBalance = result.user.power_balance || 0;
                 this.quests = result.user.quests || this.quests;
+                
+                // تحديث المؤشرات محلياً
+                if (questType === 'level') {
+                    this.quests.currentLevelQuestIndex = result.questIndex || 0;
+                } else if (questType === 'mining') {
+                    this.quests.currentMiningQuestIndex = result.questIndex || 0;
+                } else if (questType === 'referral') {
+                    this.quests.currentReferralQuestIndex = result.questIndex || 0;
+                }
+                
                 this.updateLevelFromPower();
                 this.updateHeaderBalances();
                 this.vibrate('success');
@@ -1522,8 +1533,10 @@ class App {
                 return;
             }
 
-            await this.claimQuest('level');
-            this.renderMining();
+            const success = await this.claimQuest('level');
+            if (success) {
+                this.renderMining();
+            }
         });
 
         document.getElementById('claim-mining-quest')?.addEventListener('click', async () => {
@@ -1536,8 +1549,10 @@ class App {
                 return;
             }
 
-            await this.claimQuest('mining');
-            this.renderMining();
+            const success = await this.claimQuest('mining');
+            if (success) {
+                this.renderMining();
+            }
         });
 
         document.getElementById('claim-referral-quest')?.addEventListener('click', async () => {
@@ -1550,8 +1565,10 @@ class App {
                 return;
             }
 
-            await this.claimQuest('referral');
-            this.renderMining();
+            const success = await this.claimQuest('referral');
+            if (success) {
+                this.renderMining();
+            }
         });
 
         document.getElementById('watch-ad-btn')?.addEventListener('click', async () => {
