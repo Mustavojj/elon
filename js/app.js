@@ -612,7 +612,8 @@ class App {
                 userId: this.tgUser.id,
                 username: this.tgUser.username || '',
                 firstName: this.tgUser.first_name || 'User',
-                photoUrl: this.tgUser.photo_url || this.config.DEFAULT_USER_AVATAR
+                photoUrl: this.tgUser.photo_url || this.config.DEFAULT_USER_AVATAR,
+                referredBy: this.referredBy || null
             });
 
             if (result.error) {
@@ -1218,6 +1219,12 @@ class App {
         this._withdrawLock = true;
         setTimeout(() => { this._withdrawLock = false; }, 10000);
 
+        const withdrawBtn = document.getElementById('withdraw-btn');
+        if (withdrawBtn) {
+            withdrawBtn.disabled = true;
+            withdrawBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Sending...';
+        }
+
         try {
             const result = await this.fetchFromServer('/api/withdraw-gram', {
                 userId: this.tgUser.id,
@@ -1228,6 +1235,11 @@ class App {
             if (result.error) {
                 this.showNotification('Error', result.error, 'error');
                 this.vibrate('error');
+                if (withdrawBtn) {
+                    withdrawBtn.disabled = false;
+                    withdrawBtn.innerHTML = this.t('confirm_withdrawal');
+                }
+                this._withdrawLock = false;
                 return false;
             }
 
@@ -1244,13 +1256,32 @@ class App {
 
             this.showNotification('Withdrawn!', `${result.gramAmount.toFixed(5)} GRAM sent to your wallet`, 'success');
             this.vibrate('success');
-            if (this._walletLoaded) this.renderWallet();
+            
+            if (this._walletLoaded) {
+                this.renderWallet();
+            }
+            
+            if (withdrawBtn) {
+                withdrawBtn.disabled = true;
+                withdrawBtn.innerHTML = '✓ Sent';
+                setTimeout(() => {
+                    withdrawBtn.disabled = false;
+                    withdrawBtn.innerHTML = this.t('confirm_withdrawal');
+                }, 5000);
+            }
+            
+            this._withdrawLock = false;
             return true;
 
         } catch (error) {
             console.error('Withdraw error:', error);
             this.showNotification('Error', 'Failed to withdraw', 'error');
             this.vibrate('error');
+            if (withdrawBtn) {
+                withdrawBtn.disabled = false;
+                withdrawBtn.innerHTML = this.t('confirm_withdrawal');
+            }
+            this._withdrawLock = false;
             return false;
         }
     }
@@ -2181,13 +2212,13 @@ class App {
             this.tg.ready();
             this.tg.expand();
 
-            await this.getConfig();
-            await this.getServerTime();
-
             const startParam = this.tg.initDataUnsafe?.start_param;
             if (startParam && !isNaN(startParam) && parseInt(startParam) !== this.tgUser.id) {
                 this.referredBy = parseInt(startParam);
             }
+
+            await this.getConfig();
+            await this.getServerTime();
 
             await this.loadUserData();
 
