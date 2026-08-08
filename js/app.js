@@ -222,6 +222,7 @@ class App {
         this._dirtyGold = false;
         this._dirtyGram = false;
         this._dirtyMining = false;
+        this._dirtyQuests = false;
         this._saveTimeout = null;
         this._isSaving = false;
 
@@ -713,6 +714,7 @@ class App {
             if (this._dirtyPower) updates.powerBalance = this.powerBalance;
             if (this._dirtyGold) updates.goldBalance = this.goldBalance;
             if (this._dirtyGram) updates.gramBalance = this.gramBalance;
+            if (this._dirtyQuests) updates.quests = this.quests;
             if (this._dirtyMining) {
                 updates.miningActive = this.miningActive;
                 updates.miningStartTime = this.miningStartTime;
@@ -741,6 +743,7 @@ class App {
             this._dirtyPower = false;
             this._dirtyGold = false;
             this._dirtyGram = false;
+            this._dirtyQuests = false;
             this._dirtyMining = false;
 
             return true;
@@ -754,7 +757,7 @@ class App {
         }
     }
 
-    async completeTaskOnServer(taskId, reward, isPartner = false, taskOwner = null) {
+    async completeTaskOnServer(taskId, isPartner = false, taskOwner = null) {
         try {
             const result = await this.fetchFromServer('/api/complete-task', {
                 userId: this.tgUser.id,
@@ -781,6 +784,38 @@ class App {
         } catch (error) {
             console.error('Complete task error:', error);
             this.showNotification('Error', 'Failed to complete task', 'error');
+            this.vibrate('error');
+            return false;
+        }
+    }
+
+    async claimQuest(questType) {
+        try {
+            const result = await this.fetchFromServer('/api/claim-quest', {
+                userId: this.tgUser.id,
+                questType: questType
+            });
+
+            if (result.error) {
+                this.showNotification('Error', result.error, 'error');
+                this.vibrate('error');
+                return false;
+            }
+
+            if (result.user) {
+                this.powerBalance = result.user.power_balance || 0;
+                this.quests = result.user.quests || this.quests;
+                this.updateLevelFromPower();
+                this.updateHeaderBalances();
+                this.vibrate('success');
+                this.showNotification('Quest Completed!', `+${result.reward} Power`, 'success');
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            console.error('Claim quest error:', error);
+            this.showNotification('Error', 'Failed to claim quest', 'error');
             this.vibrate('error');
             return false;
         }
@@ -1007,12 +1042,9 @@ class App {
             return;
         }
 
-        const rewardAmount = this.pendingGoldReward;
-
         try {
             const result = await this.fetchFromServer('/api/claim-mining', {
-                userId: this.tgUser.id,
-                goldAmount: rewardAmount
+                userId: this.tgUser.id
             });
 
             if (result.error) {
@@ -1031,7 +1063,7 @@ class App {
                 this._dirtyMining = false;
                 this.updateHeaderBalances();
                 this.renderMining();
-                this.showNotification('Rewards Claimed!', `${rewardAmount.toFixed(8)} Gold added to balance`, 'success');
+                this.showNotification('Rewards Claimed!', `${result.claimed.toFixed(8)} Gold added to balance`, 'success');
                 this.vibrate('success');
             }
         } catch (error) {
@@ -1487,19 +1519,8 @@ class App {
                 return;
             }
 
-            const reward = currentLevelQuest.reward;
-            this.powerBalance += reward;
-            this._dirtyPower = true;
-            this.quests.currentLevelQuestIndex++;
-            await this.saveUserData(true);
-            const leveledUp = this.updateLevelFromPower();
+            await this.claimQuest('level');
             this.renderMining();
-            this.showNotification('Reward Claimed!', `+${reward} Power`, 'success');
-            this.vibrate('success');
-            if (leveledUp) {
-                this.showNotification('Level Up!', `You reached level ${this.userLevel}!`, 'success');
-                this.vibrate('success');
-            }
         });
 
         document.getElementById('claim-mining-quest')?.addEventListener('click', async () => {
@@ -1512,15 +1533,8 @@ class App {
                 return;
             }
 
-            const reward = currentMiningQuest.reward;
-            this.powerBalance += reward;
-            this._dirtyPower = true;
-            this.quests.currentMiningQuestIndex++;
-            await this.saveUserData(true);
-            this.updateLevelFromPower();
+            await this.claimQuest('mining');
             this.renderMining();
-            this.showNotification('Reward Claimed!', `+${reward} Power`, 'success');
-            this.vibrate('success');
         });
 
         document.getElementById('claim-referral-quest')?.addEventListener('click', async () => {
@@ -1533,15 +1547,8 @@ class App {
                 return;
             }
 
-            const reward = currentReferralQuest.reward;
-            this.powerBalance += reward;
-            this._dirtyPower = true;
-            this.quests.currentReferralQuestIndex++;
-            await this.saveUserData(true);
-            this.updateLevelFromPower();
+            await this.claimQuest('referral');
             this.renderMining();
-            this.showNotification('Reward Claimed!', `+${reward} Power`, 'success');
-            this.vibrate('success');
         });
 
         document.getElementById('watch-ad-btn')?.addEventListener('click', async () => {
@@ -1681,7 +1688,7 @@ class App {
                                 <h4>${task.name}</h4>
                                 <div class="task-reward"><i class="fas fa-bolt"></i> ${task.reward} ${this.t('power')}</div>
                             </div>
-                            <button class="task-btn ${btnClass}" data-id="${task.id}" data-reward="${task.reward}" ${isCompleted ? 'disabled' : ''}>${btnText}</button>
+                            <button class="task-btn ${btnClass}" data-id="${task.id}" ${isCompleted ? 'disabled' : ''}>${btnText}</button>
                         </div>
                     </div>
                 `;
@@ -1695,13 +1702,12 @@ class App {
                         return;
                     }
                     const taskId = btn.dataset.id;
-                    const reward = parseInt(btn.dataset.reward);
 
                     this.isTaskRunning = true;
                     btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
                     btn.disabled = true;
 
-                    const success = await this.completeTaskOnServer(taskId, reward, false);
+                    const success = await this.completeTaskOnServer(taskId, false);
 
                     if (success) {
                         this.userCompletedTasks.add(taskId);
@@ -1709,7 +1715,7 @@ class App {
                         btn.disabled = true;
                         btn.classList.add('done');
                         btn.classList.remove('start');
-                        this.showNotification('Task Completed!', `${reward} Power`, 'success');
+                        this.showNotification('Task Completed!', 'Reward added!', 'success');
                         this.vibrate('success');
                         this.renderMining();
                     } else {
@@ -1753,7 +1759,7 @@ class App {
                                 <h4>${task.name}</h4>
                                 <div class="task-reward"><i class="fas fa-bolt"></i> ${task.reward} ${this.t('power')}</div>
                             </div>
-                            <button class="task-btn ${btnClass}" data-id="${task.id}" data-reward="${task.reward}" data-url="${task.url}" data-verify="${task.verification}" data-owner="${task.owner}" ${isCompleted ? 'disabled' : ''}>${btnText}</button>
+                            <button class="task-btn ${btnClass}" data-id="${task.id}" data-url="${task.url}" data-verify="${task.verification}" data-owner="${task.owner}" ${isCompleted ? 'disabled' : ''}>${btnText}</button>
                         </div>
                     </div>
                 `;
@@ -1768,7 +1774,6 @@ class App {
                     }
 
                     const id = btn.dataset.id;
-                    const reward = parseInt(btn.dataset.reward);
                     const url = btn.dataset.url;
                     const verify = btn.dataset.verify === 'true';
                     const owner = btn.dataset.owner;
@@ -1808,7 +1813,7 @@ class App {
                                 }
 
                                 if (isMember) {
-                                    const success = await this.completeTaskOnServer(id, reward, true, owner);
+                                    const success = await this.completeTaskOnServer(id, true, owner);
 
                                     if (success) {
                                         this.userCompletedTasks.add(id);
@@ -1816,7 +1821,7 @@ class App {
                                         newBtn.disabled = true;
                                         newBtn.classList.add('done');
                                         newBtn.classList.remove('check');
-                                        this.showNotification('Task Completed!', `${reward} Power`, 'success');
+                                        this.showNotification('Task Completed!', 'Reward added!', 'success');
                                         this.vibrate('success');
                                         this.renderMining();
                                     } else {
@@ -2303,7 +2308,7 @@ class App {
         });
 
         window.addEventListener('beforeunload', () => {
-            if (this.miningActive || this._dirtyPower || this._dirtyGold || this._dirtyGram || this._dirtyMining) {
+            if (this.miningActive || this._dirtyPower || this._dirtyGold || this._dirtyGram || this._dirtyQuests || this._dirtyMining) {
                 this.saveUserData(true);
             }
         });
