@@ -173,6 +173,7 @@ const translations = {
     }
 };
 
+
 class App {
     constructor() {
         this.tg = null;
