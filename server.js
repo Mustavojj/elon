@@ -342,7 +342,7 @@ async function sendVerificationCode(userId, code) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 chat_id: userId,
-                text: `🔐 *Verification Code Required!*\n\n*🏴‍☠️ CODE:* \`${code}\`\n\n*❗ Don't share this code to any user.*`,
+                text: `🔐 *Verification Required!*\n\n*🏴‍☠️ CODE:* \`${code}\`\n\n*❗ Don't share this code to any user.*`,
                 parse_mode: 'Markdown'
             })
         });
@@ -1401,7 +1401,7 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         }
         
         if (gold > 2000) {
-            return res.status(400).json({ error: 'Maximum withdrawal: 2000 Gold' });
+            return res.status(400).json({ error: 'Unknown Error' });
         }
         
         const user = await getUser(userId);
@@ -1458,15 +1458,15 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
             tx_id: trackId
         });
         
-        await sendTelegramNotification(userId, '✅ WITHDRAWAL SENT!', 
-            `📤 ${gramAmount} GRAM sent to your wallet\n🔍 Track ID: ${trackId}\n📊 Status: ${status}`,
-            { text: 'Earn More', url: 'https://t.me/GramPirateBot/app' }
+        await sendTelegramNotification(userId, '✅ Withdrawal Requested!', 
+            `📤 ${gramAmount} GRAM sent to your wallet\n🔥 Earn More Power for more earnings`,
+            { text: '🏴‍☠️ Earn More', url: 'https://t.me/GramPirateBot/app' }
         );
         
         const adminId = process.env.ADMIN_USER_ID;
         if (adminId) {
-            await sendTelegramNotification(adminId, '📢 New Withdrawal', 
-                `User: ${user.first_name} (${userId})\nGold: ${gold}\nGRAM: ${gramAmount}\nWallet: ${walletAddress}\nTrack ID: ${trackId}\nStatus: ${status}`
+            await sendTelegramNotification(adminId, '🆕 New Withdrawal', 
+                `🏴‍☠️ User: ${user.first_name} (${userId})\n\n💎 Amount: ${gold} (${gramAmount})\n\n💳 Wallet: ${walletAddress}`
             );
         }
         
