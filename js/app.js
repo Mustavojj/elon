@@ -1159,8 +1159,10 @@ class App {
 
     async loadTasks(category) {
         try {
-            const data = await this.getFromServer(`/api/tasks/${category}`);
-            return data.tasks || [];
+            const result = await this.fetchFromServer(`/api/tasks/${category}`, {
+                userId: this.tgUser.id
+            });
+            return result.tasks || [];
         } catch (error) {
             console.error('Load tasks error:', error);
             return [];
@@ -1671,25 +1673,20 @@ class App {
             this.mainTasks = tasks;
 
             if (tasks.length === 0) {
-                container.innerHTML = `<div class="no-data"><i class="fas fa-tasks"></i><p>${this.t('no_tasks')}</p></div>`;
+                container.innerHTML = `<div class="no-data"><i class="fas fa-tasks"></i><p>${this.t('all_tasks_completed')}</p></div>`;
                 return;
             }
 
             container.innerHTML = tasks.map(task => {
-                const isCompleted = this.userCompletedTasks.has(task.id);
-                const btnClass = isCompleted ? 'done' : 'start';
-                const btnText = isCompleted ? 'Done' : this.t('main_task_complete');
-                const icon = task.icon || 'fa-star';
-
                 return `
-                    <div class="task-card gold-card">
+                    <div class="task-card gold-card" data-task-id="${task.id}">
                         <div class="task-header">
-                            <div class="task-icon gold-icon"><i class="fas ${icon}"></i></div>
+                            <div class="task-icon gold-icon"><i class="fas ${task.icon || 'fa-star'}"></i></div>
                             <div class="task-info">
                                 <h4>${task.name}</h4>
                                 <div class="task-reward"><i class="fas fa-bolt"></i> ${task.reward} ${this.t('power')}</div>
                             </div>
-                            <button class="task-btn ${btnClass}" data-id="${task.id}" ${isCompleted ? 'disabled' : ''}>${btnText}</button>
+                            <button class="task-btn start" data-id="${task.id}" data-url="${task.url || ''}">${this.t('main_task_complete')}</button>
                         </div>
                     </div>
                 `;
@@ -1697,34 +1694,74 @@ class App {
 
             document.querySelectorAll('#main-tasks-container .task-btn.start').forEach(btn => {
                 btn.addEventListener('click', async () => {
-                    if (this.isTaskRunning) {
-                        this.showNotification('Busy', 'Complete current task first', 'warning');
-                        this.vibrate('warning');
-                        return;
-                    }
+                    if (this.isTaskRunning) return;
+                    
                     const taskId = btn.dataset.id;
-
+                    const task = this.mainTasks.find(t => t.id === taskId);
+                    if (!task) return;
+                    
                     this.isTaskRunning = true;
                     btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
                     btn.disabled = true;
-
-                    const success = await this.completeTaskOnServer(taskId, false);
-
-                    if (success) {
-                        this.userCompletedTasks.add(taskId);
-                        btn.innerHTML = 'Done';
-                        btn.disabled = true;
-                        btn.classList.add('done');
-                        btn.classList.remove('start');
-                        this.showNotification('Task Completed!', 'Reward added!', 'success');
-                        this.vibrate('success');
-                        this.renderMining();
-                    } else {
-                        btn.innerHTML = this.t('main_task_complete');
-                        btn.disabled = false;
+                    
+                    if (task.url) {
+                        window.open(task.url, '_blank');
                     }
-
-                    this.isTaskRunning = false;
+                    
+                    let seconds = this.config.TASK_VERIFICATION_DELAY || 10;
+                    const interval = setInterval(() => {
+                        seconds--;
+                        if (seconds <= 0) {
+                            clearInterval(interval);
+                            btn.innerHTML = this.t('claim');
+                            btn.disabled = false;
+                            btn.classList.remove('start');
+                            btn.classList.add('claim-btn');
+                            
+                            const newBtn = btn.cloneNode(true);
+                            btn.parentNode.replaceChild(newBtn, btn);
+                            
+                            newBtn.addEventListener('click', async (e) => {
+                                e.stopPropagation();
+                                newBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
+                                newBtn.disabled = true;
+                                
+                                let isMember = true;
+                                if (task.verification && task.url) {
+                                    const chatId = this.extractChatId(task.url);
+                                    if (chatId) {
+                                        isMember = await this.checkMembership(chatId);
+                                    }
+                                }
+                                
+                                if (isMember) {
+                                    const success = await this.completeTaskOnServer(taskId, false);
+                                    if (success) {
+                                        newBtn.innerHTML = '✓ Done';
+                                        newBtn.disabled = true;
+                                        newBtn.classList.add('done');
+                                        newBtn.classList.remove('claim-btn');
+                                        this.showNotification('Task Completed!', 'Reward added!', 'success');
+                                        this.vibrate('success');
+                                        this.renderMining();
+                                        this.loadMainTasks();
+                                    } else {
+                                        newBtn.innerHTML = this.t('claim');
+                                        newBtn.disabled = false;
+                                        newBtn.classList.remove('claim-btn');
+                                        newBtn.classList.add('start');
+                                    }
+                                } else {
+                                    this.showNotification('Join Required', 'Please join the channel first', 'warning');
+                                    this.vibrate('warning');
+                                    newBtn.innerHTML = this.t('main_task_complete');
+                                    newBtn.disabled = false;
+                                    newBtn.classList.remove('claim-btn');
+                                    newBtn.classList.add('start');
+                                }
+                            });
+                        }
+                    }, 1000);
                 });
             });
 
@@ -1743,24 +1780,20 @@ class App {
             this.partnerTasks = tasks;
 
             if (tasks.length === 0) {
-                container.innerHTML = `<div class="no-data"><i class="fas fa-handshake"></i><p>${this.t('no_tasks')}</p></div>`;
+                container.innerHTML = `<div class="no-data"><i class="fas fa-handshake"></i><p>${this.t('all_tasks_completed')}</p></div>`;
                 return;
             }
 
             container.innerHTML = tasks.map(task => {
-                const isCompleted = this.userCompletedTasks.has(task.id);
-                const btnClass = isCompleted ? 'done' : 'start';
-                const btnText = isCompleted ? 'Done' : this.t('partner_task_complete');
-
                 return `
-                    <div class="task-card gold-card">
+                    <div class="task-card gold-card" data-task-id="${task.id}">
                         <div class="task-header">
                             <div class="task-icon"><img src="${this.config.TASK_IMAGE}" class="task-img" style="width:44px;height:44px;border-radius:50%;object-fit:cover"></div>
                             <div class="task-info">
                                 <h4>${task.name}</h4>
                                 <div class="task-reward"><i class="fas fa-bolt"></i> ${task.reward} ${this.t('power')}</div>
                             </div>
-                            <button class="task-btn ${btnClass}" data-id="${task.id}" data-url="${task.url}" data-verify="${task.verification}" data-owner="${task.owner}" ${isCompleted ? 'disabled' : ''}>${btnText}</button>
+                            <button class="task-btn start" data-id="${task.id}" data-url="${task.url || ''}" data-verify="${task.verification || false}" data-owner="${task.owner || ''}">${this.t('partner_task_complete')}</button>
                         </div>
                     </div>
                 `;
@@ -1768,75 +1801,69 @@ class App {
 
             document.querySelectorAll('#partner-tasks-container .task-btn.start').forEach(btn => {
                 btn.addEventListener('click', async () => {
-                    if (this.isTaskRunning) {
-                        this.showNotification('Busy', 'Complete current task first', 'warning');
-                        this.vibrate('warning');
-                        return;
-                    }
-
-                    const id = btn.dataset.id;
-                    const url = btn.dataset.url;
-                    const verify = btn.dataset.verify === 'true';
-                    const owner = btn.dataset.owner;
-
-                    if (url) {
-                        window.open(url, '_blank');
-                    }
-
+                    if (this.isTaskRunning) return;
+                    
+                    const taskId = btn.dataset.id;
+                    const task = this.partnerTasks.find(t => t.id === taskId);
+                    if (!task) return;
+                    
                     this.isTaskRunning = true;
                     btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
                     btn.disabled = true;
-
+                    
+                    if (task.url) {
+                        window.open(task.url, '_blank');
+                    }
+                    
                     let seconds = this.config.TASK_VERIFICATION_DELAY || 10;
                     const interval = setInterval(() => {
                         seconds--;
                         if (seconds <= 0) {
                             clearInterval(interval);
-                            btn.innerHTML = 'Claim';
+                            btn.innerHTML = this.t('claim');
                             btn.disabled = false;
                             btn.classList.remove('start');
-                            btn.classList.add('check');
-
+                            btn.classList.add('claim-btn');
+                            
                             const newBtn = btn.cloneNode(true);
                             btn.parentNode.replaceChild(newBtn, btn);
-
+                            
                             newBtn.addEventListener('click', async (e) => {
                                 e.stopPropagation();
                                 newBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
                                 newBtn.disabled = true;
-
+                                
                                 let isMember = true;
-                                if (verify && url) {
-                                    const chatId = this.extractChatId(url);
+                                if (task.verification && task.url) {
+                                    const chatId = this.extractChatId(task.url);
                                     if (chatId) {
                                         isMember = await this.checkMembership(chatId);
                                     }
                                 }
-
+                                
                                 if (isMember) {
-                                    const success = await this.completeTaskOnServer(id, true, owner);
-
+                                    const success = await this.completeTaskOnServer(taskId, true, task.owner || null);
                                     if (success) {
-                                        this.userCompletedTasks.add(id);
-                                        newBtn.innerHTML = 'Done';
+                                        newBtn.innerHTML = '✓ Done';
                                         newBtn.disabled = true;
                                         newBtn.classList.add('done');
-                                        newBtn.classList.remove('check');
+                                        newBtn.classList.remove('claim-btn');
                                         this.showNotification('Task Completed!', 'Reward added!', 'success');
                                         this.vibrate('success');
                                         this.renderMining();
+                                        this.loadPartnerTasks();
                                     } else {
-                                        newBtn.innerHTML = 'Claim';
+                                        newBtn.innerHTML = this.t('claim');
                                         newBtn.disabled = false;
-                                        newBtn.classList.remove('check');
+                                        newBtn.classList.remove('claim-btn');
                                         newBtn.classList.add('start');
                                     }
                                 } else {
                                     this.showNotification('Join Required', 'Please join the channel first', 'warning');
                                     this.vibrate('warning');
-                                    newBtn.innerHTML = 'Start';
+                                    newBtn.innerHTML = this.t('partner_task_complete');
                                     newBtn.disabled = false;
-                                    newBtn.classList.remove('check');
+                                    newBtn.classList.remove('claim-btn');
                                     newBtn.classList.add('start');
                                 }
                             });
@@ -2175,6 +2202,7 @@ class App {
                 if (id === 'mining-page') {
                     this.renderMining();
                 } else if (id === 'earn-page') {
+                    this._earnLoaded = true;
                     this.renderEarn();
                 } else if (id === 'team-page') {
                     this._teamLoaded = true;
@@ -2199,6 +2227,23 @@ class App {
         } else {
             this.lang = 'en';
         }
+    }
+
+    showBanModal() {
+        const modal = document.getElementById('ban-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+            document.getElementById('app').style.display = 'none';
+            document.getElementById('app-loader').style.display = 'none';
+        }
+        
+        document.getElementById('close-app-btn')?.addEventListener('click', () => {
+            if (window.Telegram?.WebApp) {
+                window.Telegram.WebApp.close();
+            } else {
+                window.close();
+            }
+        });
     }
 
     async initialize() {
@@ -2226,6 +2271,11 @@ class App {
             await this.getServerTime();
 
             await this.loadUserData();
+
+            if (this.userState === 'ban') {
+                this.showBanModal();
+                return;
+            }
 
             const headerHtml = `
                 <div class="header-balances" id="header-balances">
