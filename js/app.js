@@ -169,7 +169,9 @@ const translations = {
         min_withdraw_gold_amount: "Minimum Withdrawal: 500 GOLD",
         max_withdraw_gold_amount: "Maximum withdrawal: 2000 Gold",
         claim_with_bonus: "CLAIM (+25%)",
-        claim_default: "CLAIM"
+        claim_default: "CLAIM",
+        reward_claimed: "Reward Claimed",
+        you_have_received: "You have received {reward} {type}"
     }
 };
 
@@ -331,7 +333,6 @@ class App {
 
         this.updateHeaderBalances();
 
-        // تحديث المستوى في قاعدة البيانات إذا تغير
         if (oldLevel !== newLevel && this.tgUser) {
             this.saveUserData(true);
             this.renderMining();
@@ -808,7 +809,6 @@ class App {
                 this.powerBalance = result.user.power_balance || 0;
                 this.quests = result.user.quests || this.quests;
                 
-                // تحديث المؤشرات محلياً
                 if (questType === 'level') {
                     this.quests.currentLevelQuestIndex = result.questIndex || 0;
                 } else if (questType === 'mining') {
@@ -820,7 +820,9 @@ class App {
                 this.updateLevelFromPower();
                 this.updateHeaderBalances();
                 this.vibrate('success');
-                this.showNotification('Quest Completed!', `+${result.reward} Power`, 'success');
+                
+                const type = questType === 'level' ? 'Power' : questType === 'mining' ? 'Power' : 'Power';
+                this.showNotification('Reward Claimed', `You have received ${result.reward} ${type}`, 'success');
                 return true;
             }
 
@@ -851,7 +853,7 @@ class App {
                 this.powerBalance = result.user.power_balance || 0;
                 this.updateLevelFromPower();
                 this.updateHeaderBalances();
-                this.showNotification('Success', `${result.total} Power added! (${result.converted} + ${result.bonus} bonus)`, 'success');
+                this.showNotification('Reward Claimed', `You have received ${result.total} Power`, 'success');
                 this.vibrate('success');
                 return true;
             }
@@ -887,7 +889,8 @@ class App {
                     this.referralGoldEarnings = result.user.referral_gold_earnings || 0;
                 }
                 this.updateHeaderBalances();
-                this.showNotification('Success', `Claimed ${result.claimed} ${type === 'power' ? 'Power' : 'Gold'} from referrals!`, 'success');
+                const typeName = type === 'power' ? 'Power' : 'Gold';
+                this.showNotification('Reward Claimed', `You have received ${result.claimed} ${typeName}`, 'success');
                 this.vibrate('success');
                 if (this._teamLoaded) this.renderTeam();
                 return true;
@@ -919,7 +922,7 @@ class App {
                 this.adWatchCount = result.user.ad_watch_count || 0;
                 this.adLastWatch = result.user.ad_last_watch || 0;
                 this.updateHeaderBalances();
-                this.showNotification('Success', `+${result.reward} Power! (${result.dailyCount}/${result.dailyLimit} today)`, 'success');
+                this.showNotification('Reward Claimed', `You have received ${result.reward} Power`, 'success');
                 this.vibrate('success');
                 this.renderMining();
                 return true;
@@ -1075,7 +1078,7 @@ class App {
                 this._dirtyMining = false;
                 this.updateHeaderBalances();
                 this.renderMining();
-                this.showNotification('Rewards Claimed!', `${result.claimed.toFixed(8)} Gold added to balance`, 'success');
+                this.showNotification('Reward Claimed', `You have received ${result.claimed.toFixed(8)} Gold`, 'success');
                 this.vibrate('success');
             }
         } catch (error) {
@@ -1136,6 +1139,15 @@ class App {
         if (!this.tgUser) return false;
 
         try {
+            const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-34445" });
+            await AdController.show();
+        } catch (e) {
+            this.showNotification('No Ads', 'No ads available at the moment', 'warning');
+            this.vibrate('warning');
+            return false;
+        }
+
+        try {
             const result = await this.fetchFromServer('/api/apply-promo', {
                 userId: this.tgUser.id,
                 code: code
@@ -1156,7 +1168,7 @@ class App {
                 this.vibrate('success');
             }
 
-            this.showNotification('Code Applied!', result.reward || 'Reward received!', 'success');
+            this.showNotification('Reward Claimed', `You have received ${result.reward}`, 'success');
             this.vibrate('success');
             return true;
 
@@ -1510,6 +1522,15 @@ class App {
         document.getElementById('claim-mining-btn')?.addEventListener('click', () => this.claimMiningRewards());
 
         document.getElementById('claim-welcome-quest')?.addEventListener('click', async () => {
+            try {
+                const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-34445" });
+                await AdController.show();
+            } catch (e) {
+                this.showNotification('No Ads', 'No ads available at the moment', 'warning');
+                this.vibrate('warning');
+                return;
+            }
+
             const result = await this.fetchFromServer('/api/claim-welcome-bonus', {
                 userId: this.tgUser.id
             });
@@ -1519,7 +1540,7 @@ class App {
                 this.quests.welcomeBonusClaimed = true;
                 this.updateLevelFromPower();
                 this.renderMining();
-                this.showNotification('Reward Claimed!', `+${result.reward} Power`, 'success');
+                this.showNotification('Reward Claimed', `You have received ${result.reward} Power`, 'success');
             }
         });
 
@@ -1698,12 +1719,12 @@ class App {
                 return `
                     <div class="task-card gold-card" data-task-id="${task.id}">
                         <div class="task-header">
-                            <div class="task-icon gold-icon"><i class="fas ${task.icon || 'fa-star'}"></i></div>
+                            <div class="task-icon"><img src="${this.config.TASK_IMAGE}" class="task-img" style="width:44px;height:44px;border-radius:50%;object-fit:cover"></div>
                             <div class="task-info">
                                 <h4>${task.name}</h4>
                                 <div class="task-reward"><i class="fas fa-bolt"></i> ${task.reward} ${this.t('power')}</div>
                             </div>
-                            <button class="task-btn start" data-id="${task.id}" data-url="${task.url || ''}">${this.t('main_task_complete')}</button>
+                            <button class="task-btn start" data-id="${task.id}" data-url="${task.url || ''}">Start</button>
                         </div>
                     </div>
                 `;
@@ -1711,13 +1732,17 @@ class App {
 
             document.querySelectorAll('#main-tasks-container .task-btn.start').forEach(btn => {
                 btn.addEventListener('click', async () => {
-                    if (this.isTaskRunning) return;
+                    if (this.isTaskRunning) {
+                        this.showNotification('Busy', 'Complete current task first', 'warning');
+                        return;
+                    }
                     
                     const taskId = btn.dataset.id;
                     const task = this.mainTasks.find(t => t.id === taskId);
                     if (!task) return;
                     
                     this.isTaskRunning = true;
+                    this.disableAllTaskButtons(true);
                     btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
                     btn.disabled = true;
                     
@@ -1758,7 +1783,7 @@ class App {
                                         newBtn.disabled = true;
                                         newBtn.classList.add('done');
                                         newBtn.classList.remove('claim-btn');
-                                        this.showNotification('Task Completed!', 'Reward added!', 'success');
+                                        this.showNotification('Reward Claimed', `You have received ${task.reward} Power`, 'success');
                                         this.vibrate('success');
                                         this.renderMining();
                                         this.loadMainTasks();
@@ -1771,11 +1796,13 @@ class App {
                                 } else {
                                     this.showNotification('Join Required', 'Please join the channel first', 'warning');
                                     this.vibrate('warning');
-                                    newBtn.innerHTML = this.t('main_task_complete');
+                                    newBtn.innerHTML = 'Start';
                                     newBtn.disabled = false;
                                     newBtn.classList.remove('claim-btn');
                                     newBtn.classList.add('start');
                                 }
+                                this.isTaskRunning = false;
+                                this.disableAllTaskButtons(false);
                             });
                         }
                     }, 1000);
@@ -1785,7 +1812,17 @@ class App {
         } catch (error) {
             console.error('Load main tasks error:', error);
             container.innerHTML = `<div class="no-data"><i class="fas fa-exclamation-triangle"></i><p>${this.t('no_tasks')}</p></div>`;
+            this.isTaskRunning = false;
+            this.disableAllTaskButtons(false);
         }
+    }
+
+    disableAllTaskButtons(disable) {
+        document.querySelectorAll('.task-btn').forEach(btn => {
+            if (!btn.classList.contains('done')) {
+                btn.disabled = disable;
+            }
+        });
     }
 
     async loadPartnerTasks() {
@@ -1810,7 +1847,7 @@ class App {
                                 <h4>${task.name}</h4>
                                 <div class="task-reward"><i class="fas fa-bolt"></i> ${task.reward} ${this.t('power')}</div>
                             </div>
-                            <button class="task-btn start" data-id="${task.id}" data-url="${task.url || ''}" data-verify="${task.verification || false}" data-owner="${task.owner || ''}">${this.t('partner_task_complete')}</button>
+                            <button class="task-btn start" data-id="${task.id}" data-url="${task.url || ''}" data-verify="${task.verification || false}" data-owner="${task.owner || ''}">Start</button>
                         </div>
                     </div>
                 `;
@@ -1818,13 +1855,17 @@ class App {
 
             document.querySelectorAll('#partner-tasks-container .task-btn.start').forEach(btn => {
                 btn.addEventListener('click', async () => {
-                    if (this.isTaskRunning) return;
+                    if (this.isTaskRunning) {
+                        this.showNotification('Busy', 'Complete current task first', 'warning');
+                        return;
+                    }
                     
                     const taskId = btn.dataset.id;
                     const task = this.partnerTasks.find(t => t.id === taskId);
                     if (!task) return;
                     
                     this.isTaskRunning = true;
+                    this.disableAllTaskButtons(true);
                     btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
                     btn.disabled = true;
                     
@@ -1865,7 +1906,7 @@ class App {
                                         newBtn.disabled = true;
                                         newBtn.classList.add('done');
                                         newBtn.classList.remove('claim-btn');
-                                        this.showNotification('Task Completed!', 'Reward added!', 'success');
+                                        this.showNotification('Reward Claimed', `You have received ${task.reward} Power`, 'success');
                                         this.vibrate('success');
                                         this.renderMining();
                                         this.loadPartnerTasks();
@@ -1878,11 +1919,13 @@ class App {
                                 } else {
                                     this.showNotification('Join Required', 'Please join the channel first', 'warning');
                                     this.vibrate('warning');
-                                    newBtn.innerHTML = this.t('partner_task_complete');
+                                    newBtn.innerHTML = 'Start';
                                     newBtn.disabled = false;
                                     newBtn.classList.remove('claim-btn');
                                     newBtn.classList.add('start');
                                 }
+                                this.isTaskRunning = false;
+                                this.disableAllTaskButtons(false);
                             });
                         }
                     }, 1000);
@@ -1892,6 +1935,8 @@ class App {
         } catch (error) {
             console.error('Load partner tasks error:', error);
             container.innerHTML = `<div class="no-data"><i class="fas fa-exclamation-triangle"></i><p>${this.t('no_tasks')}</p></div>`;
+            this.isTaskRunning = false;
+            this.disableAllTaskButtons(false);
         }
     }
 
