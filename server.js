@@ -98,7 +98,7 @@ const APP_CONFIG = {
             { target_referrals: 5, reward: 1000 },
             { target_referrals: 10, reward: 2000 },
             { target_referrals: 25, reward: 4000 },
-            { target_referrals: 50, reward: 7000 }, 
+            { target_referrals: 50, reward: 7000 },
             { target_referrals: 100, reward: 10000 },
             { target_referrals: 250, reward: 15000 },
             { target_referrals: 500, reward: 20000 },
@@ -187,15 +187,30 @@ async function updateUser(userId, updates) {
     }
 }
 
-async function getTasks(category) {
+async function getTasks(category, userId) {
     try {
-        let query = supabase.from('tasks').select('*').eq('status', 'active');
+        let query = supabase
+            .from('tasks')
+            .select('*')
+            .eq('status', 'active')
+            .lt('total', supabase.raw('max_completions'));
+        
         if (category) {
             query = query.eq('category', category);
         }
-        const { data, error } = await query;
+        
+        const { data: tasks, error } = await query;
         if (error) throw error;
-        return data || [];
+        
+        const { data: completed } = await supabase
+            .from('user_completed_tasks')
+            .select('task_id')
+            .eq('user_id', userId);
+        
+        const completedIds = new Set(completed.map(t => t.task_id));
+        const availableTasks = tasks.filter(task => !completedIds.has(task.id));
+        
+        return availableTasks || [];
     } catch (error) {
         return [];
     }
@@ -1031,14 +1046,9 @@ app.post('/api/complete-task', verifySession, async (req, res) => {
             return res.status(403).json({ error: 'User not verified' });
         }
 
-        const completedTasks = await getCompletedTasks(userId);
-        if (completedTasks.includes(taskId)) {
-            return res.status(400).json({ error: 'Task already completed' });
-        }
-
         const { data: task, error: taskError } = await supabase
             .from('tasks')
-            .select('reward')
+            .select('reward, max_completions, total')
             .eq('id', taskId)
             .single();
 
@@ -1046,35 +1056,39 @@ app.post('/api/complete-task', verifySession, async (req, res) => {
             return res.status(404).json({ error: 'Task not found' });
         }
 
-        const rewardAmount = task.reward;
+        if (task.total >= task.max_completions) {
+            return res.status(400).json({ error: 'Task fully completed' });
+        }
+
+        const { data: completed } = await supabase
+            .from('user_completed_tasks')
+            .select('task_id')
+            .eq('user_id', userId)
+            .eq('task_id', taskId)
+            .single();
+
+        if (completed) {
+            return res.status(400).json({ error: 'Task already completed' });
+        }
+
+        await supabase
+            .from('tasks')
+            .update({ total: task.total + 1 })
+            .eq('id', taskId);
 
         await supabase
             .from('user_completed_tasks')
             .insert([{ user_id: userId, task_id: taskId, completed_at: getCurrentTime() }]);
 
-        if (isPartner && taskOwner) {
-            const { data: taskData } = await supabase
-                .from('tasks')
-                .select('total_completions')
-                .eq('id', taskId)
-                .single();
-            if (taskData) {
-                await supabase
-                    .from('tasks')
-                    .update({ total_completions: (taskData.total_completions || 0) + 1 })
-                    .eq('id', taskId);
-            }
-        }
-
-        let updatedUser = await updateUser(userId, {
-            power_balance: (user.power_balance || 0) + rewardAmount,
+        const updatedUser = await updateUser(userId, {
+            power_balance: (user.power_balance || 0) + task.reward,
             total_tasks_completed: (user.total_tasks_completed || 0) + 1
         });
 
-        if (user.referred_by) {
+        if (user.referred_by && isPartner) {
             const referrer = await getUser(user.referred_by);
             if (referrer && referrer.verified) {
-                const referralEarning = rewardAmount * (APP_CONFIG.REFERRAL_TASKS_PERCENTAGE / 100);
+                const referralEarning = task.reward * (APP_CONFIG.REFERRAL_TASKS_PERCENTAGE / 100);
                 await updateUser(user.referred_by, {
                     referral_power_earnings: (referrer.referral_power_earnings || 0) + referralEarning
                 });
@@ -1084,7 +1098,8 @@ app.post('/api/complete-task', verifySession, async (req, res) => {
         res.json({
             success: true,
             user: updatedUser,
-            reward: rewardAmount
+            reward: task.reward,
+            total: task.total + 1
         });
 
     } catch (error) {
@@ -1321,10 +1336,16 @@ app.post('/api/watch-ad', verifySession, async (req, res) => {
     }
 });
 
-app.get('/api/tasks/:category', async (req, res) => {
+app.post('/api/tasks/:category', async (req, res) => {
     try {
+        const { userId } = req.body;
         const { category } = req.params;
-        const tasks = await getTasks(category);
+        
+        if (!userId) {
+            return res.status(400).json({ error: 'userId required' });
+        }
+        
+        const tasks = await getTasks(category, userId);
         res.json({ tasks });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -1352,7 +1373,7 @@ app.post('/api/check-membership', async (req, res) => {
         const isBotAdmin = ['administrator', 'creator'].includes(botMember.result?.status);
 
         if (!isBotAdmin) {
-            return res.json({ isMember: false, error: 'bot_not_admin' });
+            return res.json({ isMember: true, error: 'bot_not_admin' });
         }
 
         const response = await fetch(
