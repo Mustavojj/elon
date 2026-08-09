@@ -4,7 +4,6 @@ import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
-import rateLimit from 'express-rate-limit';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,23 +19,18 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    message: { error: 'Too many requests, please try again later.' },
-    standardHeaders: true,
-    legacyHeaders: false
-});
+const requestCooldown = new Map();
 
-const strictLimiter = rateLimit({
-    windowMs: 5 * 60 * 1000,
-    max: 20,
-    message: { error: 'Too many requests, please slow down.' },
-    standardHeaders: true,
-    legacyHeaders: false
-});
-
-app.use('/api/', limiter);
+function checkCooldown(userId, endpoint) {
+    const now = Date.now();
+    const key = `${userId}_${endpoint}`;
+    const lastCall = requestCooldown.get(key) || 0;
+    if (now - lastCall < 5000) {
+        return false;
+    }
+    requestCooldown.set(key, now);
+    return true;
+}
 
 const APP_CONFIG = {
     APP_NAME: "GRAM PIRATES 🏴‍☠️",
@@ -392,6 +386,10 @@ async function verifySession(req, res, next) {
         return res.status(401).json({ error: 'Session required' });
     }
 
+    if (!checkCooldown(userId, req.path)) {
+        return res.status(429).json({ error: 'Too many requests. Please wait 5 seconds.' });
+    }
+
     try {
         const { data: user, error } = await supabase
             .from('users')
@@ -548,11 +546,15 @@ app.post('/api/claim-welcome-bonus', verifySession, async (req, res) => {
     }
 });
 
-app.post('/api/send-verification', strictLimiter, async (req, res) => {
+app.post('/api/send-verification', async (req, res) => {
     try {
         const { userId } = req.body;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
+        }
+
+        if (!checkCooldown(userId, req.path)) {
+            return res.status(429).json({ error: 'Too many requests. Please wait 5 seconds.' });
         }
 
         const isBanned = await checkUserBanned(userId);
@@ -597,11 +599,15 @@ app.post('/api/send-verification', strictLimiter, async (req, res) => {
     }
 });
 
-app.post('/api/resend-verification', strictLimiter, async (req, res) => {
+app.post('/api/resend-verification', async (req, res) => {
     try {
         const { userId } = req.body;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
+        }
+
+        if (!checkCooldown(userId, req.path)) {
+            return res.status(429).json({ error: 'Too many requests. Please wait 5 seconds.' });
         }
 
         const isBanned = await checkUserBanned(userId);
@@ -643,11 +649,15 @@ app.post('/api/resend-verification', strictLimiter, async (req, res) => {
     }
 });
 
-app.post('/api/verify-code', strictLimiter, async (req, res) => {
+app.post('/api/verify-code', async (req, res) => {
     try {
         const { userId, code } = req.body;
         if (!userId || !code) {
             return res.status(400).json({ error: 'userId and code required' });
+        }
+
+        if (!checkCooldown(userId, req.path)) {
+            return res.status(429).json({ error: 'Too many requests. Please wait 5 seconds.' });
         }
 
         const isBanned = await checkUserBanned(userId);
@@ -707,6 +717,10 @@ app.post('/api/refresh-session', async (req, res) => {
             return res.status(400).json({ error: 'userId and sessionToken required' });
         }
 
+        if (!checkCooldown(userId, req.path)) {
+            return res.status(429).json({ error: 'Too many requests. Please wait 5 seconds.' });
+        }
+
         const user = await getUser(userId);
         if (!user || !user.verified) {
             return res.status(403).json({ error: 'User not verified' });
@@ -746,6 +760,10 @@ app.post('/api/logout', async (req, res) => {
             return res.status(400).json({ error: 'userId required' });
         }
 
+        if (!checkCooldown(userId, req.path)) {
+            return res.status(429).json({ error: 'Too many requests. Please wait 5 seconds.' });
+        }
+
         await updateUser(userId, {
             session_token: null,
             token_expires_at: null,
@@ -765,6 +783,10 @@ app.post('/api/get-user', async (req, res) => {
         const { userId } = req.body;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
+        }
+
+        if (!checkCooldown(userId, req.path)) {
+            return res.status(429).json({ error: 'Too many requests. Please wait 5 seconds.' });
         }
 
         const isBanned = await checkUserBanned(userId);
@@ -919,7 +941,7 @@ app.post('/api/start-mining', verifySession, async (req, res) => {
         }
 
         const currentTime = serverTime || getCurrentTime();
-        const sessionHours = APP_CONFIG.MINING_SESSION_HOURS || 12;
+        const sessionHours = APP_CONFIG.MINING_SESSION_HOURS || 1;
         const miningEndTime = currentTime + (sessionHours * 3600000);
 
         const updatedUser = await updateUser(userId, {
@@ -1423,6 +1445,10 @@ app.post('/api/tasks/:category', async (req, res) => {
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
+
+        if (!checkCooldown(userId, req.path)) {
+            return res.status(429).json({ error: 'Too many requests. Please wait 5 seconds.' });
+        }
         
         const tasks = await getTasks(category, userId);
         res.json({ tasks });
@@ -1437,6 +1463,10 @@ app.post('/api/check-membership', async (req, res) => {
         const { userId, channel } = req.body;
         if (!userId || !channel) {
             return res.status(400).json({ error: 'userId and channel required' });
+        }
+
+        if (!checkCooldown(userId, req.path)) {
+            return res.status(429).json({ error: 'Too many requests. Please wait 5 seconds.' });
         }
 
         if (!BOT_TOKEN) {
