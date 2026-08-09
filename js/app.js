@@ -171,7 +171,8 @@ const translations = {
         claim_with_bonus: "CLAIM (+25%)",
         claim_default: "CLAIM",
         reward_claimed: "Reward Claimed",
-        you_have_received: "You have received {reward} {type}"
+        you_have_received: "You have received {reward} {type}",
+        try_again_later: "Try again later"
     }
 };
 
@@ -203,7 +204,7 @@ class App {
         this.miningInterval = null;
         this.uiUpdateInterval = null;
         this.pendingGoldReward = 0;
-        this.miningSessionHours = 12;
+        this.miningSessionHours = 1;
         this.withdrawals = [];
         this.totalReferrals = 0;
         this.referralPower = 0;
@@ -236,6 +237,7 @@ class App {
         this._withdrawLock = false;
 
         this.membershipCache = new Map();
+        this.requestCooldown = new Map();
 
         this.quests = {
             welcomeBonusClaimed: false,
@@ -289,7 +291,11 @@ class App {
     formatNumber(num) {
         if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
         if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
-        return num.toString();
+        return num.toFixed(3);
+    }
+
+    formatGold(num) {
+        return num.toFixed(3);
     }
 
     getDailyGoldRate() {
@@ -346,7 +352,7 @@ class App {
         const powerHeader = document.getElementById('header-power');
         const goldHeader = document.getElementById('header-gold');
         if (powerHeader) powerHeader.innerHTML = `<i class="fas fa-bolt"></i> ${this.formatNumber(Math.floor(this.powerBalance))}`;
-        if (goldHeader) goldHeader.innerHTML = `<img src="${this.config.GOLD_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> ${this.formatNumber(Math.floor(this.goldBalance))}`;
+        if (goldHeader) goldHeader.innerHTML = `<img src="${this.config.GOLD_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> ${this.formatGold(this.goldBalance)}`;
     }
 
     getRequiredPowerForLevel(level) {
@@ -362,7 +368,24 @@ class App {
         return 1000;
     }
 
+    checkCooldown(endpoint) {
+        const now = Date.now();
+        const key = `${endpoint}_${this.tgUser?.id || 'user'}`;
+        const lastCall = this.requestCooldown.get(key) || 0;
+        if (now - lastCall < 5000) {
+            this.showNotification('Error', this.t('try_again_later'), 'warning');
+            this.vibrate('warning');
+            return false;
+        }
+        this.requestCooldown.set(key, now);
+        return true;
+    }
+
     async fetchFromServer(endpoint, data = {}) {
+        if (!this.checkCooldown(endpoint)) {
+            throw new Error('Cooldown');
+        }
+
         try {
             if (this.sessionToken) {
                 data.sessionToken = this.sessionToken;
@@ -385,6 +408,9 @@ class App {
 
             return result;
         } catch (error) {
+            if (error.message === 'Cooldown') {
+                throw error;
+            }
             console.error('Server fetch error:', error);
             throw error;
         }
@@ -404,6 +430,7 @@ class App {
         try {
             const config = await this.getFromServer('/api/config');
             this.config = config;
+            this.miningSessionHours = config.MINING_SESSION_HOURS || 1;
             return config;
         } catch (error) {
             console.error('Failed to load config:', error);
@@ -453,6 +480,9 @@ class App {
             
             return true;
         } catch (error) {
+            if (error.message === 'Cooldown') {
+                return false;
+            }
             console.error('Send verification error:', error);
             this.showNotification('Error', 'Failed to send verification code', 'error');
             this.vibrate('error');
@@ -481,6 +511,9 @@ class App {
             this.vibrate('success');
             return true;
         } catch (error) {
+            if (error.message === 'Cooldown') {
+                return false;
+            }
             console.error('Resend verification error:', error);
             this.showNotification('Error', 'Failed to resend verification code', 'error');
             this.vibrate('error');
@@ -523,6 +556,9 @@ class App {
             
             return true;
         } catch (error) {
+            if (error.message === 'Cooldown') {
+                return false;
+            }
             console.error('Verify error:', error);
             this.showNotification('Error', this.t('verification_error'), 'error');
             this.vibrate('error');
@@ -604,6 +640,9 @@ class App {
             this.updateLevelFromPower();
 
         } catch (error) {
+            if (error.message === 'Cooldown') {
+                return;
+            }
             console.error('loadUserDataAfterVerification error:', error);
         }
     }
@@ -694,6 +733,9 @@ class App {
             }
 
         } catch (error) {
+            if (error.message === 'Cooldown') {
+                return;
+            }
             console.error('loadUserData error:', error);
             this.showNotification('Error', 'Failed to load user data', 'error');
             this.vibrate('error');
@@ -757,6 +799,10 @@ class App {
 
             return true;
         } catch (error) {
+            if (error.message === 'Cooldown') {
+                this._isSaving = false;
+                return false;
+            }
             console.error('Failed to save user data:', error);
             this.showNotification('Error', this.t('save_error'), 'error');
             this.vibrate('error');
@@ -791,6 +837,9 @@ class App {
 
             return true;
         } catch (error) {
+            if (error.message === 'Cooldown') {
+                return false;
+            }
             console.error('Complete task error:', error);
             this.showNotification('Error', 'Failed to complete task', 'error');
             this.vibrate('error');
@@ -837,6 +886,9 @@ class App {
 
             return false;
         } catch (error) {
+            if (error.message === 'Cooldown') {
+                return false;
+            }
             console.error('Claim quest error:', error);
             this.showNotification('Error', 'Failed to claim quest', 'error');
             this.vibrate('error');
@@ -869,6 +921,9 @@ class App {
 
             return false;
         } catch (error) {
+            if (error.message === 'Cooldown') {
+                return false;
+            }
             console.error('Convert error:', error);
             this.showNotification('Error', 'Failed to convert', 'error');
             this.vibrate('error');
@@ -907,6 +962,9 @@ class App {
 
             return false;
         } catch (error) {
+            if (error.message === 'Cooldown') {
+                return false;
+            }
             console.error('Claim referral earnings error:', error);
             this.showNotification('Error', 'Failed to claim earnings', 'error');
             this.vibrate('error');
@@ -939,6 +997,9 @@ class App {
 
             return false;
         } catch (error) {
+            if (error.message === 'Cooldown') {
+                return false;
+            }
             console.error('Watch ad error:', error);
             this.showNotification('Error', 'Failed to watch ad', 'error');
             this.vibrate('error');
@@ -1114,7 +1175,7 @@ class App {
                 await this.stopMining();
             }
             this.updateMiningRing();
-        }, 60000);
+        }, 120000);
 
         this.uiUpdateInterval = setInterval(() => {
             if (this.miningActive) {
@@ -1188,6 +1249,9 @@ class App {
             return true;
 
         } catch (error) {
+            if (error.message === 'Cooldown') {
+                return false;
+            }
             console.error('Apply promo error:', error);
             this.showNotification('Error', 'Failed to apply promo code', 'error');
             this.vibrate('error');
@@ -1202,6 +1266,9 @@ class App {
             });
             return result.tasks || [];
         } catch (error) {
+            if (error.message === 'Cooldown') {
+                return [];
+            }
             console.error('Load tasks error:', error);
             return [];
         }
@@ -1346,6 +1413,14 @@ class App {
             return true;
 
         } catch (error) {
+            if (error.message === 'Cooldown') {
+                if (withdrawBtn) {
+                    withdrawBtn.disabled = false;
+                    withdrawBtn.innerHTML = this.t('confirm_withdrawal');
+                }
+                this._withdrawLock = false;
+                return false;
+            }
             console.error('Withdraw error:', error);
             this.showNotification('Error', 'Failed to withdraw', 'error');
             this.vibrate('error');
@@ -1825,6 +1900,9 @@ class App {
             });
 
         } catch (error) {
+            if (error.message === 'Cooldown') {
+                return;
+            }
             console.error('Load main tasks error:', error);
             container.innerHTML = `<div class="no-data"><i class="fas fa-exclamation-triangle"></i><p>${this.t('no_tasks')}</p></div>`;
             this.isTaskRunning = false;
@@ -1948,6 +2026,9 @@ class App {
             });
 
         } catch (error) {
+            if (error.message === 'Cooldown') {
+                return;
+            }
             console.error('Load partner tasks error:', error);
             container.innerHTML = `<div class="no-data"><i class="fas fa-exclamation-triangle"></i><p>${this.t('no_tasks')}</p></div>`;
             this.isTaskRunning = false;
@@ -2020,7 +2101,7 @@ class App {
                 <div class="earning-card">
                     <div class="earning-left">
                         <img src="${this.config.GOLD_ICON}" style="width:20px;height:20px;border-radius:50%;">
-                        <span class="earning-value">${this.formatNumber(Math.floor(this.referralGoldEarnings))}</span>
+                        <span class="earning-value">${this.formatGold(this.referralGoldEarnings)}</span>
                     </div>
                     <button id="claim-gold-earnings" class="claim-btn gold-btn" ${this.referralGoldEarnings < this.config.MIN_CLAIM_GOLD ? 'disabled' : ''}>
                         ${claimGoldText}
@@ -2136,6 +2217,9 @@ class App {
                     this.renderTeam();
                 }
             } catch (e) {
+                if (e.message === 'Cooldown') {
+                    return;
+                }
                 this.showNotification('Error', 'Failed to submit request', 'error');
                 this.vibrate('error');
             }
@@ -2153,16 +2237,22 @@ class App {
         const minWithdrawGold = 500;
         const maxWithdrawGold = 2000;
 
-        const historyHtml = this.withdrawals && this.withdrawals.length ? this.withdrawals.slice(0, 5).map(w => `
+        const historyHtml = this.withdrawals && this.withdrawals.length ? this.withdrawals.slice(0, 5).map(w => {
+            const date = new Date(w.timestamp);
+            const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            return `
             <div class="history-item gold-item">
-                <div class="history-amount">
-                    <img src="${this.config.GOLD_ICON}" style="width:14px;height:14px;border-radius:50%;"> ${w.amount.toFixed(2)} Gold
-                    <span style="color:#888;font-size:0.65rem;">→</span>
-                    <img src="${this.config.GRAM_ICON}" style="width:14px;height:14px;border-radius:50%;"> ${w.gram_amount.toFixed(5)} GRAM
+                <div class="history-details">
+                    <div class="history-amount">
+                        <span style="font-weight:600;">${w.amount.toFixed(3)} GOLD</span>
+                        <span style="color:#888;font-size:0.65rem;">(${w.gram_amount.toFixed(5)} GRAM)</span>
+                    </div>
+                    <div class="history-date" style="font-size:0.6rem;color:#666;">${dateStr} ${timeStr}</div>
                 </div>
-                <div class="history-status ${w.status}">${w.status === 'pending' ? this.t('pending') : this.t('completed')}</div>
+                <div class="history-status ${w.status}" style="font-size:0.65rem;font-weight:600;">${w.status === 'pending' ? this.t('pending') : this.t('completed')}</div>
             </div>
-        `).join('') : '<div class="no-data">' + this.t('no_withdrawals') + '</div>';
+        `}).join('') : '<div class="no-data">' + this.t('no_withdrawals') + '</div>';
 
         el.innerHTML = `
             <div class="wallet-card gold-card">
@@ -2170,7 +2260,7 @@ class App {
                     <div class="wallet-balance-item">
                         <div class="wallet-balance-icon"><img src="${this.config.GOLD_ICON}" style="width:28px;height:28px;border-radius:50%;"></div>
                         <div class="wallet-balance-label">${this.t('gold_balance')}</div>
-                        <div class="wallet-balance-amount">${this.formatNumber(Math.floor(this.goldBalance))}</div>
+                        <div class="wallet-balance-amount">${this.formatGold(this.goldBalance)}</div>
                     </div>
                     <div class="wallet-balance-item">
                         <div class="wallet-balance-icon"><i class="fas fa-bolt" style="color:var(--primary);font-size:1.5rem;"></i></div>
@@ -2357,7 +2447,7 @@ class App {
             const headerHtml = `
                 <div class="header-balances" id="header-balances">
                     <div class="header-balance" id="header-power"><i class="fas fa-bolt"></i> ${this.formatNumber(Math.floor(this.powerBalance))}</div>
-                    <div class="header-balance" id="header-gold"><img src="${this.config.GOLD_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> ${this.formatNumber(Math.floor(this.goldBalance))}</div>
+                    <div class="header-balance" id="header-gold"><img src="${this.config.GOLD_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> ${this.formatGold(this.goldBalance)}</div>
                 </div>
             `;
             const headerActions = document.querySelector('.header-actions');
@@ -2386,6 +2476,9 @@ class App {
             this.isInitialized = true;
 
         } catch (err) {
+            if (err.message === 'Cooldown') {
+                return;
+            }
             console.error('Initialization error:', err);
             this.showNotification('Error', err.message || 'Failed to initialize', 'error');
             this.vibrate('error');
