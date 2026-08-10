@@ -549,8 +549,8 @@ app.post('/api/check-mining-status', async (req, res) => {
             await sendTelegramNotification(
                 user.id,
                 '⛏️ Mining Stopped!',
-                `Your mining session has ended.\n💎 You earned ${reward.toFixed(3)} Gold\n\nClaim your rewards and restart mining!`,
-                { text: '🏴‍☠️ Start Mining', url: 'https://t.me/GramPirateBot/app' }
+                `🏴‍☠️ Your mining session has ended.\n\n📊 You earned ${reward.toFixed(3)} Gold\n\n🎁 Claim your rewards and restart mining!`,
+                { text: 'CLAIM NOW', url: 'https://t.me/GramPirateBot/app' }
             );
 
             notifiedUsers.add(user.id);
@@ -892,15 +892,6 @@ app.post('/api/get-user', async (req, res) => {
 
             user = await createUser(userData);
 
-            if (referredBy && referredBy !== userId) {
-                const referrer = await getUser(referredBy);
-                if (referrer) {
-                    await sendTelegramNotification(referredBy, '🆕 New Referral!', 
-                        `🏴‍☠️ ${user.first_name} joined using your referral link!`
-                    );
-                }
-            }
-
             const code = generateVerificationCode();
             const expiresAt = getCurrentTime() + APP_CONFIG.VERIFICATION_CODE_LIFETIME;
 
@@ -916,10 +907,9 @@ app.post('/api/get-user', async (req, res) => {
             await sendVerificationCode(userId, code);
         }
 
-        const [completedTasks, withdrawals, referrals] = await Promise.all([
+        const [completedTasks, withdrawals] = await Promise.all([
             getCompletedTasks(userId),
-            getWithdrawals(userId),
-            getReferrals(userId)
+            getWithdrawals(userId)
         ]);
 
         res.json({
@@ -928,8 +918,7 @@ app.post('/api/get-user', async (req, res) => {
                 verified: false
             },
             completedTasks,
-            withdrawals,
-            referrals
+            withdrawals
         });
 
     } catch (error) {
@@ -1696,14 +1685,14 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         });
         
         await sendTelegramNotification(userId, '✅ Withdrawal Requested!', 
-            `📤 ${gramAmount} GRAM sent to your wallet\n\n💸 Earn More Power for more earnings`,
+            `📤 ${gramAmount} GRAM sent to your wallet\n\n💸 Earn more power for more earnings`,
             { text: '🏴‍☠️ Earn More', url: 'https://t.me/GramPirateBot/app' }
         );
         
         const adminId = process.env.ADMIN_USER_ID;
         if (adminId) {
             await sendTelegramNotification(adminId, '🆕 New Withdrawal', 
-                `🏴‍☠️ User: ${user.first_name} (${userId})\n\n💎 Amount: ${gold} (${gramAmount})\n\n💳 Wallet: ${walletAddress}`
+                `🏴‍☠️ User: ${userId}\n\n🏅 Amount: ${gold} (${gramAmount})\n\n💳 Wallet: ${walletAddress}`
             );
         }
         
