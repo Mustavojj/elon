@@ -1797,6 +1797,11 @@ class App {
         const container = document.getElementById('main-tasks-container');
         if (!container) return;
 
+        this.isTaskRunning = false;
+        this.taskCompletionTimers.forEach(timer => clearInterval(timer));
+        this.taskCompletionTimers.clear();
+        container.replaceChildren();
+
         try {
             const tasks = await this.loadTasks('main');
             this.mainTasks = tasks;
@@ -1923,6 +1928,11 @@ class App {
         const container = document.getElementById('partner-tasks-container');
         if (!container) return;
 
+        this.isTaskRunning = false;
+        this.taskCompletionTimers.forEach(timer => clearInterval(timer));
+        this.taskCompletionTimers.clear();
+        container.replaceChildren();
+        
         try {
             const tasks = await this.loadTasks('partner');
             this.partnerTasks = tasks;
