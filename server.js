@@ -963,7 +963,7 @@ app.post('/api/update-mining', verifySession, async (req, res) => {
 
 app.post('/api/start-mining', verifySession, async (req, res) => {
     try {
-        const { userId, serverTime } = req.body;
+        const { userId } = req.body;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -977,7 +977,7 @@ app.post('/api/start-mining', verifySession, async (req, res) => {
             return res.status(400).json({ error: 'Mining already active' });
         }
 
-        const currentTime = serverTime || getCurrentTime();
+        const currentTime = getCurrentTime();
         const sessionHours = APP_CONFIG.MINING_SESSION_HOURS || 1;
         const miningEndTime = currentTime + (sessionHours * 3600000);
 
@@ -1068,6 +1068,11 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
 
         if (user.mining_active) {
             return res.status(400).json({ error: 'Mining session still active' });
+        }
+
+        const now = getCurrentTime();
+        if (user.mining_end_time && now < user.mining_end_time) {
+            return res.status(400).json({ error: 'Mining session not ended yet' });
         }
 
         if (!user.pending_gold_reward || user.pending_gold_reward <= 0) {
