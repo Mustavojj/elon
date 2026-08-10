@@ -958,16 +958,6 @@ app.post('/api/update-mining', verifySession, async (req, res) => {
 
         if (miningActive) {
             updates.total_mining_starts = (user.total_mining_starts || 0) + 1;
-            
-            if (!user.referred_by_verified && user.referred_by) {
-                updates.referred_by_verified = true;
-                const referrer = await getUser(user.referred_by);
-                if (referrer) {
-                    await updateUser(user.referred_by, {
-                        total_referrals: (referrer.total_referrals || 0) + 1
-                    });
-                }
-            }
         }
 
         if (quests) {
@@ -1002,10 +992,9 @@ app.post('/api/start-mining', verifySession, async (req, res) => {
         const sessionHours = APP_CONFIG.MINING_SESSION_HOURS || 1;
         const miningEndTime = currentTime + (sessionHours * 3600000);
 
-        // إزالة المستخدم من قائمة الإشعارات عند إعادة التشغيل
         notifiedUsers.delete(userId);
 
-        const updatedUser = await updateUser(userId, {
+        let updatedUser = await updateUser(userId, {
             mining_active: true,
             mining_start_time: currentTime,
             mining_end_time: miningEndTime,
@@ -1014,12 +1003,14 @@ app.post('/api/start-mining', verifySession, async (req, res) => {
         });
 
         if (!user.referred_by_verified && user.referred_by) {
-            await updateUser(userId, { referred_by_verified: true });
             const referrer = await getUser(user.referred_by);
             if (referrer) {
+                const newTotal = (referrer.total_referrals || 0) + 1;
                 await updateUser(user.referred_by, {
-                    total_referrals: (referrer.total_referrals || 0) + 1
+                    total_referrals: newTotal
                 });
+                await updateUser(userId, { referred_by_verified: true });
+                updatedUser = await getUser(userId);
             }
         }
 
@@ -1104,7 +1095,6 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
             mining_end_time: null
         });
 
-        // إزالة المستخدم من قائمة الإشعارات بعد السحب
         notifiedUsers.delete(userId);
 
         if (user.referred_by) {
@@ -1261,7 +1251,7 @@ app.post('/api/complete-task', verifySession, async (req, res) => {
             total_tasks_completed: (user.total_tasks_completed || 0) + 1
         });
 
-        if (user.referred_by && isPartner) {
+        if (user.referred_by) {
             const referrer = await getUser(user.referred_by);
             if (referrer && referrer.verified) {
                 const referralEarning = task.reward * (APP_CONFIG.REFERRAL_TASKS_PERCENTAGE / 100);
