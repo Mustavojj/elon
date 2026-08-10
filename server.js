@@ -1030,10 +1030,15 @@ app.post('/api/stop-mining', verifySession, async (req, res) => {
         }
 
         const currentTime = getCurrentTime();
+
+        if (user.mining_end_time && currentTime < user.mining_end_time) {
+            return res.status(400).json({ error: 'Mining session not ended yet' });
+        }
+
         const rewardAmount = calculateMiningReward(
             user.power_balance || 0,
             user.mining_start_time,
-            currentTime
+            user.mining_end_time || currentTime
         );
 
         const updatedUser = await updateUser(userId, {
