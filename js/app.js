@@ -6,11 +6,11 @@ const translations = {
         daily: "DAILY",
         monthly: "MONTHLY",
         start_mining: "START MINING",
-        claim_reward: "CLAIM {amount} GOLD",
+        claim_reward: "CLAIM {amount} DIAMOND",
         mining_note: "Rewards can be collected after mining session ends",
         next_level_reward: "Next level reward",
         power: "Power",
-        gold: "Gold",
+        diamond: "DIAMOND",
         gram: "GRAM",
         promo_code: "Promo Code",
         enter_code: "Enter code",
@@ -72,7 +72,6 @@ const translations = {
         reward_added: "Reward Added! +{reward} Power",
         welcome_bonus: "Welcome Bonus",
         up_to_level: "UP TO LEVEL {level}",
-        start_mining_quest: "MINE {times} TIMES",
         claim_quest: "Claim",
         claimed: "Claimed",
         rewards_title: "Rewards",
@@ -86,13 +85,13 @@ const translations = {
         total_earnings: "Total Earnings",
         tasks: "Tasks",
         rewards: "Rewards",
-        gold_balance: "Gold",
+        diamond_balance: "DIAMOND",
         exchange_rate: "Exchange Rate",
-        gold_to_gram: "10,000 Gold = 1 GRAM",
+        diamond_to_gram: "10,000 DIAMOND = 1 GRAM",
         convert_withdraw: "Convert & Withdraw",
-        withdraw_gold: "Withdraw Gold",
-        enter_gold_amount: "GOLD Amount",
-        min_withdraw_gold: "Min. withdrawal",
+        withdraw_diamond: "Withdraw DIAMOND",
+        enter_diamond_amount: "DIAMOND Amount",
+        min_withdraw_diamond: "Min. withdrawal",
         tasks_tab: "Tasks",
         rewards_tab: "Rewards",
         referral_quests: "Referral Quests",
@@ -105,10 +104,10 @@ const translations = {
         main_task_complete: "Complete",
         partner_task_complete: "Complete",
         boost_power: "Boost Your Power",
-        boost_desc: "Exchange Gold To Power",
-        gold_to_power: "1 Power = 1 Gold",
+        boost_desc: "Exchange DIAMOND To Power",
+        diamond_to_power: "1 Power = 1 DIAMOND",
         convert: "Exchange",
-        enter_gold: "Enter Gold amount",
+        enter_diamond: "Enter DIAMOND amount",
         level_progress: "Level Progress",
         next_level: "Next Level",
         quest_completed: "Quest Completed!",
@@ -125,7 +124,7 @@ const translations = {
         referral_max: "Up to 50% from pirates earnings",
         referral_earnings: "Referral Earnings",
         claim_earnings: "Claim",
-        total_gold: "Total Gold",
+        total_diamond: "Total DIAMOND",
         total_earnings: "Total Earnings",
         watch_ad_reward: "Watch Reward AD",
         ad_reward_power: "50 Power",
@@ -138,18 +137,17 @@ const translations = {
         verification_success: "Verification successful!",
         bonus: "bonus",
         referral_power_earnings: "Power Earnings",
-        referral_gold_earnings: "Gold Earnings",
+        referral_diamond_earnings: "DIAMOND Earnings",
         total_pirates: "Total Pirates",
-        gold_earnings: "Gold",
+        diamond_earnings: "DIAMOND",
         power_earnings_total: "Power",
         min_claim: "Min. claim",
         power_claim: "Claim Power",
-        gold_claim: "Claim Gold",
+        diamond_claim: "Claim DIAMOND",
         step1: "Copy Link",
         step2: "Invite Pirates",
         step3: "Earn Free GRAM!",
         ad_progress: "Daily Ads",
-        boost_earnings: "Boost Earnings",
         enter_channel_link: "Enter channel link",
         enter_referral_link: "Enter referral link",
         upgrade_bot: "Upgrade the bot as admin",
@@ -163,16 +161,18 @@ const translations = {
         do_not_remove_bot: "Do not remove the bot from admins",
         you_will_receive: "You will receive +25% earnings",
         bot_post_note: "The bot will post promotional codes one time every day along with your referral link.",
-        exchange_rate_note: "Exchange Rate: 1 Power = 1 GOLD",
+        exchange_rate_note: "Exchange Rate: 1 Power = 1 DIAMOND",
         bonus_note: "You will receive +10% bonus",
         wait_cooldown: "Wait {h}h before next withdrawal",
-        min_withdraw_gold_amount: "Minimum Withdrawal: 500 GOLD",
-        max_withdraw_gold_amount: "Maximum withdrawal: 2000 Gold",
+        min_withdraw_diamond_amount: "Minimum Withdrawal: 500 DIAMOND",
+        max_withdraw_diamond_amount: "Maximum withdrawal: 2000 DIAMOND",
         claim_with_bonus: "CLAIM (+25%)",
         claim_default: "CLAIM",
         reward_claimed: "Reward Claimed",
         you_have_received: "You have received {reward} {type}",
-        try_again_later: "Try again later"
+        try_again_later: "Try again later",
+        complete_tasks_quest: "COMPLETE {target} TASKS",
+        task_quests: "Task Quests"
     }
 };
 
@@ -189,10 +189,10 @@ class App {
         this.verificationCode = '';
 
         this.powerBalance = 0;
-        this.goldBalance = 0;
+        this.diamondBalance = 0;
         this.gramBalance = 0;
         this.referralPowerEarnings = 0;
-        this.referralGoldEarnings = 0;
+        this.referralDiamondEarnings = 0;
         this.userLevel = 1;
         this.hasStartedMining = false;
         this.userCompletedTasks = new Set();
@@ -203,7 +203,7 @@ class App {
         this.miningEndTime = null;
         this.miningInterval = null;
         this.uiUpdateInterval = null;
-        this.pendingGoldReward = 0;
+        this.pendingDiamondReward = 0;
         this.miningSessionHours = 1;
         this.withdrawals = [];
         this.totalReferrals = 0;
@@ -223,7 +223,7 @@ class App {
         this.serverTimeOffset = 0;
 
         this._dirtyPower = false;
-        this._dirtyGold = false;
+        this._dirtyDiamond = false;
         this._dirtyGram = false;
         this._dirtyMining = false;
         this._dirtyQuests = false;
@@ -242,7 +242,7 @@ class App {
         this.quests = {
             welcomeBonusClaimed: false,
             currentLevelQuestIndex: 0,
-            currentMiningQuestIndex: 0,
+            currentTaskQuestIndex: 0,
             currentReferralQuestIndex: 0
         };
 
@@ -294,24 +294,24 @@ class App {
         return num.toFixed(3);
     }
 
-    formatGold(num) {
+    formatDiamond(num) {
         return num.toFixed(3);
     }
 
-    getDailyGoldRate() {
-        return (this.powerBalance / 1000) * 3;
+    getDailyDiamondRate() {
+        return (this.powerBalance / 1000) * 5;
     }
 
-    getHourlyGoldRate() {
-        return this.getDailyGoldRate() / 24;
+    getHourlyDiamondRate() {
+        return this.getDailyDiamondRate() / 24;
     }
 
-    getMonthlyGoldRate() {
-        return this.getDailyGoldRate() * 30;
+    getMonthlyDiamondRate() {
+        return this.getDailyDiamondRate() * 30;
     }
 
     calculateRewardForHours(hours) {
-        return this.getHourlyGoldRate() * hours;
+        return this.getHourlyDiamondRate() * hours;
     }
 
     updateLevelFromPower() {
@@ -350,9 +350,9 @@ class App {
 
     updateHeaderBalances() {
         const powerHeader = document.getElementById('header-power');
-        const goldHeader = document.getElementById('header-gold');
+        const diamondHeader = document.getElementById('header-diamond');
         if (powerHeader) powerHeader.innerHTML = `<i class="fas fa-bolt"></i> ${this.formatNumber(Math.floor(this.powerBalance))}`;
-        if (goldHeader) goldHeader.innerHTML = `<img src="${this.config.GOLD_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> ${this.formatGold(this.goldBalance)}`;
+        if (diamondHeader) diamondHeader.innerHTML = `<i class="fas fa-circle" style="color:#FFD700;font-size:0.7rem;"></i><i class="fas fa-gem" style="color:#B8860B;font-size:0.5rem;margin-left:-10px;"></i> ${this.formatDiamond(this.diamondBalance)}`;
     }
 
     getRequiredPowerForLevel(level) {
@@ -582,16 +582,16 @@ class App {
 
             const user = result.user;
             this.powerBalance = user.power_balance || 0;
-            this.goldBalance = user.gold_balance || 0;
+            this.diamondBalance = user.diamond_balance || 0;
             this.gramBalance = user.gram_balance || 0;
             this.referralPowerEarnings = user.referral_power_earnings || 0;
-            this.referralGoldEarnings = user.referral_gold_earnings || 0;
+            this.referralDiamondEarnings = user.referral_diamond_earnings || 0;
             this.userLevel = user.level || 1;
             this.hasStartedMining = user.has_started_mining || false;
             this.miningActive = user.mining_active || false;
             this.miningStartTime = user.mining_start_time || null;
             this.miningEndTime = user.mining_end_time || null;
-            this.pendingGoldReward = user.pending_gold_reward || 0;
+            this.pendingDiamondReward = user.pending_diamond_reward || 0;
             this.referredBy = user.referred_by || null;
             this.totalReferrals = user.total_referrals || 0;
             this.referralPower = user.referral_power || 0;
@@ -609,7 +609,7 @@ class App {
                 this.quests = user.quests;
                 this.quests.welcomeBonusClaimed = user.quests.welcome_bonus_claimed || false;
                 this.quests.currentLevelQuestIndex = user.quests.current_level_quest_index || 0;
-                this.quests.currentMiningQuestIndex = user.quests.current_mining_quest_index || 0;
+                this.quests.currentTaskQuestIndex = user.quests.current_task_quest_index || 0;
                 this.quests.currentReferralQuestIndex = user.quests.current_referral_quest_index || 0;
             }
 
@@ -671,16 +671,16 @@ class App {
 
             const user = result.user;
             this.powerBalance = user.power_balance || 0;
-            this.goldBalance = user.gold_balance || 0;
+            this.diamondBalance = user.diamond_balance || 0;
             this.gramBalance = user.gram_balance || 0;
             this.referralPowerEarnings = user.referral_power_earnings || 0;
-            this.referralGoldEarnings = user.referral_gold_earnings || 0;
+            this.referralDiamondEarnings = user.referral_diamond_earnings || 0;
             this.userLevel = user.level || 1;
             this.hasStartedMining = user.has_started_mining || false;
             this.miningActive = user.mining_active || false;
             this.miningStartTime = user.mining_start_time || null;
             this.miningEndTime = user.mining_end_time || null;
-            this.pendingGoldReward = user.pending_gold_reward || 0;
+            this.pendingDiamondReward = user.pending_diamond_reward || 0;
             this.referredBy = user.referred_by || null;
             this.totalReferrals = user.total_referrals || 0;
             this.referralPower = user.referral_power || 0;
@@ -698,7 +698,7 @@ class App {
                 this.quests = user.quests;
                 this.quests.welcomeBonusClaimed = user.quests.welcome_bonus_claimed || false;
                 this.quests.currentLevelQuestIndex = user.quests.current_level_quest_index || 0;
-                this.quests.currentMiningQuestIndex = user.quests.current_mining_quest_index || 0;
+                this.quests.currentTaskQuestIndex = user.quests.current_task_quest_index || 0;
                 this.quests.currentReferralQuestIndex = user.quests.current_referral_quest_index || 0;
             }
 
@@ -763,14 +763,14 @@ class App {
         try {
             const updates = {};
             if (this._dirtyPower) updates.powerBalance = this.powerBalance;
-            if (this._dirtyGold) updates.goldBalance = this.goldBalance;
+            if (this._dirtyDiamond) updates.diamondBalance = this.diamondBalance;
             if (this._dirtyGram) updates.gramBalance = this.gramBalance;
             if (this._dirtyQuests) updates.quests = this.quests;
             if (this._dirtyMining) {
                 updates.miningActive = this.miningActive;
                 updates.miningStartTime = this.miningStartTime;
                 updates.miningEndTime = this.miningEndTime;
-                updates.pendingGoldReward = this.pendingGoldReward;
+                updates.pendingDiamondReward = this.pendingDiamondReward;
             }
 
             if (Object.keys(updates).length === 0) {
@@ -792,7 +792,7 @@ class App {
             }
 
             this._dirtyPower = false;
-            this._dirtyGold = false;
+            this._dirtyDiamond = false;
             this._dirtyGram = false;
             this._dirtyQuests = false;
             this._dirtyMining = false;
@@ -866,8 +866,8 @@ class App {
                 
                 if (questType === 'level') {
                     this.quests.currentLevelQuestIndex = result.questIndex || 0;
-                } else if (questType === 'mining') {
-                    this.quests.currentMiningQuestIndex = result.questIndex || 0;
+                } else if (questType === 'task') {
+                    this.quests.currentTaskQuestIndex = result.questIndex || 0;
                 } else if (questType === 'referral') {
                     this.quests.currentReferralQuestIndex = result.questIndex || 0;
                 }
@@ -879,8 +879,7 @@ class App {
                 this.updateHeaderBalances();
                 this.vibrate('success');
                 
-                const type = questType === 'level' ? 'Power' : questType === 'mining' ? 'Power' : 'Power';
-                this.showNotification('Reward Claimed', `You have received ${result.reward} ${type}`, 'success');
+                this.showNotification('Reward Claimed', `You have received ${result.reward} Power`, 'success');
                 return true;
             }
 
@@ -896,11 +895,11 @@ class App {
         }
     }
 
-    async convertGoldToPower(goldAmount) {
+    async convertDiamondToPower(diamondAmount) {
         try {
-            const result = await this.fetchFromServer('/api/convert-gold-to-power', {
+            const result = await this.fetchFromServer('/api/convert-diamond-to-power', {
                 userId: this.tgUser.id,
-                goldAmount: goldAmount
+                diamondAmount: diamondAmount
             });
 
             if (result.error) {
@@ -910,7 +909,7 @@ class App {
             }
 
             if (result.user) {
-                this.goldBalance = result.user.gold_balance || 0;
+                this.diamondBalance = result.user.diamond_balance || 0;
                 this.powerBalance = result.user.power_balance || 0;
                 this.updateLevelFromPower();
                 this.updateHeaderBalances();
@@ -948,12 +947,12 @@ class App {
                 if (type === 'power') {
                     this.powerBalance = result.user.power_balance || 0;
                     this.referralPowerEarnings = result.user.referral_power_earnings || 0;
-                } else if (type === 'gold') {
-                    this.goldBalance = result.user.gold_balance || 0;
-                    this.referralGoldEarnings = result.user.referral_gold_earnings || 0;
+                } else if (type === 'diamond') {
+                    this.diamondBalance = result.user.diamond_balance || 0;
+                    this.referralDiamondEarnings = result.user.referral_diamond_earnings || 0;
                 }
                 this.updateHeaderBalances();
-                const typeName = type === 'power' ? 'Power' : 'Gold';
+                const typeName = type === 'power' ? 'Power' : 'DIAMOND';
                 this.showNotification('Reward Claimed', `You have received ${result.claimed} ${typeName}`, 'success');
                 this.vibrate('success');
                 if (this._teamLoaded) this.renderTeam();
@@ -1067,7 +1066,7 @@ class App {
             this.miningActive = result.user.mining_active || false;
             this.miningStartTime = result.user.mining_start_time || null;
             this.miningEndTime = result.user.mining_end_time || null;
-            this.pendingGoldReward = result.user.pending_gold_reward || 0;
+            this.pendingDiamondReward = result.user.pending_diamond_reward || 0;
             this.totalMiningStarts = result.user.total_mining_starts || 0;
             
             this._dirtyMining = true;
@@ -1075,7 +1074,7 @@ class App {
             
             this.renderMining();
             this.startMiningLoop();
-            this.showNotification('Mining Started', 'Your rig is now mining Gold', 'success');
+            this.showNotification('Mining Started', 'Your rig is now mining DIAMOND', 'success');
             this.vibrate('success');
             
             if (this._earnLoaded) this.renderEarn();
@@ -1099,7 +1098,7 @@ class App {
             this.miningActive = result.user.mining_active || false;
             this.miningStartTime = result.user.mining_start_time || null;
             this.miningEndTime = result.user.mining_end_time || null;
-            this.pendingGoldReward = result.user.pending_gold_reward || 0;
+            this.pendingDiamondReward = result.user.pending_diamond_reward || 0;
             
             this._dirtyMining = true;
             await this.saveUserData(true);
@@ -1123,7 +1122,7 @@ class App {
             return;
         }
         
-        if (this.pendingGoldReward <= 0) {
+        if (this.pendingDiamondReward <= 0) {
             this.showNotification('Error', 'No rewards to claim', 'error');
             this.vibrate('error');
             return;
@@ -1149,17 +1148,17 @@ class App {
         }
 
         if (result.user) {
-            this.goldBalance = result.user.gold_balance || 0;
-            this.pendingGoldReward = result.user.pending_gold_reward || 0;
+            this.diamondBalance = result.user.diamond_balance || 0;
+            this.pendingDiamondReward = result.user.pending_diamond_reward || 0;
             this.miningActive = result.user.mining_active || false;
             this.miningStartTime = result.user.mining_start_time || null;
             this.miningEndTime = result.user.mining_end_time || null;
             
-            this._dirtyGold = false;
+            this._dirtyDiamond = false;
             this._dirtyMining = false;
             this.updateHeaderBalances();
             this.renderMining();
-            this.showNotification('Reward Claimed', `You have received ${result.claimed.toFixed(8)} Gold`, 'success');
+            this.showNotification('Reward Claimed', `You have received ${result.claimed.toFixed(3)} DIAMOND`, 'success');
             this.vibrate('success');
         }
     }
@@ -1237,7 +1236,7 @@ class App {
 
             if (result.user) {
                 this.powerBalance = result.user.power_balance || 0;
-                this.goldBalance = result.user.gold_balance || 0;
+                this.diamondBalance = result.user.diamond_balance || 0;
                 this.gramBalance = result.user.gram_balance || 0;
                 this.updateLevelFromPower();
                 this.updateHeaderBalances();
@@ -1308,7 +1307,7 @@ class App {
         return match ? match[1] : null;
     }
 
-    async withdraw(goldAmount, wallet) {
+    async withdraw(diamondAmount, wallet) {
         if (this._withdrawLock) {
             this.showNotification('Please wait', 'You can withdraw again after 10 seconds', 'warning');
             this.vibrate('warning');
@@ -1321,7 +1320,7 @@ class App {
             return false;
         }
 
-        const amount = parseFloat(goldAmount);
+        const amount = parseFloat(diamondAmount);
         if (isNaN(amount) || amount <= 0) {
             this.showNotification('Error', 'Invalid amount', 'error');
             this.vibrate('error');
@@ -1329,19 +1328,19 @@ class App {
         }
 
         if (amount < 500) {
-            this.showNotification('Error', this.t('min_withdraw_gold_amount'), 'error');
+            this.showNotification('Error', this.t('min_withdraw_diamond_amount'), 'error');
             this.vibrate('error');
             return false;
         }
 
         if (amount > 2000) {
-            this.showNotification('Error', this.t('max_withdraw_gold_amount'), 'error');
+            this.showNotification('Error', this.t('max_withdraw_diamond_amount'), 'error');
             this.vibrate('error');
             return false;
         }
 
-        if (amount > this.goldBalance) {
-            this.showNotification('Error', 'Insufficient Gold balance', 'error');
+        if (amount > this.diamondBalance) {
+            this.showNotification('Error', 'Insufficient DIAMOND balance', 'error');
             this.vibrate('error');
             return false;
         }
@@ -1367,7 +1366,7 @@ class App {
         try {
             const result = await this.fetchFromServer('/api/withdraw-gram', {
                 userId: this.tgUser.id,
-                goldAmount: amount,
+                diamondAmount: amount,
                 walletAddress: wallet
             });
 
@@ -1383,7 +1382,7 @@ class App {
             }
 
             if (result.user) {
-                this.goldBalance = result.user.gold_balance || 0;
+                this.diamondBalance = result.user.diamond_balance || 0;
                 this.gramBalance = result.user.gram_balance || 0;
                 this.updateHeaderBalances();
             }
@@ -1437,16 +1436,16 @@ class App {
         const el = document.getElementById('mining-page');
         if (!el) return;
 
-        const hourlyRate = this.getHourlyGoldRate();
-        const dailyRate = this.getDailyGoldRate();
-        const monthlyRate = this.getMonthlyGoldRate();
+        const hourlyRate = this.getHourlyDiamondRate();
+        const dailyRate = this.getDailyDiamondRate();
+        const monthlyRate = this.getMonthlyDiamondRate();
         const progressPercent = this.getMiningProgressPercent();
         const radius = 55;
         const circumference = 2 * Math.PI * radius;
         const dashOffset = circumference - (progressPercent / 100) * circumference;
 
-        const showStartButton = !this.miningActive && this.pendingGoldReward <= 0;
-        const showClaimButton = !this.miningActive && this.pendingGoldReward > 0;
+        const showStartButton = !this.miningActive && this.pendingDiamondReward <= 0;
+        const showClaimButton = !this.miningActive && this.pendingDiamondReward > 0;
         const showMiningActive = this.miningActive;
 
         const dailyReset = new Date().setHours(0, 0, 0, 0);
@@ -1464,11 +1463,11 @@ class App {
         const levelQuestComplete = currentLevelQuest ? this.userLevel >= currentLevelQuest.target_level : false;
         const levelProgress = currentLevelQuest ? Math.min(100, (this.powerBalance / this.getRequiredPowerForLevel(currentLevelQuest.target_level)) * 100) : 0;
 
-        const miningQuests = this.config?.QUESTS?.mining_quests || [];
-        const miningIndex = this.quests.currentMiningQuestIndex || 0;
-        const currentMiningQuest = miningIndex < miningQuests.length ? miningQuests[miningIndex] : null;
-        const miningQuestComplete = currentMiningQuest ? this.totalMiningStarts >= currentMiningQuest.target_starts : false;
-        const miningProgress = currentMiningQuest ? Math.min(100, (this.totalMiningStarts / currentMiningQuest.target_starts) * 100) : 0;
+        const taskQuests = this.config?.QUESTS?.task_quests || [];
+        const taskIndex = this.quests.currentTaskQuestIndex || 0;
+        const currentTaskQuest = taskIndex < taskQuests.length ? taskQuests[taskIndex] : null;
+        const taskQuestComplete = currentTaskQuest ? this.totalTasksCompleted >= currentTaskQuest.target_tasks : false;
+        const taskProgress = currentTaskQuest ? Math.min(100, (this.totalTasksCompleted / currentTaskQuest.target_tasks) * 100) : 0;
 
         const referralQuests = this.config?.QUESTS?.referral_quests || [];
         const referralIndex = this.quests.currentReferralQuestIndex || 0;
@@ -1478,7 +1477,7 @@ class App {
 
         const welcomeBonusClaimed = this.quests.welcomeBonusClaimed || this.powerBalance > 1000;
 
-        const claimText = this.t('claim_reward', { amount: Math.floor(this.pendingGoldReward) });
+        const claimText = this.t('claim_reward', { amount: Math.floor(this.pendingDiamondReward) });
 
         el.innerHTML = `
             <div class="mining-card gold-card">
@@ -1491,9 +1490,9 @@ class App {
                 </div>
                 <h3>${this.t('mining_rig')}${this.userLevel}</h3>
                 <div class="rate-stats gold-stats">
-                    <div class="rate-stat"><div class="stat-label">${this.t('hourly')}</div><div class="stat-value">${hourlyRate.toFixed(7)}</div></div>
-                    <div class="rate-stat"><div class="stat-label">${this.t('daily')}</div><div class="stat-value">${dailyRate.toFixed(5)}</div></div>
-                    <div class="rate-stat"><div class="stat-label">${this.t('monthly')}</div><div class="stat-value">${monthlyRate.toFixed(5)}</div></div>
+                    <div class="rate-stat"><div class="stat-label">${this.t('hourly')}</div><div class="stat-value">${hourlyRate.toFixed(3)}</div></div>
+                    <div class="rate-stat"><div class="stat-label">${this.t('daily')}</div><div class="stat-value">${dailyRate.toFixed(3)}</div></div>
+                    <div class="rate-stat"><div class="stat-label">${this.t('monthly')}</div><div class="stat-value">${monthlyRate.toFixed(3)}</div></div>
                 </div>
                 ${showMiningActive ? `
                     <div class="mining-progress-container">
@@ -1529,7 +1528,7 @@ class App {
                 <h4><i class="fas fa-rocket"></i> ${this.t('boost_power')}</h4>
                 <p style="font-size:0.75rem;color:#888;margin-bottom:10px;">${this.t('boost_desc')}</p>
                 <div class="boost-input-group">
-                    <input type="number" id="boost-amount" class="form-input gold-input" placeholder="${this.t('enter_gold')}" min="1" step="1">
+                    <input type="number" id="boost-amount" class="form-input gold-input" placeholder="${this.t('enter_diamond')}" min="1" step="1">
                     <button id="boost-btn" class="boost-btn gold-btn">${this.t('convert')}</button>
                 </div>
                 <div class="boost-preview" id="boost-preview">≈ 0 ${this.t('power')}</div>
@@ -1568,19 +1567,19 @@ class App {
             </div>
             ` : ''}
 
-            ${currentMiningQuest ? `
+            ${currentTaskQuest ? `
             <div class="quest-card gold-quest">
                 <div class="quest-header">
-                    <div class="quest-icon gold-icon"><i class="fas fa-anchor"></i></div>
+                    <div class="quest-icon gold-icon"><i class="fas fa-clipboard-list"></i></div>
                     <div class="quest-info">
-                        <h4>${this.t('start_mining_quest', { times: currentMiningQuest.target_starts })}</h4>
-                        <div class="quest-reward"><i class="fas fa-bolt"></i> ${this.formatNumber(currentMiningQuest.reward)} ${this.t('power')}</div>
+                        <h4>${this.t('complete_tasks_quest', { target: currentTaskQuest.target_tasks })}</h4>
+                        <div class="quest-reward"><i class="fas fa-bolt"></i> ${this.formatNumber(currentTaskQuest.reward)} ${this.t('power')}</div>
                         <div class="quest-progress-bar">
-                            <div class="quest-progress-fill" style="width: ${miningProgress}%"></div>
+                            <div class="quest-progress-fill" style="width: ${taskProgress}%"></div>
                         </div>
-                        <div style="font-size:0.55rem;color:#888;margin-top:2px;">${Math.floor(miningProgress)}%</div>
+                        <div style="font-size:0.55rem;color:#888;margin-top:2px;">${Math.floor(taskProgress)}%</div>
                     </div>
-                    ${miningQuestComplete ? `<button id="claim-mining-quest" class="quest-claim-btn gold-btn"><i class="fas fa-hammer"></i> ${this.t('claim_quest')}</button>` : `<button class="quest-claim-btn locked" disabled><i class="fas fa-lock"></i> Locked</button>`}
+                    ${taskQuestComplete ? `<button id="claim-task-quest" class="quest-claim-btn gold-btn"><i class="fas fa-clipboard-list"></i> ${this.t('claim_quest')}</button>` : `<button class="quest-claim-btn locked" disabled><i class="fas fa-lock"></i> Locked</button>`}
                 </div>
             </div>
             ` : ''}
@@ -1650,7 +1649,7 @@ class App {
             }
         });
 
-        document.getElementById('claim-mining-quest')?.addEventListener('click', async () => {
+        document.getElementById('claim-task-quest')?.addEventListener('click', async () => {
             try {
                 const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-34445" });
                 await AdController.show();
@@ -1660,7 +1659,7 @@ class App {
                 return;
             }
 
-            const success = await this.claimQuest('mining');
+            const success = await this.claimQuest('task');
             if (success) {
                 this.renderMining();
             }
@@ -1709,15 +1708,15 @@ class App {
                 this.vibrate('error');
                 return;
             }
-            if (amount > this.goldBalance) {
-                this.showNotification('Error', 'Insufficient Gold balance', 'error');
+            if (amount > this.diamondBalance) {
+                this.showNotification('Error', 'Insufficient DIAMOND balance', 'error');
                 this.vibrate('error');
                 return;
             }
             const btn = document.getElementById('boost-btn');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
-            await this.convertGoldToPower(amount);
+            await this.convertDiamondToPower(amount);
             btn.disabled = false;
             btn.innerHTML = this.t('convert');
             input.value = '';
@@ -1729,7 +1728,7 @@ class App {
             const preview = document.getElementById('boost-preview');
             if (preview) {
                 if (!isNaN(amount) && amount > 0) {
-                    const power = amount * this.config.GOLD_TO_POWER_RATE;
+                    const power = amount * this.config.DIAMOND_TO_POWER_RATE;
                     const bonus = power * (this.config.POWER_BONUS_PERCENTAGE / 100);
                     preview.innerText = `≈ ${(power + bonus).toFixed(0)} ${this.t('power')}`;
                 } else {
@@ -1832,7 +1831,6 @@ class App {
                     if (!task) return;
                     
                     this.isTaskRunning = true;
-                    this.disableAllTaskButtons(true);
                     btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
                     btn.disabled = true;
                     
@@ -1892,7 +1890,6 @@ class App {
                                     newBtn.classList.add('start');
                                 }
                                 this.isTaskRunning = false;
-                                this.disableAllTaskButtons(false);
                             });
                         }
                     }, 1000);
@@ -1906,16 +1903,7 @@ class App {
             console.error('Load main tasks error:', error);
             container.innerHTML = `<div class="no-data"><i class="fas fa-exclamation-triangle"></i><p>${this.t('no_tasks')}</p></div>`;
             this.isTaskRunning = false;
-            this.disableAllTaskButtons(false);
         }
-    }
-
-    disableAllTaskButtons(disable) {
-        document.querySelectorAll('.task-btn').forEach(btn => {
-            if (!btn.classList.contains('done')) {
-                btn.disabled = disable;
-            }
-        });
     }
 
     async loadPartnerTasks() {
@@ -1958,7 +1946,6 @@ class App {
                     if (!task) return;
                     
                     this.isTaskRunning = true;
-                    this.disableAllTaskButtons(true);
                     btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
                     btn.disabled = true;
                     
@@ -2018,7 +2005,6 @@ class App {
                                     newBtn.classList.add('start');
                                 }
                                 this.isTaskRunning = false;
-                                this.disableAllTaskButtons(false);
                             });
                         }
                     }, 1000);
@@ -2032,7 +2018,6 @@ class App {
             console.error('Load partner tasks error:', error);
             container.innerHTML = `<div class="no-data"><i class="fas fa-exclamation-triangle"></i><p>${this.t('no_tasks')}</p></div>`;
             this.isTaskRunning = false;
-            this.disableAllTaskButtons(false);
         }
     }
 
@@ -2042,7 +2027,7 @@ class App {
         const link = (this.config.BOT_LINK || 'https://t.me/PirateTeamBot/mine?startapp=') + this.tgUser.id;
 
         const claimPowerText = this.hasPromotionBonus ? this.t('claim_with_bonus') : this.t('claim_default');
-        const claimGoldText = this.hasPromotionBonus ? this.t('claim_with_bonus') : this.t('claim_default');
+        const claimDiamondText = this.hasPromotionBonus ? this.t('claim_with_bonus') : this.t('claim_default');
 
         el.innerHTML = `
             <div class="team-card gold-card">
@@ -2100,11 +2085,11 @@ class App {
                 </div>
                 <div class="earning-card">
                     <div class="earning-left">
-                        <img src="${this.config.GOLD_ICON}" style="width:20px;height:20px;border-radius:50%;">
-                        <span class="earning-value">${this.formatGold(this.referralGoldEarnings)}</span>
+                        <i class="fas fa-circle" style="color:#FFD700;font-size:0.7rem;"></i><i class="fas fa-gem" style="color:#B8860B;font-size:0.5rem;margin-left:-10px;"></i>
+                        <span class="earning-value">${this.formatDiamond(this.referralDiamondEarnings)}</span>
                     </div>
-                    <button id="claim-gold-earnings" class="claim-btn gold-btn" ${this.referralGoldEarnings < this.config.MIN_CLAIM_GOLD ? 'disabled' : ''}>
-                        ${claimGoldText}
+                    <button id="claim-diamond-earnings" class="claim-btn gold-btn" ${this.referralDiamondEarnings < this.config.MIN_CLAIM_GOLD ? 'disabled' : ''}>
+                        ${claimDiamondText}
                     </button>
                 </div>
             </div>
@@ -2114,43 +2099,6 @@ class App {
                     <div class="stat-number">${this.totalReferrals}</div>
                     <div class="stat-label">${this.t('total_pirates')}</div>
                 </div>
-            </div>
-
-            <div class="boost-earnings-section">
-                <div class="section-title"><i class="fas fa-rocket"></i> ${this.t('boost_earnings')}</div>
-                
-                ${this.promotionData ? `
-                <div class="status-display">
-                    <div class="status-item">
-                        <span class="label">${this.t('channel')}</span>
-                        <span class="value">${this.promotionData.channel || '—'}</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="label">${this.t('referral_link')}</span>
-                        <span class="value">${this.promotionData.link || '—'}</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="label">${this.t('status')}</span>
-                        <span class="value ${this.promotionData.status === 'approved' ? 'approved' : 'pending'}">${this.t(this.promotionData.status || 'pending')}</span>
-                    </div>
-                </div>
-                <div class="note"><i class="fas fa-info-circle"></i> ${this.t('do_not_remove_bot')}</div>
-                ` : `
-                <div class="form-group">
-                    <label>${this.t('enter_channel_link')}</label>
-                    <input type="text" id="channel-link-input" class="form-input" placeholder="https://t.me/yourchannel">
-                </div>
-                <div class="form-group">
-                    <label>${this.t('enter_referral_link')}</label>
-                    <input type="text" id="referral-link-input" class="form-input" value="${link}" readonly>
-                </div>
-                <a href="${this.t('upgrade_bot_link', { bot: this.config.BOT_USERNAME || 'GramPirateBot' })}" target="_blank" class="admin-btn gold-btn">
-                    <i class="fas fa-robot"></i> ${this.t('upgrade_bot')}
-                </a>
-                <div class="note"><i class="fas fa-info-circle"></i> ${this.t('you_will_receive')}</div>
-                <div class="note"><i class="fas fa-info-circle"></i> ${this.t('bot_post_note')}</div>
-                <button id="confirm-boost-btn" class="confirm-btn gold-btn">${this.t('confirm_boost')}</button>
-                `}
             </div>
         `;
 
@@ -2171,61 +2119,15 @@ class App {
             this.vibrate('success');
         });
 
-        document.getElementById('claim-gold-earnings')?.addEventListener('click', async () => {
-            const btn = document.getElementById('claim-gold-earnings');
+        document.getElementById('claim-diamond-earnings')?.addEventListener('click', async () => {
+            const btn = document.getElementById('claim-diamond-earnings');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
-            await this.claimReferralEarnings('gold');
+            await this.claimReferralEarnings('diamond');
             btn.disabled = false;
             btn.innerHTML = this.hasPromotionBonus ? this.t('claim_with_bonus') : this.t('claim_default');
             this.renderTeam();
             this.vibrate('success');
-        });
-
-        document.getElementById('confirm-boost-btn')?.addEventListener('click', async () => {
-            const channelInput = document.getElementById('channel-link-input');
-            const linkInput = document.getElementById('referral-link-input');
-            const channel = channelInput?.value?.trim();
-            const refLink = linkInput?.value?.trim();
-
-            if (!channel) {
-                this.showNotification('Error', 'Please enter a channel link', 'error');
-                this.vibrate('error');
-                return;
-            }
-
-            const btn = document.getElementById('confirm-boost-btn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
-
-            try {
-                const result = await this.fetchFromServer('/api/setup-promotion', {
-                    userId: this.tgUser.id,
-                    channel: channel,
-                    link: refLink || link
-                });
-
-                if (result.error) {
-                    this.showNotification('Error', result.error, 'error');
-                    this.vibrate('error');
-                } else {
-                    this.promotionData = result.promotion;
-                    this.promotionStatus = 'pending';
-                    this.hasPromotionBonus = false;
-                    this.showNotification('Success', 'Promotion setup submitted for review', 'success');
-                    this.vibrate('success');
-                    this.renderTeam();
-                }
-            } catch (e) {
-                if (e.message === 'Cooldown') {
-                    return;
-                }
-                this.showNotification('Error', 'Failed to submit request', 'error');
-                this.vibrate('error');
-            }
-
-            btn.disabled = false;
-            btn.innerHTML = this.t('confirm_boost');
         });
     }
 
@@ -2234,8 +2136,8 @@ class App {
         if (!el) return;
 
         const exchangeRate = this.config.PIRATE_TO_GRAM_RATE || 10000;
-        const minWithdrawGold = 500;
-        const maxWithdrawGold = 2000;
+        const minWithdrawDiamond = 500;
+        const maxWithdrawDiamond = 2000;
 
         const historyHtml = this.withdrawals && this.withdrawals.length ? this.withdrawals.slice(0, 5).map(w => {
             const date = new Date(w.timestamp);
@@ -2245,8 +2147,9 @@ class App {
             <div class="history-item gold-item">
                 <div class="history-details">
                     <div class="history-amount">
-                        <span style="font-weight:600;">${w.amount.toFixed(3)} GOLD</span>
-                        <span style="color:#888;font-size:0.65rem;">(${w.gram_amount.toFixed(5)} GRAM)</span>
+                        <i class="fas fa-circle" style="color:#FFD700;font-size:0.6rem;"></i><i class="fas fa-gem" style="color:#B8860B;font-size:0.4rem;margin-left:-8px;"></i>
+                        <span style="font-weight:600;">${Math.floor(w.amount)}</span>
+                        <span style="color:#888;font-size:0.65rem;">- ${w.gram_amount.toFixed(4)} GRAM</span>
                     </div>
                     <div class="history-date" style="font-size:0.6rem;color:#666;">${dateStr} ${timeStr}</div>
                 </div>
@@ -2258,9 +2161,9 @@ class App {
             <div class="wallet-card gold-card">
                 <div class="wallet-balances">
                     <div class="wallet-balance-item">
-                        <div class="wallet-balance-icon"><img src="${this.config.GOLD_ICON}" style="width:28px;height:28px;border-radius:50%;"></div>
-                        <div class="wallet-balance-label">${this.t('gold_balance')}</div>
-                        <div class="wallet-balance-amount">${this.formatGold(this.goldBalance)}</div>
+                        <div class="wallet-balance-icon"><i class="fas fa-circle" style="color:#FFD700;font-size:1.2rem;"></i><i class="fas fa-gem" style="color:#B8860B;font-size:0.9rem;margin-left:-18px;"></i></div>
+                        <div class="wallet-balance-label">${this.t('diamond_balance')}</div>
+                        <div class="wallet-balance-amount">${this.formatDiamond(this.diamondBalance)}</div>
                     </div>
                     <div class="wallet-balance-item">
                         <div class="wallet-balance-icon"><i class="fas fa-bolt" style="color:var(--primary);font-size:1.5rem;"></i></div>
@@ -2274,9 +2177,9 @@ class App {
                 <h4 style="text-align:center; color:#FFD700; margin-bottom:14px;"><i class="fas fa-arrow-up"></i> ${this.t('convert_withdraw')}</h4>
 
                 <div class="form-group">
-                    <label class="form-label">${this.t('enter_gold_amount')}</label>
+                    <label class="form-label">${this.t('enter_diamond_amount')}</label>
                     <div class="input-wrapper">
-                        <input type="number" id="withdraw-amount" class="form-input gold-input" placeholder="${this.t('min_withdraw_gold_amount')}" step="1">
+                        <input type="number" id="withdraw-amount" class="form-input gold-input" placeholder="${this.t('min_withdraw_diamond_amount')}" step="1">
                         <button id="max-amount" class="action-btn gold-btn">MAX</button>
                     </div>
                 </div>
@@ -2289,13 +2192,13 @@ class App {
                 </div>
 
                 <div class="withdraw-preview" id="withdraw-preview">
-                    <span>≈ 0.00000 GRAM</span>
+                    <span>≈ 0.0000 GRAM</span>
                 </div>
 
                 <button id="withdraw-btn" class="withdraw-confirm-btn gold-btn disabled">${this.t('confirm_withdrawal')}</button>
 
                 <div class="exchange-note">
-                    <i class="fas fa-exchange-alt"></i> ${this.t('exchange_rate')}: ${exchangeRate.toLocaleString()} ${this.t('gold')} = 1 GRAM
+                    <i class="fas fa-exchange-alt"></i> ${this.t('exchange_rate')}: ${exchangeRate.toLocaleString()} ${this.t('diamond')} = 1 GRAM
                 </div>
             </div>
 
@@ -2315,10 +2218,10 @@ class App {
             const amount = parseFloat(amountInput?.value);
             const gramAmount = !isNaN(amount) && amount > 0 ? amount / exchangeRate : 0;
             if (preview) {
-                preview.innerHTML = `<span>≈ ${gramAmount.toFixed(5)} GRAM</span>`;
+                preview.innerHTML = `<span>≈ ${gramAmount.toFixed(4)} GRAM</span>`;
             }
 
-            const isValid = amount >= 500 && amount <= 2000 && amount <= this.goldBalance;
+            const isValid = amount >= 500 && amount <= 2000 && amount <= this.diamondBalance;
             if (withdrawBtn) {
                 withdrawBtn.disabled = !isValid;
                 withdrawBtn.classList.toggle('disabled', !isValid);
@@ -2327,7 +2230,7 @@ class App {
 
         maxBtn?.addEventListener('click', () => {
             if (amountInput) {
-                amountInput.value = Math.min(Math.floor(this.goldBalance), 2000);
+                amountInput.value = Math.min(Math.floor(this.diamondBalance), 2000);
                 updatePreview();
             }
         });
@@ -2447,7 +2350,7 @@ class App {
             const headerHtml = `
                 <div class="header-balances" id="header-balances">
                     <div class="header-balance" id="header-power"><i class="fas fa-bolt"></i> ${this.formatNumber(Math.floor(this.powerBalance))}</div>
-                    <div class="header-balance" id="header-gold"><img src="${this.config.GOLD_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> ${this.formatGold(this.goldBalance)}</div>
+                    <div class="header-balance" id="header-diamond"><i class="fas fa-circle" style="color:#FFD700;font-size:0.7rem;"></i><i class="fas fa-gem" style="color:#B8860B;font-size:0.5rem;margin-left:-10px;"></i> ${this.formatDiamond(this.diamondBalance)}</div>
                 </div>
             `;
             const headerActions = document.querySelector('.header-actions');
@@ -2522,7 +2425,7 @@ class App {
         });
 
         window.addEventListener('beforeunload', () => {
-            if (this.miningActive || this._dirtyPower || this._dirtyGold || this._dirtyGram || this._dirtyQuests || this._dirtyMining) {
+            if (this.miningActive || this._dirtyPower || this._dirtyDiamond || this._dirtyGram || this._dirtyQuests || this._dirtyMining) {
                 this.saveUserData(true);
             }
         });
