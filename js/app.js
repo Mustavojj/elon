@@ -1481,8 +1481,8 @@ class App {
 
         const welcomeBonusClaimed = this.quests.welcomeBonusClaimed || this.powerBalance > 1000;
 
-        const claimText = this.t('claim_reward', { amount: Math.floor(this.pendingGoldReward) });
-
+        const claimText = this.t('claim_reward', { amount: this.pendingGoldReward.toFixed(3) });
+        
         el.innerHTML = `
             <div class="mining-card gold-card">
                 <div class="mining-icon-container">
