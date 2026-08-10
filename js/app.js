@@ -1512,7 +1512,7 @@ class App {
                     <div class="mining-active-badge gold-badge"><i class="fas fa-circle"></i> ${this.t('mining_active')}</div>
                 ` : ''}
                 ${showStartButton ? `<button id="start-mining-btn" class="mining-action-btn gold-btn"><i class="fas fa-play"></i> ${this.t('start_mining')}</button>` : ''}
-                ${showClaimButton ? `<button id="claim-mining-btn" class="mining-claim-btn gold-btn"><i class="fas fa-gift"></i> ${claimText}</button>` : ''}
+                ${showClaimButton ? `<button id="claim-mining-btn" class="mining-claim-btn gold-btn" style="white-space:nowrap;"><i class="fas fa-gift"></i> ${claimText}</button>` : ''}
             </div>
 
             ${!welcomeBonusClaimed ? `
