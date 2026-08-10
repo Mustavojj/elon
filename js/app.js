@@ -713,11 +713,9 @@ class App {
             if (result.withdrawals) {
                 this.withdrawals = result.withdrawals;
             }
-
-            if (result.referrals) {
-                this.totalReferrals = result.referrals.length;
-            }
-
+            
+            this.totalReferrals = user.total_referrals || 0;
+            
             this._userDataLoaded = true;
 
             const nameSpan = document.getElementById('user-name');
