@@ -39,7 +39,7 @@ const APP_CONFIG = {
     WITHDRAWAL_FEES: 0,
     REFERRAL_PERCENTAGE: 10,
     MINING_SESSION_HOURS: 1,
-    POWER_PER_DAY_RATE: 0.003,
+    POWER_PER_DAY_RATE: 0.005,
     TASK_VERIFICATION_DELAY: 10,
     DEFAULT_USER_AVATAR: "https://i.ibb.co/nsGhFbbX/57eb89465fee.jpg",
     TON_WALLET_ADDRESS: "UQCrXfE4_ktpwyZJzmGuCt6zXE5mErFV8VczSjEZvRuLy9_q",
@@ -49,10 +49,10 @@ const APP_CONFIG = {
     TASK_REWARD: 100,
     TASK_IMAGE: "https://i.ibb.co/nsGhFbbX/57eb89465fee.jpg",
     GRAM_ICON: "https://i.ibb.co/Q3LyfHL6/file-00000000aec481f4a4599f4c3a9fee9a.png",
-    GOLD_ICON: "https://cdn-icons-png.flaticon.com/512/2460/2460494.png",
+    DIAMOND_ICON: "https://cdn-icons-png.flaticon.com/512/2460/2460494.png",
     MINING_ICON: "https://i.ibb.co/nsGhFbbX/57eb89465fee.jpg",
     PIRATE_TO_GRAM_RATE: 10000,
-    GOLD_TO_POWER_RATE: 1,
+    DIAMOND_TO_POWER_RATE: 1,
     POWER_BONUS_PERCENTAGE: 10,
     REFERRAL_TASKS_PERCENTAGE: 20,
     REFERRAL_PROMO_PERCENTAGE: 20,
@@ -63,7 +63,7 @@ const APP_CONFIG = {
     AD_DAILY_LIMIT: 10,
     VERIFICATION_CODE_LIFETIME: 60000,
     SESSION_TOKEN_LIFETIME: 3600000,
-    MIN_CLAIM_GOLD: 1,
+    MIN_CLAIM_DIAMOND: 1,
     QUESTS: {
         welcome_bonus: { reward: 1000, type: "power" },
         level_quests: [
@@ -77,16 +77,12 @@ const APP_CONFIG = {
             { target_level: 9, reward: 8000 },
             { target_level: 10, reward: 9000 }
         ],
-        mining_quests: [
-            { target_starts: 3, reward: 500 },
-            { target_starts: 5, reward: 1000 },
-            { target_starts: 10, reward: 2000 },
-            { target_starts: 20, reward: 2500 },
-            { target_starts: 30, reward: 3000 },
-            { target_starts: 40, reward: 3500 },
-            { target_starts: 50, reward: 4000 },
-            { target_starts: 75, reward: 4500 },
-            { target_starts: 100, reward: 5000 }
+        task_quests: [
+            { target_tasks: 10, reward: 500 },
+            { target_tasks: 50, reward: 1000 },
+            { target_tasks: 100, reward: 2000 },
+            { target_tasks: 500, reward: 3000 },
+            { target_tasks: 1000, reward: 5000 }
         ],
         referral_quests: [
             { target_referrals: 5, reward: 1000 },
@@ -115,7 +111,7 @@ function generateSessionToken() {
 
 function calculateMiningReward(powerBalance, startTime, endTime) {
     const sessionHours = (endTime - startTime) / 3600000;
-    const dailyRate = (powerBalance / 1000) * 3;
+    const dailyRate = (powerBalance / 1000) * 5;
     const hourlyRate = dailyRate / 24;
     return hourlyRate * sessionHours;
 }
@@ -804,10 +800,10 @@ app.post('/api/get-user', async (req, res) => {
                 photo_url: req.body.photoUrl || APP_CONFIG.DEFAULT_USER_AVATAR,
                 created_at: getCurrentTime(),
                 power_balance: 0,
-                gold_balance: 0,
+                diamond_balance: 0,
                 gram_balance: 0,
                 referral_power_earnings: 0,
-                referral_gold_earnings: 0,
+                referral_diamond_earnings: 0,
                 level: 1,
                 total_tasks_completed: 0,
                 total_mining_starts: 0,
@@ -819,19 +815,20 @@ app.post('/api/get-user', async (req, res) => {
                 quests: {
                     welcome_bonus_claimed: false,
                     current_level_quest_index: 0,
-                    current_mining_quest_index: 0,
+                    current_task_quest_index: 0,
                     current_referral_quest_index: 0
                 },
                 mining_active: false,
                 mining_start_time: null,
                 mining_end_time: null,
-                pending_gold_reward: 0,
+                pending_diamond_reward: 0,
                 total_referrals: 0,
                 referral_power: 0,
                 ad_watch_count: 0,
                 ad_last_watch: 0,
                 promotion: null,
-                last_withdraw_time: 0
+                last_withdraw_time: 0,
+                referred_by_verified: false
             };
 
             const referredBy = req.body.referredBy || null;
@@ -844,9 +841,6 @@ app.post('/api/get-user', async (req, res) => {
             if (referredBy && referredBy !== userId) {
                 const referrer = await getUser(referredBy);
                 if (referrer) {
-                    await updateUser(referredBy, {
-                        total_referrals: (referrer.total_referrals || 0) + 1
-                    });
                     await sendTelegramNotification(referredBy, '🆕 New Referral!', 
                         `🏴‍☠️ ${user.first_name} joined using your referral link!`
                     );
@@ -891,7 +885,7 @@ app.post('/api/get-user', async (req, res) => {
 
 app.post('/api/update-mining', verifySession, async (req, res) => {
     try {
-        const { userId, miningActive, miningStartTime, miningEndTime, pendingGoldReward, quests } = req.body;
+        const { userId, miningActive, miningStartTime, miningEndTime, pendingDiamondReward, quests } = req.body;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -905,11 +899,21 @@ app.post('/api/update-mining', verifySession, async (req, res) => {
             mining_active: miningActive,
             mining_start_time: miningStartTime,
             mining_end_time: miningEndTime,
-            pending_gold_reward: pendingGoldReward || 0
+            pending_diamond_reward: pendingDiamondReward || 0
         };
 
         if (miningActive) {
             updates.total_mining_starts = (user.total_mining_starts || 0) + 1;
+            
+            if (!user.referred_by_verified && user.referred_by) {
+                updates.referred_by_verified = true;
+                const referrer = await getUser(user.referred_by);
+                if (referrer) {
+                    await updateUser(user.referred_by, {
+                        total_referrals: (referrer.total_referrals || 0) + 1
+                    });
+                }
+            }
         }
 
         if (quests) {
@@ -948,9 +952,19 @@ app.post('/api/start-mining', verifySession, async (req, res) => {
             mining_active: true,
             mining_start_time: currentTime,
             mining_end_time: miningEndTime,
-            pending_gold_reward: 0,
+            pending_diamond_reward: 0,
             total_mining_starts: (user.total_mining_starts || 0) + 1
         });
+
+        if (!user.referred_by_verified && user.referred_by) {
+            await updateUser(userId, { referred_by_verified: true });
+            const referrer = await getUser(user.referred_by);
+            if (referrer) {
+                await updateUser(user.referred_by, {
+                    total_referrals: (referrer.total_referrals || 0) + 1
+                });
+            }
+        }
 
         res.json({
             success: true,
@@ -989,7 +1003,7 @@ app.post('/api/stop-mining', verifySession, async (req, res) => {
             mining_active: false,
             mining_start_time: null,
             mining_end_time: null,
-            pending_gold_reward: rewardAmount
+            pending_diamond_reward: rewardAmount
         });
 
         res.json({
@@ -1019,16 +1033,16 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
             return res.status(400).json({ error: 'Mining session still active' });
         }
 
-        if (!user.pending_gold_reward || user.pending_gold_reward <= 0) {
+        if (!user.pending_diamond_reward || user.pending_diamond_reward <= 0) {
             return res.status(400).json({ error: 'No rewards to claim' });
         }
 
-        const rewardAmount = user.pending_gold_reward;
-        const newGoldBalance = (user.gold_balance || 0) + rewardAmount;
+        const rewardAmount = user.pending_diamond_reward;
+        const newDiamondBalance = (user.diamond_balance || 0) + rewardAmount;
 
         const updatedUser = await updateUser(userId, {
-            gold_balance: newGoldBalance,
-            pending_gold_reward: 0,
+            diamond_balance: newDiamondBalance,
+            pending_diamond_reward: 0,
             mining_start_time: null,
             mining_end_time: null
         });
@@ -1038,7 +1052,7 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
             if (referrer && referrer.verified) {
                 const referralEarning = rewardAmount * (APP_CONFIG.REFERRAL_MINING_PERCENTAGE / 100);
                 await updateUser(user.referred_by, {
-                    referral_gold_earnings: (referrer.referral_gold_earnings || 0) + referralEarning
+                    referral_diamond_earnings: (referrer.referral_diamond_earnings || 0) + referralEarning
                 });
             }
         }
@@ -1086,21 +1100,21 @@ app.post('/api/claim-quest', verifySession, async (req, res) => {
             newIndex = index + 1;
             quests.current_level_quest_index = newIndex;
             
-        } else if (questType === 'mining') {
-            const index = user.quests?.current_mining_quest_index || 0;
-            const quest = APP_CONFIG.QUESTS.mining_quests[index];
+        } else if (questType === 'task') {
+            const index = user.quests?.current_task_quest_index || 0;
+            const quest = APP_CONFIG.QUESTS.task_quests[index];
             
             if (!quest) {
-                return res.status(400).json({ error: 'No mining quest available' });
+                return res.status(400).json({ error: 'No task quest available' });
             }
             
-            if (user.total_mining_starts < quest.target_starts) {
-                return res.status(400).json({ error: 'Mining requirement not met' });
+            if (user.total_tasks_completed < quest.target_tasks) {
+                return res.status(400).json({ error: 'Task requirement not met' });
             }
             
             reward = quest.reward;
             newIndex = index + 1;
-            quests.current_mining_quest_index = newIndex;
+            quests.current_task_quest_index = newIndex;
             
         } else if (questType === 'referral') {
             const index = user.quests?.current_referral_quest_index || 0;
@@ -1208,11 +1222,11 @@ app.post('/api/complete-task', verifySession, async (req, res) => {
     }
 });
 
-app.post('/api/convert-gold-to-power', verifySession, async (req, res) => {
+app.post('/api/convert-diamond-to-power', verifySession, async (req, res) => {
     try {
-        const { userId, goldAmount } = req.body;
-        if (!userId || !goldAmount) {
-            return res.status(400).json({ error: 'userId and goldAmount required' });
+        const { userId, diamondAmount } = req.body;
+        if (!userId || !diamondAmount) {
+            return res.status(400).json({ error: 'userId and diamondAmount required' });
         }
 
         const user = await getUser(userId);
@@ -1220,21 +1234,21 @@ app.post('/api/convert-gold-to-power', verifySession, async (req, res) => {
             return res.status(403).json({ error: 'User not verified' });
         }
 
-        const amount = parseFloat(goldAmount);
+        const amount = parseFloat(diamondAmount);
         if (isNaN(amount) || amount <= 0) {
             return res.status(400).json({ error: 'Invalid amount' });
         }
 
-        if (amount > (user.gold_balance || 0)) {
-            return res.status(400).json({ error: 'Insufficient Gold balance' });
+        if (amount > (user.diamond_balance || 0)) {
+            return res.status(400).json({ error: 'Insufficient DIAMOND balance' });
         }
 
-        const powerAmount = amount * APP_CONFIG.GOLD_TO_POWER_RATE;
+        const powerAmount = amount * APP_CONFIG.DIAMOND_TO_POWER_RATE;
         const bonusPower = powerAmount * (APP_CONFIG.POWER_BONUS_PERCENTAGE / 100);
         const totalPower = powerAmount + bonusPower;
 
         const updatedUser = await updateUser(userId, {
-            gold_balance: (user.gold_balance || 0) - amount,
+            diamond_balance: (user.diamond_balance || 0) - amount,
             power_balance: (user.power_balance || 0) + totalPower
         });
 
@@ -1271,21 +1285,21 @@ app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
 
         if (type === 'power') {
             amount = (user.referral_power_earnings || 0) * bonusMultiplier;
-            if (amount < APP_CONFIG.MIN_CLAIM_GOLD) {
-                return res.status(400).json({ error: `Minimum claim: ${APP_CONFIG.MIN_CLAIM_GOLD} Power` });
+            if (amount < APP_CONFIG.MIN_CLAIM_DIAMOND) {
+                return res.status(400).json({ error: `Minimum claim: ${APP_CONFIG.MIN_CLAIM_DIAMOND} Power` });
             }
             updates = {
                 power_balance: (user.power_balance || 0) + amount,
                 referral_power_earnings: 0
             };
-        } else if (type === 'gold') {
-            amount = (user.referral_gold_earnings || 0) * bonusMultiplier;
-            if (amount < APP_CONFIG.MIN_CLAIM_GOLD) {
-                return res.status(400).json({ error: `Minimum claim: ${APP_CONFIG.MIN_CLAIM_GOLD} Gold` });
+        } else if (type === 'diamond') {
+            amount = (user.referral_diamond_earnings || 0) * bonusMultiplier;
+            if (amount < APP_CONFIG.MIN_CLAIM_DIAMOND) {
+                return res.status(400).json({ error: `Minimum claim: ${APP_CONFIG.MIN_CLAIM_DIAMOND} DIAMOND` });
             }
             updates = {
-                gold_balance: (user.gold_balance || 0) + amount,
-                referral_gold_earnings: 0
+                diamond_balance: (user.diamond_balance || 0) + amount,
+                referral_diamond_earnings: 0
             };
         } else {
             return res.status(400).json({ error: 'Invalid type' });
@@ -1353,21 +1367,21 @@ app.post('/api/apply-promo', verifySession, async (req, res) => {
             updates.power_balance = (user.power_balance || 0) + promo.reward_amount;
             rewardMessage = `+${promo.reward_amount} Power`;
             rewardType = 'power';
-        } else if (promo.reward_type === 'gold') {
-            updates.gold_balance = (user.gold_balance || 0) + promo.reward_amount;
-            rewardMessage = `+${promo.reward_amount} Gold`;
-            rewardType = 'gold';
+        } else if (promo.reward_type === 'diamond') {
+            updates.diamond_balance = (user.diamond_balance || 0) + promo.reward_amount;
+            rewardMessage = `+${promo.reward_amount} DIAMOND`;
+            rewardType = 'diamond';
         } else if (promo.reward_type === 'gram') {
             updates.gram_balance = (user.gram_balance || 0) + promo.reward_amount;
             rewardMessage = `+${promo.reward_amount} GRAM`;
             rewardType = 'gram';
         }
 
-        if (user.referred_by && (rewardType === 'power' || rewardType === 'gold')) {
+        if (user.referred_by && (rewardType === 'power' || rewardType === 'diamond')) {
             const referrer = await getUser(user.referred_by);
             if (referrer && referrer.verified) {
                 const referralEarning = promo.reward_amount * (APP_CONFIG.REFERRAL_PROMO_PERCENTAGE / 100);
-                const updateField = rewardType === 'power' ? 'referral_power_earnings' : 'referral_gold_earnings';
+                const updateField = rewardType === 'power' ? 'referral_power_earnings' : 'referral_diamond_earnings';
                 await updateUser(user.referred_by, {
                     [updateField]: (referrer[updateField] || 0) + referralEarning
                 });
@@ -1558,32 +1572,32 @@ app.post('/api/setup-promotion', verifySession, async (req, res) => {
 
 app.post('/api/withdraw-gram', verifySession, async (req, res) => {
     try {
-        const { userId, walletAddress, goldAmount } = req.body;
+        const { userId, walletAddress, diamondAmount } = req.body;
         
-        if (!userId || !walletAddress || !goldAmount) {
+        if (!userId || !walletAddress || !diamondAmount) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
         
-        const gold = parseFloat(goldAmount);
-        if (isNaN(gold) || gold <= 0) {
+        const diamond = parseFloat(diamondAmount);
+        if (isNaN(diamond) || diamond <= 0) {
             return res.status(400).json({ error: 'Invalid amount' });
         }
         
-        if (gold < 500) {
-            return res.status(400).json({ error: 'Minimum withdrawal: 500 Gold' });
+        if (diamond < 500) {
+            return res.status(400).json({ error: 'Minimum withdrawal: 500 DIAMOND' });
         }
         
-        if (gold > 2000) {
-            return res.status(400).json({ error: 'Maximum withdrawal: 2000 Gold' });
+        if (diamond > 2000) {
+            return res.status(400).json({ error: 'Maximum withdrawal: 2000 DIAMOND' });
         }
         
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
-        if ((user.gold_balance || 0) < gold) {
-            return res.status(400).json({ error: 'Insufficient Gold balance' });
+        if ((user.diamond_balance || 0) < diamond) {
+            return res.status(400).json({ error: 'Insufficient DIAMOND balance' });
         }
         
-        const gramAmount = gold / 10000;
+        const gramAmount = diamond / 10000;
         
         const now = Date.now();
         const cooldownMs = 6 * 3600000;
@@ -1617,13 +1631,13 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         const txHash = payout?.data?.tx_hash || payout?.txHash || null;
         
         const updatedUser = await updateUser(userId, {
-            gold_balance: (user.gold_balance || 0) - gold,
+            diamond_balance: (user.diamond_balance || 0) - diamond,
             last_withdraw_time: now
         });
         
         await createWithdrawal({
             user_id: userId,
-            amount: gold,
+            amount: diamond,
             gram_amount: gramAmount,
             wallet: walletAddress,
             status: status,
@@ -1639,7 +1653,7 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         const adminId = process.env.ADMIN_USER_ID;
         if (adminId) {
             await sendTelegramNotification(adminId, '🆕 New Withdrawal', 
-                `🏴‍☠️ User: ${user.first_name} (${userId})\n\n💎 Amount: ${gold} (${gramAmount})\n\n💳 Wallet: ${walletAddress}`
+                `🏴‍☠️ User: ${user.first_name} (${userId})\n\n💎 Amount: ${diamond} (${gramAmount})\n\n💳 Wallet: ${walletAddress}`
             );
         }
         
@@ -1660,9 +1674,9 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
 
 app.post('/api/withdraw', verifySession, async (req, res) => {
     try {
-        const { userId, goldAmount, wallet } = req.body;
-        if (!userId || !goldAmount || !wallet) {
-            return res.status(400).json({ error: 'userId, goldAmount, and wallet required' });
+        const { userId, diamondAmount, wallet } = req.body;
+        if (!userId || !diamondAmount || !wallet) {
+            return res.status(400).json({ error: 'userId, diamondAmount, and wallet required' });
         }
 
         if (wallet.length < 20) {
@@ -1674,7 +1688,7 @@ app.post('/api/withdraw', verifySession, async (req, res) => {
             return res.status(403).json({ error: 'User not verified' });
         }
 
-        const amount = parseFloat(goldAmount);
+        const amount = parseFloat(diamondAmount);
         if (isNaN(amount) || amount <= 0) {
             return res.status(400).json({ error: 'Invalid amount' });
         }
@@ -1682,15 +1696,15 @@ app.post('/api/withdraw', verifySession, async (req, res) => {
         const gramAmount = amount / APP_CONFIG.PIRATE_TO_GRAM_RATE;
         if (gramAmount < APP_CONFIG.MINIMUM_WITHDRAW) {
             return res.status(400).json({
-                error: `Minimum withdrawal: ${APP_CONFIG.MINIMUM_WITHDRAW} GRAM (${APP_CONFIG.MINIMUM_WITHDRAW * APP_CONFIG.PIRATE_TO_GRAM_RATE} Gold)`
+                error: `Minimum withdrawal: ${APP_CONFIG.MINIMUM_WITHDRAW} GRAM (${APP_CONFIG.MINIMUM_WITHDRAW * APP_CONFIG.PIRATE_TO_GRAM_RATE} DIAMOND)`
             });
         }
 
-        if (amount > (user.gold_balance || 0)) {
-            return res.status(400).json({ error: 'Insufficient Gold balance' });
+        if (amount > (user.diamond_balance || 0)) {
+            return res.status(400).json({ error: 'Insufficient DIAMOND balance' });
         }
 
-        const newGoldBalance = (user.gold_balance || 0) - amount;
+        const newDiamondBalance = (user.diamond_balance || 0) - amount;
         const totalGram = gramAmount - (APP_CONFIG.WITHDRAWAL_FEES || 0);
 
         if (totalGram <= 0) {
@@ -1698,7 +1712,7 @@ app.post('/api/withdraw', verifySession, async (req, res) => {
         }
 
         const updatedUser = await updateUser(userId, {
-            gold_balance: newGoldBalance,
+            diamond_balance: newDiamondBalance,
             gram_balance: (user.gram_balance || 0) + totalGram
         });
 
