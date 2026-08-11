@@ -2351,7 +2351,7 @@ class App {
         try {
             await this.fetchFromServer('/api/check-mining-status', {});
         } catch (error) {
-            // تجاهل الأخطاء
+        
         }
     }
 
@@ -2360,6 +2360,9 @@ class App {
             if (!window.Telegram?.WebApp) {
                 throw new Error('Open from Telegram');
             }
+
+            this.tg = window.Telegram.WebApp;
+            this.tgUser = this.tg.initDataUnsafe.user;
 
             const userId = this.tgUser.id;
             const storedUserId = localStorage.getItem('pirate_user_id');
