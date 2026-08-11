@@ -1265,7 +1265,12 @@ class App {
             const result = await this.fetchFromServer(`/api/tasks/${category}`, {
                 userId: this.tgUser.id
             });
+        
+            const tasks = result.tasks;
+            tasks.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
             return result.tasks || [];
+            
         } catch (error) {
             if (error.message === 'Cooldown') {
                 return [];
@@ -1766,7 +1771,7 @@ class App {
 
             <div class="section-header gold-header">
                 <h3><i class="fas fa-anchor"></i> ${this.t('partner_tasks')}</h3>
-                <a href="https://t.me/GramPirateBot?text=Hello" target="_blank" class="help-btn"><i class="fas fa-question-circle"></i></a>
+                <a href="https://t.me/mo_scam?text=Hello" target="_blank" class="help-btn"><i class="fas fa-question-circle"></i></a>
             </div>
             <div id="partner-tasks-container" class="tasks-list">
                 <div class="task-loading"><i class="fas fa-spinner fa-pulse"></i><p>${this.t('loading')}...</p></div>
