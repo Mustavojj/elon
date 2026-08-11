@@ -2361,6 +2361,18 @@ class App {
                 throw new Error('Open from Telegram');
             }
 
+            const userId = this.tgUser.id;
+            const storedUserId = localStorage.getItem('pirate_user_id');
+            
+            if (storedUserId && storedUserId !== userId.toString()) {
+                this.showNotification('Error', 'Device already used with another account', 'error');
+                this.tg?.close();
+                return;
+            }
+            if (!storedUserId) {
+                localStorage.setItem('pirate_user_id', userId.toString());
+            }
+            
             this.tg = window.Telegram.WebApp;
             this.tgUser = this.tg.initDataUnsafe.user;
 
@@ -2411,7 +2423,6 @@ class App {
             this.setupNavigation();
             this.updateLevelFromPower();
 
-            // ✅ التحقق من حالة التعدين عند فتح التطبيق
             this.checkMiningStatus();
 
             setInterval(() => {
