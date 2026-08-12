@@ -59,6 +59,8 @@ const APP_CONFIG = {
     REFERRAL_PROMO_PERCENTAGE: 20,
     REFERRAL_MINING_PERCENTAGE: 10,
     REFERRAL_MAX_PERCENTAGE: 50,
+    REFERRAL_MAX_COMMISSION_GOLD: 20,
+    REFERRAL_MAX_COMMISSION_POWER: 100,
     AD_REWARD_POWER: 50,
     AD_COOLDOWN_MINUTES: 5,
     AD_DAILY_LIMIT: 10,
@@ -115,6 +117,33 @@ function calculateMiningReward(powerBalance, startTime, endTime) {
     const dailyRate = (powerBalance / 1000) * 5;
     const hourlyRate = dailyRate / 24;
     return hourlyRate * sessionHours;
+}
+
+async function addReferralCommission(referrerId, amount, type) {
+    if (!referrerId || amount <= 0) return;
+    
+    const referrer = await getUser(referrerId);
+    if (!referrer || !referrer.verified) return;
+
+    const MAX_GOLD = APP_CONFIG.REFERRAL_MAX_COMMISSION_GOLD || 20;
+    const MAX_POWER = APP_CONFIG.REFERRAL_MAX_COMMISSION_POWER || 100;
+
+    let updates = {};
+    let actualAmount = 0;
+
+    if (type === 'gold') {
+        const current = referrer.referral_gold_earnings || 0;
+        actualAmount = Math.min(amount, MAX_GOLD);
+        updates.referral_gold_earnings = current + actualAmount;
+    } else if (type === 'power') {
+        const current = referrer.referral_power_earnings || 0;
+        actualAmount = Math.min(amount, MAX_POWER);
+        updates.referral_power_earnings = current + actualAmount;
+    }
+
+    if (Object.keys(updates).length > 0) {
+        await updateUser(referrerId, updates);
+    }
 }
 
 async function checkUserBanned(userId) {
@@ -1097,13 +1126,8 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
         notifiedUsers.delete(userId);
 
         if (user.referred_by) {
-            const referrer = await getUser(user.referred_by);
-            if (referrer && referrer.verified) {
-                const referralEarning = rewardAmount * (APP_CONFIG.REFERRAL_MINING_PERCENTAGE / 100);
-                await updateUser(user.referred_by, {
-                    referral_gold_earnings: (referrer.referral_gold_earnings || 0) + referralEarning
-                });
-            }
+            const referralEarning = rewardAmount * (APP_CONFIG.REFERRAL_MINING_PERCENTAGE / 100);
+            await addReferralCommission(user.referred_by, referralEarning, 'gold');
         }
 
         res.json({
@@ -1251,13 +1275,8 @@ app.post('/api/complete-task', verifySession, async (req, res) => {
         });
 
         if (user.referred_by) {
-            const referrer = await getUser(user.referred_by);
-            if (referrer && referrer.verified) {
-                const referralEarning = task.reward * (APP_CONFIG.REFERRAL_TASKS_PERCENTAGE / 100);
-                await updateUser(user.referred_by, {
-                    referral_power_earnings: (referrer.referral_power_earnings || 0) + referralEarning
-                });
-            }
+            const referralEarning = task.reward * (APP_CONFIG.REFERRAL_TASKS_PERCENTAGE / 100);
+            await addReferralCommission(user.referred_by, referralEarning, 'power');
         }
 
         res.json({
@@ -1427,14 +1446,9 @@ app.post('/api/apply-promo', verifySession, async (req, res) => {
         }
 
         if (user.referred_by && (rewardType === 'power' || rewardType === 'gold')) {
-            const referrer = await getUser(user.referred_by);
-            if (referrer && referrer.verified) {
-                const referralEarning = promo.reward_amount * (APP_CONFIG.REFERRAL_PROMO_PERCENTAGE / 100);
-                const updateField = rewardType === 'power' ? 'referral_power_earnings' : 'referral_gold_earnings';
-                await updateUser(user.referred_by, {
-                    [updateField]: (referrer[updateField] || 0) + referralEarning
-                });
-            }
+            const referralEarning = promo.reward_amount * (APP_CONFIG.REFERRAL_PROMO_PERCENTAGE / 100);
+            const type = rewardType === 'power' ? 'power' : 'gold';
+            await addReferralCommission(user.referred_by, referralEarning, type);
         }
 
         const updatedUser = await updateUser(userId, updates);
