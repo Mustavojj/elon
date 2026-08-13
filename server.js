@@ -971,7 +971,7 @@ app.post('/api/get-user', async (req, res) => {
 
 app.post('/api/update-mining', verifySession, async (req, res) => {
     try {
-        const { userId, miningActive, miningStartTime, miningEndTime, pendingGoldReward, quests } = req.body;
+        const { userId, miningActive, miningStartTime, miningEndTime, quests } = req.body;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -984,8 +984,7 @@ app.post('/api/update-mining', verifySession, async (req, res) => {
         const updates = {
             mining_active: miningActive,
             mining_start_time: miningStartTime,
-            mining_end_time: miningEndTime,
-            pending_gold_reward: pendingGoldReward || 0
+            mining_end_time: miningEndTime
         };
 
         if (miningActive) {
@@ -1123,18 +1122,24 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
             return res.status(400).json({ error: 'Mining session not ended yet' });
         }
 
-        if (!user.pending_gold_reward || user.pending_gold_reward <= 0) {
+        const rewardAmount = calculateMiningReward(
+            user.power_balance || 0,
+            user.mining_start_time,
+            user.mining_end_time || now
+        );
+
+        if (rewardAmount <= 0) {
             return res.status(400).json({ error: 'No rewards to claim' });
         }
 
-        const rewardAmount = user.pending_gold_reward;
         const newGoldBalance = (user.gold_balance || 0) + rewardAmount;
 
         const updatedUser = await updateUser(userId, {
             gold_balance: newGoldBalance,
             pending_gold_reward: 0,
             mining_start_time: null,
-            mining_end_time: null
+            mining_end_time: null,
+            mining_active: false
         });
 
         notifiedUsers.delete(userId);
