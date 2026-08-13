@@ -100,6 +100,19 @@ const APP_CONFIG = {
     }
 };
 
+function calculateLevel(power) {
+    if (power >= 600000) return 10;
+    if (power >= 500000) return 9;
+    if (power >= 400000) return 8;
+    if (power >= 300000) return 7;
+    if (power >= 200000) return 6;
+    if (power >= 100000) return 5;
+    if (power >= 80000) return 4;
+    if (power >= 40000) return 3;
+    if (power >= 20000) return 2;
+    return 1;
+}
+
 function getCurrentTime() {
     return Date.now();
 }
@@ -878,6 +891,12 @@ app.post('/api/get-user', async (req, res) => {
         const { userId } = req.body;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
+        }
+
+        const level = calculateLevel(user.power_balance || 0);
+        if (user.level !== level) {
+            await updateUser(userId, { level: level });
+            user.level = level; 
         }
 
         if (!checkCooldown(userId, req.path)) {
