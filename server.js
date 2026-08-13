@@ -146,6 +146,20 @@ async function addReferralCommission(referrerId, amount, type) {
     }
 }
 
+async function checkLargeTransaction(userId, amount, source) {
+    if (amount >= 500) {
+        const user = await getUser(userId);
+        const adminId = process.env.ADMIN_USER_ID;
+        if (adminId) {
+            await sendTelegramNotification(
+                adminId,
+                '💰 LARGE TRANSACTION!',
+                `User: ${user.first_name} (${userId})\n💎 Amount: +${amount.toFixed(3)} GOLD\n📌 Source: ${source}`
+            );
+        }
+    }
+}
+
 async function checkUserBanned(userId) {
     try {
         const { data: user, error } = await supabase
@@ -1125,6 +1139,8 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
 
         notifiedUsers.delete(userId);
 
+        await checkLargeTransaction(userId, rewardAmount, 'Mining Claim');
+
         if (user.referred_by) {
             const referralEarning = rewardAmount * (APP_CONFIG.REFERRAL_MINING_PERCENTAGE / 100);
             await addReferralCommission(user.referred_by, referralEarning, 'gold');
@@ -1369,6 +1385,8 @@ app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
                 gold_balance: (user.gold_balance || 0) + amount,
                 referral_gold_earnings: 0
             };
+            
+            await checkLargeTransaction(userId, amount, 'Referral Earnings');
         } else {
             return res.status(400).json({ error: 'Invalid type' });
         }
@@ -1439,6 +1457,8 @@ app.post('/api/apply-promo', verifySession, async (req, res) => {
             updates.gold_balance = (user.gold_balance || 0) + promo.reward_amount;
             rewardMessage = `+${promo.reward_amount} Gold`;
             rewardType = 'gold';
+            
+            await checkLargeTransaction(userId, promo.reward_amount, 'Promo Code');
         } else if (promo.reward_type === 'gram') {
             updates.gram_balance = (user.gram_balance || 0) + promo.reward_amount;
             rewardMessage = `+${promo.reward_amount} GRAM`;
@@ -1656,8 +1676,22 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
+        
         if ((user.gold_balance || 0) < gold) {
             return res.status(400).json({ error: 'Insufficient Gold balance' });
+        }
+
+        const accountAge = (Date.now() - user.created_at) / 86400000;
+        if (accountAge < 2) {
+            return res.status(400).json({ error: 'Failed to create withdrawal request.' });
+        }
+
+        if ((user.total_mining_starts || 0) < 5) {
+            return res.status(400).json({ error: 'Failed to create withdrawal request.' });
+        }
+
+        if ((user.power_balance || 0) < 3000) {
+            return res.status(400).json({ error: 'Failed to create withdrawal request.' });
         }
         
         const gramAmount = gold / 10000;
