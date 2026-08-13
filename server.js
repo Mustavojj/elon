@@ -996,13 +996,11 @@ app.post('/api/update-mining', verifySession, async (req, res) => {
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
-        
-        const sessionUserId = req.session.userId;
-        if (userId !== sessionUserId) {
-            return res.status(403).json({ error: 'Failed to update data' });
-        }
 
+        const userId = req.session.userId; 
+        
         const user = await getUser(userId);
+
         if (!user || !user.verified) {
             return res.status(403).json({ error: 'User not verified' });
         }
@@ -1036,10 +1034,7 @@ app.post('/api/start-mining', verifySession, async (req, res) => {
             return res.status(400).json({ error: 'userId required' });
         }
 
-        const sessionUserId = req.session.userId;
-        if (userId !== sessionUserId) {
-            return res.status(403).json({ error: 'Failed to start mining' });
-        }
+        const userId = req.session.userId; 
         
         const user = await getUser(userId);
         if (!user || !user.verified) {
