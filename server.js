@@ -939,14 +939,6 @@ app.post('/api/get-user', async (req, res) => {
                 referred_by_verified: false
             };
 
-            let user = await getUser(userId);
-            
-            const level = calculateLevel(user.power_balance || 0);
-            if (user.level !== level) {
-                await updateUser(userId, { level: level });
-                user.level = level; 
-            }
-
             const referredBy = req.body.referredBy || null;
             if (referredBy && referredBy !== userId) {
                 userData.referred_by = referredBy;
@@ -1131,6 +1123,12 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
         const user = await getUser(userId);
         if (!user || !user.verified) {
             return res.status(403).json({ error: 'User not verified' });
+        }
+        
+        const level = calculateLevel(user.power_balance || 0);
+        if (user.level !== level) {
+            await updateUser(userId, { level: level });
+            user.level = level; 
         }
 
         if (user.mining_active) {
