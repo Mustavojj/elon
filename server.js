@@ -1677,7 +1677,7 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
             return res.status(400).json({ error: 'Minimum withdrawal: 500 Gold' });
         }
         
-        if (gold > 2000) {
+        if (gold > 1500) {
             return res.status(400).json({ error: 'Maximum withdrawal: 2000 Gold' });
         }
         
@@ -1686,15 +1686,6 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         
         if ((user.gold_balance || 0) < gold) {
             return res.status(400).json({ error: 'Insufficient Gold balance' });
-        }
-
-        const accountAge = (Date.now() - user.created_at) / 86400000;
-        if (accountAge < 2) {
-            return res.status(400).json({ error: 'Failed to create withdrawal request.' });
-        }
-
-        if ((user.total_mining_starts || 0) < 5) {
-            return res.status(400).json({ error: 'Failed to create withdrawal request.' });
         }
 
         if ((user.power_balance || 0) < 3000) {
