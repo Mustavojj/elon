@@ -893,12 +893,6 @@ app.post('/api/get-user', async (req, res) => {
             return res.status(400).json({ error: 'userId required' });
         }
 
-        const level = calculateLevel(user.power_balance || 0);
-        if (user.level !== level) {
-            await updateUser(userId, { level: level });
-            user.level = level; 
-        }
-
         if (!checkCooldown(userId, req.path)) {
             return res.status(429).json({ error: 'Too many requests. Please wait 5 seconds.' });
         }
@@ -909,6 +903,12 @@ app.post('/api/get-user', async (req, res) => {
         }
 
         let user = await getUser(userId);
+
+        const level = calculateLevel(user.power_balance || 0);
+        if (user.level !== level) {
+            await updateUser(userId, { level: level });
+            user.level = level; 
+        }
 
         if (!user) {
             const userData = {
