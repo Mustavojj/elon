@@ -470,6 +470,7 @@ async function verifySession(req, res, next) {
             return res.status(401).json({ error: 'Session expired' });
         }
 
+        req._userId = userId;
         next();
     } catch (error) {
         res.status(500).json({ error: 'Session verification failed' });
@@ -622,7 +623,7 @@ app.post('/api/check-mining-status', async (req, res) => {
 
 app.post('/api/claim-welcome-bonus', verifySession, async (req, res) => {
     try {
-        const { userId } = req.body;
+        const userId = req._userId;
         if (!userId) return res.status(400).json({ error: 'userId required' });
 
         const user = await getUser(userId);
@@ -984,34 +985,7 @@ app.post('/api/get-user', async (req, res) => {
 
 app.post('/api/update-mining', verifySession, async (req, res) => {
     try {
-        const { userId, miningActive, miningStartTime, miningEndTime, quests } = req.body;
-        if (!userId) {
-            return res.status(400).json({ error: 'userId required' });
-        }
-        
-        const user = await getUser(userId);
-
-        if (!user || !user.verified) {
-            return res.status(403).json({ error: 'User not verified' });
-        }
-
-        const updates = {
-            mining_active: miningActive,
-            mining_start_time: miningStartTime,
-            mining_end_time: miningEndTime
-        };
-
-        if (miningActive) {
-            updates.total_mining_starts = (user.total_mining_starts || 0) + 1;
-        }
-
-        if (quests) {
-            updates.quests = quests;
-        }
-
-        const updatedUser = await updateUser(userId, updates);
-        res.json({ success: true, user: updatedUser });
-
+        res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -1019,7 +993,7 @@ app.post('/api/update-mining', verifySession, async (req, res) => {
 
 app.post('/api/start-mining', verifySession, async (req, res) => {
     try {
-        const { userId } = req.body;
+        const userId = req._userId;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -1071,7 +1045,7 @@ app.post('/api/start-mining', verifySession, async (req, res) => {
 
 app.post('/api/stop-mining', verifySession, async (req, res) => {
     try {
-        const { userId } = req.body;
+        const userId = req._userId;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -1117,7 +1091,7 @@ app.post('/api/stop-mining', verifySession, async (req, res) => {
 
 app.post('/api/claim-mining', verifySession, async (req, res) => {
     try {
-        const { userId } = req.body;
+        const userId = req._userId;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -1185,8 +1159,8 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
 
 app.post('/api/claim-quest', verifySession, async (req, res) => {
     try {
-        const { userId, questType } = req.body;
-        if (!userId || !questType) {
+        const userId = req._userId;
+        if (!userId || !req.body.questType) {
             return res.status(400).json({ error: 'userId and questType required' });
         }
 
@@ -1195,6 +1169,7 @@ app.post('/api/claim-quest', verifySession, async (req, res) => {
             return res.status(403).json({ error: 'User not verified' });
         }
 
+        const { questType } = req.body;
         let reward = 0;
         let newIndex = 0;
         let quests = { ...user.quests };
@@ -1271,7 +1246,8 @@ app.post('/api/claim-quest', verifySession, async (req, res) => {
 
 app.post('/api/complete-task', verifySession, async (req, res) => {
     try {
-        const { userId, taskId, isPartner, taskOwner } = req.body;
+        const userId = req._userId;
+        const { taskId, isPartner, taskOwner } = req.body;
         if (!userId || !taskId) {
             return res.status(400).json({ error: 'userId and taskId required' });
         }
@@ -1334,7 +1310,8 @@ app.post('/api/complete-task', verifySession, async (req, res) => {
 
 app.post('/api/convert-gold-to-power', verifySession, async (req, res) => {
     try {
-        const { userId, goldAmount } = req.body;
+        const userId = req._userId;
+        const { goldAmount } = req.body;
         if (!userId || !goldAmount) {
             return res.status(400).json({ error: 'userId and goldAmount required' });
         }
@@ -1377,7 +1354,8 @@ app.post('/api/convert-gold-to-power', verifySession, async (req, res) => {
 
 app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
     try {
-        const { userId, type } = req.body;
+        const userId = req._userId;
+        const { type } = req.body;
         if (!userId || !type) {
             return res.status(400).json({ error: 'userId and type required' });
         }
@@ -1438,7 +1416,8 @@ app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
 
 app.post('/api/apply-promo', verifySession, async (req, res) => {
     try {
-        const { userId, code } = req.body;
+        const userId = req._userId;
+        const { code } = req.body;
         if (!userId || !code) {
             return res.status(400).json({ error: 'userId and code required' });
         }
@@ -1512,7 +1491,7 @@ app.post('/api/apply-promo', verifySession, async (req, res) => {
 
 app.post('/api/watch-ad', verifySession, async (req, res) => {
     try {
-        const { userId } = req.body;
+        const userId = req._userId;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -1623,7 +1602,8 @@ app.post('/api/check-membership', async (req, res) => {
 
 app.post('/api/setup-promotion', verifySession, async (req, res) => {
     try {
-        const { userId, channel, link } = req.body;
+        const userId = req._userId;
+        const { channel, link } = req.body;
         if (!userId || !channel) {
             return res.status(400).json({ error: 'userId and channel required' });
         }
@@ -1681,7 +1661,8 @@ app.post('/api/setup-promotion', verifySession, async (req, res) => {
 
 app.post('/api/withdraw-gram', verifySession, async (req, res) => {
     try {
-        const { userId, walletAddress, goldAmount } = req.body;
+        const userId = req._userId;
+        const { walletAddress, goldAmount } = req.body;
         
         if (!userId || !walletAddress || !goldAmount) {
             return res.status(400).json({ error: 'Missing required fields' });
@@ -1797,7 +1778,8 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
 
 app.post('/api/withdraw', verifySession, async (req, res) => {
     try {
-        const { userId, goldAmount, wallet } = req.body;
+        const userId = req._userId;
+        const { goldAmount, wallet } = req.body;
         if (!userId || !goldAmount || !wallet) {
             return res.status(400).json({ error: 'userId, goldAmount, and wallet required' });
         }
@@ -1867,7 +1849,7 @@ app.post('/api/withdraw', verifySession, async (req, res) => {
 
 app.post('/api/get-withdrawals', verifySession, async (req, res) => {
     try {
-        const { userId } = req.body;
+        const userId = req._userId;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -1882,7 +1864,7 @@ app.post('/api/get-withdrawals', verifySession, async (req, res) => {
 
 app.post('/api/get-referrals', verifySession, async (req, res) => {
     try {
-        const { userId } = req.body;
+        const userId = req._userId;
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
