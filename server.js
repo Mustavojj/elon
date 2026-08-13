@@ -900,6 +900,8 @@ app.post('/api/get-user', async (req, res) => {
             return res.status(403).json({ error: 'Account banned' });
         }
 
+        let user = await getUser(userId); 
+        
         if (!user) {
             const userData = {
                 id: userId,
