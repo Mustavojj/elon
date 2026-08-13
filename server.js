@@ -470,8 +470,6 @@ async function verifySession(req, res, next) {
             return res.status(401).json({ error: 'Session expired' });
         }
 
-        res.locals.verifiedUserId = userId;  
-
         next();
     } catch (error) {
         res.status(500).json({ error: 'Session verification failed' });
@@ -996,8 +994,6 @@ app.post('/api/update-mining', verifySession, async (req, res) => {
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
-
-        const userId = res.locals.verifiedUserId; 
         
         const user = await getUser(userId);
 
@@ -1034,8 +1030,6 @@ app.post('/api/start-mining', verifySession, async (req, res) => {
             return res.status(400).json({ error: 'userId required' });
         }
 
-        const userId = res.locals.verifiedUserId; 
-        
         const user = await getUser(userId);
         if (!user || !user.verified) {
             return res.status(403).json({ error: 'User not verified' });
