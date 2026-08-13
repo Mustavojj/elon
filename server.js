@@ -900,14 +900,6 @@ app.post('/api/get-user', async (req, res) => {
             return res.status(403).json({ error: 'Account banned' });
         }
 
-        let user = await getUser(userId);
-
-        const level = calculateLevel(user.power_balance || 0);
-        if (user.level !== level) {
-            await updateUser(userId, { level: level });
-            user.level = level; 
-        }
-
         if (!user) {
             const userData = {
                 id: userId,
@@ -946,6 +938,14 @@ app.post('/api/get-user', async (req, res) => {
                 last_withdraw_time: 0,
                 referred_by_verified: false
             };
+
+            let user = await getUser(userId);
+            
+            const level = calculateLevel(user.power_balance || 0);
+            if (user.level !== level) {
+                await updateUser(userId, { level: level });
+                user.level = level; 
+            }
 
             const referredBy = req.body.referredBy || null;
             if (referredBy && referredBy !== userId) {
