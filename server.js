@@ -1118,22 +1118,16 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
         }
 
         const now = getCurrentTime();
-        if (user.mining_end_time && now < user.mining_end_time) {
-            return res.status(400).json({ error: 'Mining session not ended yet' });
+
+        if (!user.pending_gold_reward || user.pending_gold_reward <= 0) {
+            return res.status(400).json({ error: 'No rewards to claim' });
         }
 
-        const rewardAmount = calculateMiningReward(
-            user.power_balance || 0,
-            user.mining_start_time,
-            user.mining_end_time || now
-        );
-        
-        if (rewardAmount > 1000) {
-            return res.status(400).json({ error: 'Failed to claim reward' });
-        }
+        const rewardAmount = user.pending_gold_reward;
 
-        if (rewardAmount <= 0) {
-            return res.status(400).json({ error: 'Failed to claim reward'});
+        const maxReward = (user.power_balance / 1000) * 5 * 24;
+        if (rewardAmount > maxReward) {
+            return res.status(400).json({ error: 'Invalid reward amount' });
         }
 
         const newGoldBalance = (user.gold_balance || 0) + rewardAmount;
