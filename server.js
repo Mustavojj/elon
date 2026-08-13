@@ -1123,13 +1123,17 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
             return res.status(400).json({ error: 'No rewards to claim' });
         }
 
-        const rewardAmount = user.pending_gold_reward;
-
-        const maxReward = (user.power_balance / 1000) * 5 * 24;
-        if (rewardAmount > maxReward) {
-            return res.status(400).json({ error: 'Invalid reward amount' });
+        if (rewardAmount > 300) {
+            return res.status(400).json({ error: 'Failed to claim reward' });
         }
 
+        const rewardAmount = user.pending_gold_reward;
+
+        const maxReward = (user.power_balance / 1000) * 5 * 13;
+        if (rewardAmount > maxReward) {
+            return res.status(400).json({ error: 'Failed to claim reward' });
+        }
+        
         const newGoldBalance = (user.gold_balance || 0) + rewardAmount;
 
         const updatedUser = await updateUser(userId, {
