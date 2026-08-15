@@ -1788,7 +1788,7 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         });
         
         await sendTelegramNotification(userId, '✅ Withdrawal Requested!', 
-            `📤 ${gramAmount} GRAM sent to your wallet\n\n💸 Earn more power for more earnings`,
+            `💎 ${gramAmount} GRAM sent to your wallet\n\n💰 Earn more power for more earnings\n\n✅ Share the proof of withdrawal here: @PTS_CH`,
             { text: '🏴‍☠️ Earn More', url: 'https://t.me/GramPirateBot/app' }
         );
         
