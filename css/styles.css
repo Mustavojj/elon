@@ -1592,6 +1592,72 @@ body {
     margin-top: 2px;
 }
 
+.wallet-setup-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 215, 0, 0.06);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.wallet-setup-card .setup-title {
+    color: var(--primary-light);
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.wallet-setup-card .setup-title i {
+    color: var(--primary);
+}
+
+.wallet-setup-card .setup-input-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.wallet-setup-card .setup-input-group .form-input {
+    flex: 1;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+}
+
+.wallet-setup-card .setup-btn {
+    padding: 10px 20px;
+    background: var(--gold-gradient);
+    border: none;
+    border-radius: 40px;
+    color: #0a0a0f;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.wallet-setup-card .setup-btn:active {
+    transform: scale(0.95);
+}
+
+.wallet-setup-card .setup-note {
+    text-align: center;
+    font-size: 0.6rem;
+    color: #888;
+    margin-top: 8px;
+    background: rgba(255, 215, 0, 0.03);
+    padding: 6px;
+    border-radius: 8px;
+    border-left: 3px solid var(--warning);
+}
+
 .withdraw-card {
     background: var(--bg-card);
     backdrop-filter: blur(12px);
