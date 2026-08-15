@@ -33,6 +33,64 @@ function checkCooldown(userId, endpoint) {
     return true;
 }
 
+// ===== TELEGRAM INIT DATA VALIDATION =====
+function verifyTelegramInitData(initData) {
+    if (!initData) return false;
+    try {
+        const params = new URLSearchParams(initData);
+        const hash = params.get('hash');
+        if (!hash) return false;
+        params.delete('hash');
+        
+        const sortedParams = Array.from(params.entries())
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([key, value]) => `${key}=${value}`)
+            .join('\n');
+        
+        const secretKey = crypto
+            .createHash('sha256')
+            .update(BOT_TOKEN)
+            .digest();
+        
+        const computedHash = crypto
+            .createHmac('sha256', secretKey)
+            .update(sortedParams)
+            .digest('hex');
+        
+        return computedHash === hash;
+    } catch (error) {
+        return false;
+    }
+}
+
+// ===== MIDDLEWARE TO VERIFY TELEGRAM INIT DATA =====
+app.use((req, res, next) => {
+    // Skip for public endpoints
+    if (req.path === '/' || req.path === '/health' || req.path === '/api/health' || 
+        req.path === '/api/config' || req.path === '/api/current-time' || 
+        req.path === '/api/send-verification' || req.path === '/api/resend-verification' || 
+        req.path === '/api/verify-code' || req.path === '/api/check-mining-status') {
+        return next();
+    }
+
+    const initData = req.headers['x-telegram-init-data'] || req.body.initData;
+    
+    // For /api/get-user, we need to verify but allow new users
+    if (req.path === '/api/get-user') {
+        if (initData && !verifyTelegramInitData(initData)) {
+            return res.status(401).json({ error: 'Invalid Telegram data' });
+        }
+        return next();
+    }
+
+    // For all other protected endpoints, require valid initData
+    if (!initData || !verifyTelegramInitData(initData)) {
+        return res.status(401).json({ error: 'Invalid Telegram session' });
+    }
+
+    next();
+});
+
 const APP_CONFIG = {
     APP_NAME: "GRAM PIRATES 🏴‍☠️",
     BOT_USERNAME: "GramPirateBot",
@@ -887,7 +945,21 @@ app.post('/api/logout', async (req, res) => {
 
 app.post('/api/get-user', async (req, res) => {
     try {
-        const { userId } = req.body;
+        const initData = req.headers['x-telegram-init-data'] || req.body.initData;
+        let userId = req.body.userId;
+
+        // Extract userId from initData if not provided
+        if (!userId && initData) {
+            try {
+                const params = new URLSearchParams(initData);
+                const userStr = params.get('user');
+                if (userStr) {
+                    const userData = JSON.parse(userStr);
+                    userId = userData.id;
+                }
+            } catch (e) {}
+        }
+
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -939,7 +1011,8 @@ app.post('/api/get-user', async (req, res) => {
                 ad_last_watch: 0,
                 promotion: null,
                 last_withdraw_time: 0,
-                referred_by_verified: false
+                referred_by_verified: false,
+                wallet: null
             };
 
             const referredBy = req.body.referredBy || null;
@@ -1659,13 +1732,57 @@ app.post('/api/setup-promotion', verifySession, async (req, res) => {
     }
 });
 
+app.post('/api/set-wallet', verifySession, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const { wallet } = req.body;
+        if (!userId || !wallet) {
+            return res.status(400).json({ error: 'userId and wallet required' });
+        }
+
+        if (!wallet.startsWith('UQ') || wallet.length < 20) {
+            return res.status(400).json({ error: 'Invalid wallet address. Must start with UQ and be at least 20 characters.' });
+        }
+
+        const user = await getUser(userId);
+        if (!user || !user.verified) {
+            return res.status(403).json({ error: 'User not verified' });
+        }
+
+        if (user.wallet) {
+            return res.status(400).json({ error: 'Wallet already set. Cannot change again.' });
+        }
+
+        const updatedUser = await updateUser(userId, { wallet });
+
+        res.json({
+            success: true,
+            user: updatedUser,
+            message: 'Wallet set successfully'
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.post('/api/withdraw-gram', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
-        const { walletAddress, goldAmount } = req.body;
+        const { goldAmount } = req.body;
         
-        if (!userId || !walletAddress || !goldAmount) {
+        if (!userId || !goldAmount) {
             return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        const user = await getUser(userId);
+        if (!user || !user.verified) {
+            return res.status(403).json({ error: 'User not verified' });
+        }
+
+        const walletAddress = user.wallet;
+        if (!walletAddress) {
+            return res.status(400).json({ error: 'No wallet set. Please set your wallet first.' });
         }
         
         const gold = parseFloat(goldAmount);
@@ -1689,9 +1806,6 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         if ((user.total_mining_starts || 0) < 8) {
             return res.status(400).json({ error: 'Failed to create withdrawal request.' });
         }
-        
-        const user = await getUser(userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
         
         if ((user.gold_balance || 0) < gold) {
             return res.status(400).json({ error: 'Insufficient Gold balance' });
