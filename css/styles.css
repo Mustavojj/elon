@@ -1930,3 +1930,26 @@ body {
     background: var(--primary);
     border-radius: 10px;
 }
+
+.mining-claim-btn {
+    padding: 14px 20px !important;
+    background: var(--gold-gradient);
+    border: none;
+    border-radius: 60px;
+    color: #0a0a0f;
+    font-weight: 700;
+    font-size: 0.85rem !important;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    z-index: 2;
+    box-shadow: 0 5px 25px var(--primary-glow);
+    width: 100%;
+    max-width: 100% !important;
+    margin: 8px auto 0;
+    letter-spacing: 0.5px;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: inline-block !important;
+} 
