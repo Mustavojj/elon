@@ -404,16 +404,9 @@ class App {
                 data.sessionToken = this.sessionToken;
             }
 
-            const headers = { 'Content-Type': 'application/json' };
-            
-            // Add initData from Telegram for verification
-            if (this.tg?.initData) {
-                headers['x-telegram-init-data'] = this.tg.initData;
-            }
-
             const response = await fetch(`${this.serverUrl}${endpoint}`, {
                 method: 'POST',
-                headers: headers,
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
             const result = await response.json();
@@ -438,13 +431,7 @@ class App {
 
     async getFromServer(endpoint) {
         try {
-            const headers = {};
-            if (this.tg?.initData) {
-                headers['x-telegram-init-data'] = this.tg.initData;
-            }
-            const response = await fetch(`${this.serverUrl}${endpoint}`, {
-                headers: headers
-            });
+            const response = await fetch(`${this.serverUrl}${endpoint}`);
             return await response.json();
         } catch (error) {
             console.error('Server fetch error:', error);
