@@ -176,7 +176,15 @@ const translations = {
         complete_tasks_quest: "COMPLETE {target} TASKS",
         task_quests: "Task Quests",
         mining_stopped: "Mining Stopped!",
-        mining_session_ended: "Your mining session has ended.\n💎 You earned {amount} Gold\n\nClaim your rewards and restart mining!"
+        mining_session_ended: "Your mining session has ended.\n💎 You earned {amount} Gold\n\nClaim your rewards and restart mining!",
+        setup_wallet: "Set-Up Your GRAM Wallet",
+        wallet_address: "Wallet Address",
+        confirm_wallet: "Confirm",
+        wallet_note: "You can not change your wallet again",
+        wallet_set: "Wallet Set",
+        wallet_set_success: "Your wallet has been set successfully!",
+        wallet_already_set: "Wallet already set",
+        wallet_invalid: "Invalid wallet address. Must start with UQ and be at least 20 characters."
     }
 };
 
@@ -216,6 +224,7 @@ class App {
         this.userState = null;
         this.adWatchCount = 0;
         this.adLastWatch = 0;
+        this.userWallet = null;
 
         this.lang = 'en';
 
@@ -608,6 +617,7 @@ class App {
             this.promotionData = user.promotion || null;
             this.promotionStatus = this.promotionData?.status || null;
             this.hasPromotionBonus = this.promotionStatus === 'approved';
+            this.userWallet = user.wallet || null;
 
             if (user.quests) {
                 this.quests = user.quests;
@@ -697,6 +707,7 @@ class App {
             this.promotionData = user.promotion || null;
             this.promotionStatus = this.promotionData?.status || null;
             this.hasPromotionBonus = this.promotionStatus === 'approved';
+            this.userWallet = user.wallet || null;
 
             if (user.quests) {
                 this.quests = user.quests;
@@ -1003,6 +1014,39 @@ class App {
             }
             console.error('Watch ad error:', error);
             this.showNotification('Error', 'Failed to watch ad', 'error');
+            this.vibrate('error');
+            return false;
+        }
+    }
+
+    async setWallet(walletAddress) {
+        try {
+            const result = await this.fetchFromServer('/api/set-wallet', {
+                userId: this.tgUser.id,
+                wallet: walletAddress
+            });
+
+            if (result.error) {
+                this.showNotification('Error', result.error, 'error');
+                this.vibrate('error');
+                return false;
+            }
+
+            if (result.user) {
+                this.userWallet = result.user.wallet;
+                this.showNotification(this.t('wallet_set'), this.t('wallet_set_success'), 'success');
+                this.vibrate('success');
+                if (this._walletLoaded) this.renderWallet();
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            if (error.message === 'Cooldown') {
+                return false;
+            }
+            console.error('Set wallet error:', error);
+            this.showNotification('Error', 'Failed to set wallet', 'error');
             this.vibrate('error');
             return false;
         }
@@ -1373,8 +1417,7 @@ class App {
         try {
             const result = await this.fetchFromServer('/api/withdraw-gram', {
                 userId: this.tgUser.id,
-                goldAmount: amount,
-                walletAddress: wallet
+                goldAmount: amount
             });
 
             if (result.error) {
@@ -2188,6 +2231,20 @@ class App {
             </div>
         `}).join('') : '<div class="no-data">' + this.t('no_withdrawals') + '</div>';
 
+        let walletSetupHtml = '';
+        if (!this.userWallet) {
+            walletSetupHtml = `
+            <div class="wallet-setup-card gold-card">
+                <div class="setup-title"><i class="fas fa-wallet"></i> ${this.t('setup_wallet')}</div>
+                <div class="setup-input-group">
+                    <input type="text" id="wallet-setup-input" class="form-input gold-input" placeholder="${this.t('wallet_address')}">
+                    <button id="wallet-setup-btn" class="setup-btn gold-btn">${this.t('confirm_wallet')}</button>
+                </div>
+                <div class="setup-note"><i class="fas fa-exclamation-triangle"></i> ${this.t('wallet_note')}</div>
+            </div>
+            `;
+        }
+
         el.innerHTML = `
             <div class="wallet-card gold-card">
                 <div class="wallet-balances">
@@ -2204,6 +2261,8 @@ class App {
                 </div>
             </div>
 
+            ${walletSetupHtml}
+
             <div class="withdraw-card gold-card">
                 <h4 style="text-align:center; color:#FFD700; margin-bottom:14px;"><i class="fas fa-arrow-up"></i> ${this.t('convert_withdraw')}</h4>
 
@@ -2218,7 +2277,7 @@ class App {
                 <div class="form-group">
                     <label class="form-label">${this.t('wallet')}</label>
                     <div class="input-wrapper">
-                        <input type="text" id="wallet-addr" class="form-input gold-input" placeholder="UQ...">
+                        <input type="text" id="wallet-addr" class="form-input gold-input" placeholder="UQ..." value="${this.userWallet || '-'}" ${this.userWallet ? 'readonly' : ''}>
                     </div>
                 </div>
 
@@ -2275,6 +2334,25 @@ class App {
             const wallet = walletInput.value.trim();
             this.withdraw(amount, wallet);
         });
+
+        const setupBtn = document.getElementById('wallet-setup-btn');
+        const setupInput = document.getElementById('wallet-setup-input');
+        if (setupBtn && setupInput) {
+            setupBtn.addEventListener('click', async () => {
+                const wallet = setupInput.value.trim();
+                if (!wallet || !wallet.startsWith('UQ') || wallet.length < 20) {
+                    this.showNotification('Error', this.t('wallet_invalid'), 'error');
+                    this.vibrate('error');
+                    return;
+                }
+                setupBtn.disabled = true;
+                setupBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
+                await this.setWallet(wallet);
+                setupBtn.disabled = false;
+                setupBtn.innerHTML = this.t('confirm_wallet');
+                this.renderWallet();
+            });
+        }
     }
 
     showNotification(title, message, type) {
