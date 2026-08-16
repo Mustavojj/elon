@@ -1722,12 +1722,12 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
             return res.status(400).json({ error: 'Minimum withdrawal: 500 Gold' });
         }
         
-        if (gold > 1500) {
+        if (gold > 2000) {
             return res.status(400).json({ error: 'Maximum withdrawal: 2000 Gold' });
         }
         
         const accountAge = (Date.now() - user.created_at) / 86400000;
-        if (accountAge < 3) {
+        if (accountAge < 1) {
             return res.status(400).json({ error: 'Failed to create withdrawal request.' });
         }
         
@@ -1793,11 +1793,9 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         );
         
         const adminId = process.env.ADMIN_USER_ID;
-        if (adminId) {
-            await sendTelegramNotification(adminId, '🆕 New Withdrawal', 
-                `🏴‍☠️ User: ${userId}\n\n🏅 Amount: ${gold} (${gramAmount})\n\n💳 Wallet: ${walletAddress}`
-            );
-        }
+        await sendTelegramNotification(adminId, '🆕 New Withdrawal', 
+                                       `🏴‍☠️ User: ${userId}\n\n🏅 Amount: ${gold} (${gramAmount})\n\n💳 Wallet: ${walletAddress}`
+                                      );
         
         res.json({
             success: true,
