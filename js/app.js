@@ -166,7 +166,7 @@ const translations = {
         exchange_rate_note: "Exchange Rate: 1 Power = 1 GOLD",
         bonus_note: "You will receive +10% bonus",
         wait_cooldown: "Wait {h}h before next withdrawal",
-        min_withdraw_gold_amount: "Minimum Withdrawal: 500 GOLD",
+        min_withdraw_gold_amount: "Minimum Withdrawal: 100 GOLD",
         max_withdraw_gold_amount: "Maximum withdrawal: 2000 Gold",
         claim_with_bonus: "CLAIM (+25%)",
         claim_default: "CLAIM",
@@ -184,7 +184,20 @@ const translations = {
         wallet_set: "Wallet Set",
         wallet_set_success: "Your wallet has been set successfully!",
         wallet_already_set: "Wallet already set",
-        wallet_invalid: "Invalid wallet address. Must start with UQ and be at least 20 characters."
+        wallet_invalid: "Invalid wallet address. Must start with UQ and be at least 20 characters.",
+        withdrawal_fees: "Withdrawal Fees: {fees} Gold",
+        withdrawal_details: "Withdrawal Details",
+        wallet_label: "Wallet",
+        amount_label: "Amount",
+        fees_label: "Fees",
+        received_amount: "Received Amount",
+        confirm: "YES, CONFIRM",
+        are_you_sure: "Are you sure about the withdrawal details?",
+        contact_support: "No, contact support",
+        insufficient_balance: "Insufficient Gold balance",
+        invalid_amount: "Invalid amount",
+        withdrawal_success: "Withdrawal successful!",
+        withdrawal_failed: "Withdrawal failed"
     }
 };
 
@@ -411,7 +424,7 @@ class App {
             });
             const result = await response.json();
 
-            if (result.error === 'Session expired' || result.error === 'Invalid token' || result.error === 'Session required') {
+            if (result.error === 'Session expired' || result.error === 'Invalid token' || result.error === 'Session required' || result.error === 'IP mismatch') {
                 this.sessionToken = null;
                 localStorage.removeItem('pirate_session_token');
                 localStorage.removeItem('pirate_session_expires');
@@ -683,6 +696,16 @@ class App {
                 return;
             }
 
+            if (result.requiresVerification) {
+                this.sessionToken = null;
+                localStorage.removeItem('pirate_session_token');
+                localStorage.removeItem('pirate_session_expires');
+                this.verified = false;
+                this.showVerificationModal();
+                this.showNotification('Verification Required', result.message || 'Please verify your account', 'info');
+                return;
+            }
+
             const user = result.user;
             this.powerBalance = user.power_balance || 0;
             this.goldBalance = user.gold_balance || 0;
@@ -843,6 +866,7 @@ class App {
             if (result.user) {
                 this.powerBalance = result.user.power_balance || 0;
                 this.totalTasksCompleted = result.user.total_tasks_completed || 0;
+                this.userLevel = result.user.level || 1;
                 this.updateLevelFromPower();
                 this.updateHeaderBalances();
                 this.vibrate('success');
@@ -888,6 +912,7 @@ class App {
                 this._dirtyQuests = true;
                 await this.saveUserData(true);
                 
+                this.userLevel = result.user.level || 1;
                 this.updateLevelFromPower();
                 this.updateHeaderBalances();
                 this.vibrate('success');
@@ -924,6 +949,7 @@ class App {
             if (result.user) {
                 this.goldBalance = result.user.gold_balance || 0;
                 this.powerBalance = result.user.power_balance || 0;
+                this.userLevel = result.user.level || 1;
                 this.updateLevelFromPower();
                 this.updateHeaderBalances();
                 this.showNotification('Reward Claimed', `You have received ${result.total} Power`, 'success');
@@ -945,6 +971,16 @@ class App {
 
     async claimReferralEarnings(type) {
         try {
+            // Show ad before claiming
+            try {
+                const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-41677" });
+                await AdController.show();
+            } catch (e) {
+                this.showNotification('No Ads', 'No ads available at the moment', 'warning');
+                this.vibrate('warning');
+                return false;
+            }
+
             let result = await this.fetchFromServer('/api/claim-referral-earnings', {
                 userId: this.tgUser.id,
                 type: type
@@ -964,6 +1000,8 @@ class App {
                     this.goldBalance = result.user.gold_balance || 0;
                     this.referralGoldEarnings = result.user.referral_gold_earnings || 0;
                 }
+                this.userLevel = result.user.level || 1;
+                this.updateLevelFromPower();
                 this.updateHeaderBalances();
                 const typeName = type === 'power' ? 'Power' : 'Gold';
                 this.showNotification('Reward Claimed', `You have received ${result.claimed} ${typeName}`, 'success');
@@ -1000,6 +1038,8 @@ class App {
                 this.powerBalance = result.user.power_balance || 0;
                 this.adWatchCount = result.user.ad_watch_count || 0;
                 this.adLastWatch = result.user.ad_last_watch || 0;
+                this.userLevel = result.user.level || 1;
+                this.updateLevelFromPower();
                 this.updateHeaderBalances();
                 this.showNotification('Reward Claimed', `You have received ${result.reward} Power`, 'success');
                 this.vibrate('success');
@@ -1175,7 +1215,7 @@ class App {
         }
 
         try {
-            const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-34445" });
+            const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-41677" });
             await AdController.show();
         } catch (result) {
             this.showNotification('No Ads', 'No ads available at the moment', 'warning');
@@ -1199,9 +1239,11 @@ class App {
             this.miningActive = result.user.mining_active || false;
             this.miningStartTime = result.user.mining_start_time || null;
             this.miningEndTime = result.user.mining_end_time || null;
+            this.userLevel = result.user.level || 1;
             
             this._dirtyGold = false;
             this._dirtyMining = false;
+            this.updateLevelFromPower();
             this.updateHeaderBalances();
             this.renderMining();
             this.showNotification('Reward Claimed', `You have received ${result.claimed.toFixed(3)} Gold`, 'success');
@@ -1260,7 +1302,7 @@ class App {
         if (!this.tgUser) return false;
 
         try {
-            const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-34445" });
+            const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-41677" });
             await AdController.show();
         } catch (e) {
             this.showNotification('No Ads', 'No ads available at the moment', 'warning');
@@ -1284,6 +1326,7 @@ class App {
                 this.powerBalance = result.user.power_balance || 0;
                 this.goldBalance = result.user.gold_balance || 0;
                 this.gramBalance = result.user.gram_balance || 0;
+                this.userLevel = result.user.level || 1;
                 this.updateLevelFromPower();
                 this.updateHeaderBalances();
                 this.vibrate('success');
@@ -1358,51 +1401,82 @@ class App {
         return match ? match[1] : null;
     }
 
-    async withdraw(goldAmount, wallet) {
+    showWithdrawalModal(amount, wallet, fees, received) {
+        const modal = document.createElement('div');
+        modal.className = 'modal withdrawal-modal';
+        modal.style.display = 'flex';
+        modal.innerHTML = `
+            <div class="modal-content gold-modal">
+                <div class="modal-header gold-header">
+                    <h3><i class="fas fa-arrow-up"></i> ${this.t('withdrawal_details')}</h3>
+                    <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="detail-row">
+                        <span class="label">${this.t('wallet_label')}</span>
+                        <span class="value">${wallet}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">${this.t('amount_label')}</span>
+                        <span class="value">${amount} Gold</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">${this.t('fees_label')}</span>
+                        <span class="value fees">${fees} Gold</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">${this.t('received_amount')}</span>
+                        <span class="value received">${received} Gold</span>
+                    </div>
+                    <div class="confirm-note">${this.t('are_you_sure')}</div>
+                    <button id="confirm-withdrawal-btn" class="confirm-btn gold-btn">${this.t('confirm')}</button>
+                    <a href="https://t.me/mo_scam" target="_blank" class="support-link">${this.t('contact_support')}</a>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        document.getElementById('confirm-withdrawal-btn')?.addEventListener('click', async () => {
+            modal.remove();
+            await this.processWithdrawal(amount, wallet);
+        });
+
+        modal.querySelector('.modal-close')?.addEventListener('click', () => {
+            modal.remove();
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    }
+
+    async processWithdrawal(goldAmount, wallet) {
         if (this._withdrawLock) {
             this.showNotification('Please wait', 'You can withdraw again after 10 seconds', 'warning');
             this.vibrate('warning');
-            return false;
-        }
-
-        if (!wallet || wallet.length < 20) {
-            this.showNotification('Error', 'Invalid wallet address', 'error');
-            this.vibrate('error');
-            return false;
+            return;
         }
 
         const amount = parseFloat(goldAmount);
         if (isNaN(amount) || amount <= 0) {
-            this.showNotification('Error', 'Invalid amount', 'error');
+            this.showNotification('Error', this.t('invalid_amount'), 'error');
             this.vibrate('error');
-            return false;
+            return;
         }
 
-        if (amount < 500) {
+        const minWithdraw = this.config.MINIMUM_WITHDRAW || 100;
+        if (amount < minWithdraw) {
             this.showNotification('Error', this.t('min_withdraw_gold_amount'), 'error');
             this.vibrate('error');
-            return false;
-        }
-
-        if (amount > 2000) {
-            this.showNotification('Error', this.t('max_withdraw_gold_amount'), 'error');
-            this.vibrate('error');
-            return false;
+            return;
         }
 
         if (amount > this.goldBalance) {
-            this.showNotification('Error', 'Insufficient Gold balance', 'error');
+            this.showNotification('Error', this.t('insufficient_balance'), 'error');
             this.vibrate('error');
-            return false;
-        }
-
-        try {
-            const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-34445" });
-            await AdController.show();
-        } catch (result) {
-            this.showNotification('No Ads', 'No ads available at the moment', 'warning');
-            this.vibrate('warning');
-            return false;
+            return;
         }
 
         this._withdrawLock = true;
@@ -1428,7 +1502,7 @@ class App {
                     withdrawBtn.innerHTML = this.t('confirm_withdrawal');
                 }
                 this._withdrawLock = false;
-                return false;
+                return;
             }
 
             if (result.user) {
@@ -1459,7 +1533,6 @@ class App {
             }
             
             this._withdrawLock = false;
-            return true;
 
         } catch (error) {
             if (error.message === 'Cooldown') {
@@ -1468,18 +1541,43 @@ class App {
                     withdrawBtn.innerHTML = this.t('confirm_withdrawal');
                 }
                 this._withdrawLock = false;
-                return false;
+                return;
             }
             console.error('Withdraw error:', error);
-            this.showNotification('Error', 'Failed to withdraw', 'error');
+            this.showNotification('Error', this.t('withdrawal_failed'), 'error');
             this.vibrate('error');
             if (withdrawBtn) {
                 withdrawBtn.disabled = false;
                 withdrawBtn.innerHTML = this.t('confirm_withdrawal');
             }
             this._withdrawLock = false;
-            return false;
         }
+    }
+
+    withdraw(goldAmount, wallet) {
+        const amount = parseFloat(goldAmount);
+        if (isNaN(amount) || amount <= 0) {
+            this.showNotification('Error', this.t('invalid_amount'), 'error');
+            this.vibrate('error');
+            return;
+        }
+
+        if (!wallet || wallet.length < 20) {
+            this.showNotification('Error', 'Invalid wallet address', 'error');
+            this.vibrate('error');
+            return;
+        }
+
+        const fees = this.config.WITHDRAWAL_FEES || 50;
+        const received = amount - fees;
+
+        if (received <= 0) {
+            this.showNotification('Error', 'Amount must be greater than fees', 'error');
+            this.vibrate('error');
+            return;
+        }
+
+        this.showWithdrawalModal(amount, wallet, fees, received);
     }
 
     renderMining() {
@@ -1558,7 +1656,7 @@ class App {
                     <div class="mining-active-badge gold-badge"><i class="fas fa-circle"></i> ${this.t('mining_active')}</div>
                 ` : ''}
                 ${showStartButton ? `<button id="start-mining-btn" class="mining-action-btn gold-btn"><i class="fas fa-play"></i> ${this.t('start_mining')}</button>` : ''}
-                ${showClaimButton ? `<button id="claim-mining-btn" class="mining-claim-btn gold-btn" style="white-space:nowrap;"><i class="fas fa-gift"></i> ${claimText}</button>` : ''}
+                ${showClaimButton ? `<button id="claim-mining-btn" class="mining-claim-btn gold-btn"><i class="fas fa-gift"></i> ${claimText}</button>` : ''}
             </div>
 
             ${!welcomeBonusClaimed ? `
@@ -1662,7 +1760,7 @@ class App {
 
         document.getElementById('claim-welcome-quest')?.addEventListener('click', async () => {
             try {
-                const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-34445" });
+                const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-41677" });
                 await AdController.show();
             } catch (e) {
                 this.showNotification('No Ads', 'No ads available at the moment', 'warning');
@@ -1677,6 +1775,7 @@ class App {
             if (result.success) {
                 this.powerBalance = result.user.power_balance;
                 this.quests.welcomeBonusClaimed = true;
+                this.userLevel = result.user.level || 1;
                 this.updateLevelFromPower();
                 this.renderMining();
                 this.showNotification('Reward Claimed', `You have received ${result.reward} Power`, 'success');
@@ -1685,7 +1784,7 @@ class App {
 
         document.getElementById('claim-level-quest')?.addEventListener('click', async () => {
             try {
-                const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-34445" });
+                const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-41677" });
                 await AdController.show();
             } catch (e) {
                 this.showNotification('No Ads', 'No ads available at the moment', 'warning');
@@ -1701,7 +1800,7 @@ class App {
 
         document.getElementById('claim-task-quest')?.addEventListener('click', async () => {
             try {
-                const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-34445" });
+                const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-41677" });
                 await AdController.show();
             } catch (e) {
                 this.showNotification('No Ads', 'No ads available at the moment', 'warning');
@@ -1717,7 +1816,7 @@ class App {
 
         document.getElementById('claim-referral-quest')?.addEventListener('click', async () => {
             try {
-                const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-34445" });
+                const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-41677" });
                 await AdController.show();
             } catch (e) {
                 this.showNotification('No Ads', 'No ads available at the moment', 'warning');
@@ -1863,7 +1962,7 @@ class App {
                 return `
                     <div class="task-card gold-card" data-task-id="${task.id}">
                         <div class="task-header">
-                            <div class="task-icon"><img src="${this.config.TASK_IMAGE}" class="task-img" style="width:44px;height:44px;border-radius:50%;object-fit:cover"></div>
+                            <div class="task-icon"><img src="${this.config.TASK_IMAGE}" class="task-img"></div>
                             <div class="task-info">
                                 <h4>${task.name}</h4>
                                 <div class="task-reward"><i class="fas fa-bolt"></i> ${task.reward} ${this.t('power')}</div>
@@ -1994,7 +2093,7 @@ class App {
                 return `
                     <div class="task-card gold-card" data-task-id="${task.id}">
                         <div class="task-header">
-                            <div class="task-icon"><img src="${this.config.TASK_IMAGE}" class="task-img" style="width:44px;height:44px;border-radius:50%;object-fit:cover"></div>
+                            <div class="task-icon"><img src="${this.config.TASK_IMAGE}" class="task-img"></div>
                             <div class="task-info">
                                 <h4>${task.name}</h4>
                                 <div class="task-reward"><i class="fas fa-bolt"></i> ${task.reward} ${this.t('power')}</div>
@@ -2210,8 +2309,8 @@ class App {
         if (!el) return;
 
         const exchangeRate = this.config.PIRATE_TO_GRAM_RATE || 10000;
-        const minWithdrawGold = 500;
-        const maxWithdrawGold = 2000;
+        const minWithdrawGold = this.config.MINIMUM_WITHDRAW || 100;
+        const withdrawalFees = this.config.WITHDRAWAL_FEES || 50;
 
         const historyHtml = this.withdrawals && this.withdrawals.length ? this.withdrawals.slice(0, 5).map(w => {
             const date = new Date(w.timestamp);
@@ -2290,6 +2389,9 @@ class App {
                 <div class="exchange-note">
                     <i class="fas fa-exchange-alt"></i> ${this.t('exchange_rate')}: ${exchangeRate.toLocaleString()} ${this.t('gold')} = 1 GRAM
                 </div>
+                <div class="withdrawal-fees-note">
+                    ${this.t('withdrawal_fees', { fees: withdrawalFees })}
+                </div>
             </div>
 
             <div class="history-list">
@@ -2311,7 +2413,8 @@ class App {
                 preview.innerHTML = `<span>≈ ${gramAmount.toFixed(4)} GRAM</span>`;
             }
 
-            const isValid = amount >= 500 && amount <= 2000 && amount <= this.goldBalance;
+            const fees = this.config.WITHDRAWAL_FEES || 50;
+            const isValid = amount >= (this.config.MINIMUM_WITHDRAW || 100) && amount <= 2000 && amount <= this.goldBalance && (amount - fees) > 0;
             if (withdrawBtn) {
                 withdrawBtn.disabled = !isValid;
                 withdrawBtn.classList.toggle('disabled', !isValid);
@@ -2332,6 +2435,11 @@ class App {
             if (withdrawBtn.disabled) return;
             const amount = parseFloat(amountInput.value);
             const wallet = walletInput.value.trim();
+            if (!wallet || wallet.length < 20) {
+                this.showNotification('Error', 'Invalid wallet address', 'error');
+                this.vibrate('error');
+                return;
+            }
             this.withdraw(amount, wallet);
         });
 
