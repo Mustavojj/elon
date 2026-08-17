@@ -421,7 +421,7 @@ body {
 
 .modal-content {
     width: 100%;
-    max-width: 280px;
+    max-width: 320px;
     margin: 0 auto;
     position: relative;
     max-height: 85vh;
@@ -674,22 +674,26 @@ body {
 }
 
 .mining-action-btn, .mining-claim-btn {
-    padding: 14px 30px;
+    padding: 14px 20px;
     background: var(--gold-gradient);
     border: none;
     border-radius: 60px;
     color: #0a0a0f;
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 0.85rem;
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
     z-index: 2;
     box-shadow: 0 5px 25px var(--primary-glow);
     width: 100%;
-    max-width: 220px;
+    max-width: 100%;
     margin: 8px auto 0;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
 }
 
 .mining-action-btn:active, .mining-claim-btn:active {
@@ -1114,14 +1118,12 @@ body {
 .task-icon {
     width: 44px;
     height: 44px;
-    background: rgba(255, 215, 0, 0.08);
-    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
-    color: var(--primary);
     flex-shrink: 0;
+    background: transparent !important;
+    border-radius: 0 !important;
 }
 
 .task-info {
@@ -1141,7 +1143,7 @@ body {
 .task-img {
     width: 44px;
     height: 44px;
-    border-radius: 50%;
+    border-radius: 8px;
     object-fit: cover;
     pointer-events: none;
 }
@@ -1747,6 +1749,16 @@ body {
     border-radius: 20px;
 }
 
+.withdrawal-fees-note {
+    font-size: 0.65rem;
+    color: #ff6b6b;
+    text-align: center;
+    margin-top: 4px;
+    padding: 4px;
+    background: rgba(255, 215, 0, 0.03);
+    border-radius: 20px;
+}
+
 .history-list {
     margin-bottom: 80px;
 }
@@ -1890,6 +1902,71 @@ body {
     box-shadow: 0 0 15px var(--primary-glow);
 }
 
+.withdrawal-modal .modal-content {
+    max-width: 340px;
+}
+
+.withdrawal-modal .modal-body {
+    padding: 20px 24px;
+}
+
+.withdrawal-modal .detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.05);
+    font-size: 0.85rem;
+}
+
+.withdrawal-modal .detail-row .label {
+    color: #888;
+}
+
+.withdrawal-modal .detail-row .value {
+    color: var(--primary-light);
+    font-weight: 600;
+}
+
+.withdrawal-modal .detail-row .value.fees {
+    color: #ff6b6b;
+}
+
+.withdrawal-modal .detail-row .value.received {
+    color: var(--success);
+}
+
+.withdrawal-modal .confirm-note {
+    text-align: center;
+    font-size: 0.7rem;
+    color: #888;
+    margin: 12px 0 16px;
+}
+
+.withdrawal-modal .confirm-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--gold-gradient);
+    border: none;
+    border-radius: 60px;
+    color: #0a0a0f;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.withdrawal-modal .confirm-btn:active {
+    transform: scale(0.96);
+}
+
+.withdrawal-modal .support-link {
+    display: block;
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--primary);
+    text-decoration: none;
+    margin-top: 10px;
+}
+
 @media (max-width: 400px) {
     .header-balance {
         font-size: 0.55rem;
@@ -1930,26 +2007,3 @@ body {
     background: var(--primary);
     border-radius: 10px;
 }
-
-.mining-claim-btn {
-    padding: 14px 20px !important;
-    background: var(--gold-gradient);
-    border: none;
-    border-radius: 60px;
-    color: #0a0a0f;
-    font-weight: 700;
-    font-size: 0.85rem !important;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    z-index: 2;
-    box-shadow: 0 5px 25px var(--primary-glow);
-    width: 100%;
-    max-width: 100% !important;
-    margin: 8px auto 0;
-    letter-spacing: 0.5px;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    display: inline-block !important;
-} 
