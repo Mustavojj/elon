@@ -227,21 +227,15 @@ async function createUser(userData) {
 
 async function updateUser(userId, updates) {
     try {
-        console.log(`🔄 [updateUser] User ${userId}, updates:`, JSON.stringify(updates).substring(0, 200));
         const { data, error } = await supabase
             .from('users')
             .update(updates)
             .eq('id', userId)
             .select()
             .single();
-        if (error) {
-            console.error(`❌ [updateUser] Error:`, error);
-            throw error;
-        }
-        console.log(`✅ [updateUser] Success for user ${userId}`);
+        if (error) throw error;
         return data;
     } catch (error) {
-        console.error(`❌ [updateUser] Failed:`, error.message);
         throw error;
     }
 }
@@ -451,19 +445,11 @@ async function sendVerificationCode(userId, code) {
 async function verifySession(req, res, next) {
     const { userId, sessionToken } = req.body;
 
-    console.log(`🔍 [verifySession] ============ START ============`);
-    console.log(`🔍 [verifySession] userId: ${userId}`);
-    console.log(`🔍 [verifySession] sessionToken: ${sessionToken ? sessionToken.substring(0, 20) + '...' : 'null'}`);
-    console.log(`🔍 [verifySession] endpoint: ${req.path}`);
-
     if (!userId || !sessionToken) {
-        console.log(`❌ [verifySession] Missing userId or sessionToken`);
         return res.status(401).json({ error: 'Session required' });
     }
 
     try {
-        console.log(`🔍 [verifySession] Searching for token in database...`);
-        
         const { data: user, error } = await supabase
             .from('users')
             .select('id, session_token, token_expires_at, verified, state')
@@ -471,54 +457,28 @@ async function verifySession(req, res, next) {
             .single();
 
         if (error || !user) {
-            console.log(`❌ [verifySession] User not found for token: ${sessionToken.substring(0, 20)}...`);
-            console.log(`❌ [verifySession] Supabase error:`, error);
             return res.status(401).json({ error: 'Invalid session' });
         }
 
-        console.log(`✅ [verifySession] User found: ${user.id}`);
-        console.log(`✅ [verifySession] verified: ${user.verified}`);
-        console.log(`✅ [verifySession] token_expires_at: ${user.token_expires_at}`);
-        console.log(`✅ [verifySession] state: ${user.state}`);
-        console.log(`✅ [verifySession] token from DB: ${user.session_token ? user.session_token.substring(0, 20) + '...' : 'null'}`);
-
-        // Compare tokens
-        if (user.session_token !== sessionToken) {
-            console.log(`❌ [verifySession] Token mismatch!`);
-            console.log(`❌ [verifySession] DB token: ${user.session_token ? user.session_token.substring(0, 20) + '...' : 'null'}`);
-            console.log(`❌ [verifySession] Request token: ${sessionToken.substring(0, 20) + '...'}`);
-            return res.status(401).json({ error: 'Invalid session token' });
-        }
-
         if (user.id !== parseInt(userId)) {
-            console.log(`❌ [verifySession] Token user ${user.id} does not match requested userId ${userId}`);
             return res.status(403).json({ error: 'Session does not belong to this user' });
         }
 
         if (user.state === 'ban') {
-            console.log(`❌ [verifySession] User ${userId} is banned`);
             return res.status(403).json({ error: 'Account banned' });
         }
 
         if (!user.verified) {
-            console.log(`❌ [verifySession] User ${userId} is not verified`);
             return res.status(403).json({ error: 'User not verified' });
         }
 
-        const now = getCurrentTime();
-        if (now > user.token_expires_at) {
-            console.log(`❌ [verifySession] Token expired for user ${userId}`);
-            console.log(`❌ [verifySession] Now: ${now}, Expires: ${user.token_expires_at}`);
+        if (getCurrentTime() > user.token_expires_at) {
             return res.status(401).json({ error: 'Session expired' });
         }
 
-        console.log(`✅ [verifySession] Session valid for user ${userId}`);
-        console.log(`🔍 [verifySession] ============ END ============`);
         req._userId = user.id;
         next();
     } catch (error) {
-        console.error(`❌ [verifySession] Error: ${error.message}`);
-        console.error(`❌ [verifySession] Stack:`, error.stack);
         res.status(500).json({ error: 'Session verification failed' });
     }
 }
@@ -859,19 +819,12 @@ app.post('/api/verify-code', async (req, res) => {
         const sessionToken = generateSessionToken();
         const tokenExpiresAt = getCurrentTime() + APP_CONFIG.SESSION_TOKEN_LIFETIME;
 
-        console.log(`🔐 [verify-code] Saving session for user ${userId}`);
-        console.log(`🔐 [verify-code] Token: ${sessionToken.substring(0, 20)}...`);
-        console.log(`🔐 [verify-code] Expires: ${tokenExpiresAt}`);
-
-        const updatedUser = await updateUser(userId, {
+        await updateUser(userId, {
             session_token: sessionToken,
             token_expires_at: tokenExpiresAt,
             verified: true,
             state: 'active'
         });
-
-        console.log(`✅ [verify-code] User ${userId} verified successfully`);
-        console.log(`✅ [verify-code] Updated user:`, updatedUser ? 'success' : 'failed');
 
         res.json({
             success: true,
@@ -881,7 +834,6 @@ app.post('/api/verify-code', async (req, res) => {
         });
 
     } catch (error) {
-        console.error(`❌ [verify-code] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -958,12 +910,7 @@ app.post('/api/get-user', async (req, res) => {
     try {
         const { userId, sessionToken } = req.body;
         
-        console.log(`🔍 [get-user] ============ START ============`);
-        console.log(`🔍 [get-user] userId: ${userId}`);
-        console.log(`🔍 [get-user] sessionToken: ${sessionToken ? sessionToken.substring(0, 20) + '...' : 'null'}`);
-
         if (!userId) {
-            console.log(`❌ [get-user] Missing userId`);
             return res.status(400).json({ error: 'userId required' });
         }
 
@@ -971,15 +918,33 @@ app.post('/api/get-user', async (req, res) => {
             return res.status(429).json({ error: 'Too many requests. Please wait 5 seconds.' });
         }
 
+        // Check if user is banned first
         const isBanned = await checkUserBanned(userId);
         if (isBanned) {
             return res.status(403).json({ error: 'Account banned' });
         }
 
+        // If session token is provided, verify it belongs to this user
+        if (sessionToken) {
+            const { data: tokenUser, error: tokenError } = await supabase
+                .from('users')
+                .select('id')
+                .eq('session_token', sessionToken)
+                .single();
+            
+            if (!tokenError && tokenUser) {
+                if (tokenUser.id !== parseInt(userId)) {
+                    return res.status(403).json({ error: 'Unauthorized: Token does not match user' });
+                }
+            } else {
+                return res.status(401).json({ error: 'Invalid session token' });
+            }
+        }
+
         let user = await getUser(userId);
         
+        // If user doesn't exist, create new user and send verification
         if (!user) {
-            console.log(`🆕 [get-user] Creating new user: ${userId}`);
             const userData = {
                 id: userId,
                 username: req.body.username || '',
@@ -1026,6 +991,7 @@ app.post('/api/get-user', async (req, res) => {
 
             user = await createUser(userData);
 
+            // Send verification code for new user
             const code = generateVerificationCode();
             const expiresAt = getCurrentTime() + APP_CONFIG.VERIFICATION_CODE_LIFETIME;
 
@@ -1054,43 +1020,59 @@ app.post('/api/get-user', async (req, res) => {
             });
         }
 
-        // Check if session token is valid
-        if (sessionToken) {
-            console.log(`🔍 [get-user] Checking session token in database...`);
-            
-            const { data: tokenUser, error: tokenError } = await supabase
-                .from('users')
-                .select('id, session_token')
-                .eq('session_token', sessionToken)
-                .single();
-            
-            if (!tokenError && tokenUser) {
-                console.log(`✅ [get-user] Token found in DB for user: ${tokenUser.id}`);
-                console.log(`✅ [get-user] Token from DB: ${tokenUser.session_token ? tokenUser.session_token.substring(0, 20) + '...' : 'null'}`);
-                console.log(`✅ [get-user] Token from request: ${sessionToken.substring(0, 20) + '...'}`);
-                
-                if (tokenUser.id !== parseInt(userId)) {
-                    console.log(`❌ [get-user] Token user ${tokenUser.id} does not match requested userId ${userId}`);
-                    return res.status(403).json({ error: 'Unauthorized: Token does not match user' });
-                }
-                console.log(`✅ [get-user] Session token is valid for user ${userId}`);
-            } else {
-                console.log(`❌ [get-user] Token NOT found in database!`);
-                console.log(`❌ [get-user] Token error:`, tokenError);
+        // User exists - check if they have a valid session
+        if (user.verified && user.session_token) {
+            // User is verified and has a token
+            // Check if the provided token matches
+            if (sessionToken && user.session_token !== sessionToken) {
                 return res.status(401).json({ error: 'Invalid session token' });
             }
-        } else {
-            console.log(`⚠️ [get-user] No session token provided for user ${userId}`);
-            return res.status(401).json({ error: 'Session required' });
+        } else if (user.verified && !sessionToken) {
+            // User is verified but no token provided - require verification
+            const code = generateVerificationCode();
+            const expiresAt = getCurrentTime() + APP_CONFIG.VERIFICATION_CODE_LIFETIME;
+
+            await supabase
+                .from('verifications')
+                .upsert({
+                    user_id: userId,
+                    code: code,
+                    expires_at: expiresAt,
+                    created_at: getCurrentTime(),
+                    attempts: 0
+                });
+
+            await sendVerificationCode(userId, code);
+
+            // Clear existing session
+            await updateUser(userId, {
+                session_token: null,
+                token_expires_at: null,
+                verified: false
+            });
+
+            const [completedTasks, withdrawals] = await Promise.all([
+                getCompletedTasks(userId),
+                getWithdrawals(userId)
+            ]);
+
+            return res.json({
+                user: { ...user, verified: false },
+                completedTasks,
+                withdrawals,
+                requiresVerification: true,
+                message: 'Session required. Verification code sent.'
+            });
         }
 
+        // User exists and has valid session
         const [completedTasks, withdrawals] = await Promise.all([
             getCompletedTasks(userId),
             getWithdrawals(userId)
         ]);
 
-        console.log(`✅ [get-user] User ${userId} data loaded successfully`);
-        console.log(`🔍 [get-user] ============ END ============`);
+        // Update user level after fetching data
+        await updateUserLevel(userId);
 
         res.json({
             user: {
@@ -1102,8 +1084,7 @@ app.post('/api/get-user', async (req, res) => {
         });
 
     } catch (error) {
-        console.error(`❌ [get-user] Error: ${error.message}`);
-        console.error(`❌ [get-user] Stack:`, error.stack);
+        console.error('Error in get-user:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1119,8 +1100,6 @@ app.post('/api/update-mining', verifySession, async (req, res) => {
 app.post('/api/start-mining', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
-        console.log(`⛏️ [start-mining] User ${userId}`);
-
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -1168,7 +1147,6 @@ app.post('/api/start-mining', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        console.error(`❌ [start-mining] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1176,8 +1154,6 @@ app.post('/api/start-mining', verifySession, async (req, res) => {
 app.post('/api/stop-mining', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
-        console.log(`⛏️ [stop-mining] User ${userId}`);
-
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -1217,7 +1193,6 @@ app.post('/api/stop-mining', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        console.error(`❌ [stop-mining] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1225,8 +1200,6 @@ app.post('/api/stop-mining', verifySession, async (req, res) => {
 app.post('/api/claim-mining', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
-        console.log(`💰 [claim-mining] User ${userId}`);
-
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -1290,7 +1263,6 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        console.error(`❌ [claim-mining] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1298,8 +1270,6 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
 app.post('/api/claim-quest', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
-        console.log(`🎯 [claim-quest] User ${userId}, type: ${req.body.questType}`);
-
         if (!userId || !req.body.questType) {
             return res.status(400).json({ error: 'userId and questType required' });
         }
@@ -1382,7 +1352,6 @@ app.post('/api/claim-quest', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        console.error(`❌ [claim-quest] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1390,8 +1359,6 @@ app.post('/api/claim-quest', verifySession, async (req, res) => {
 app.post('/api/complete-task', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
-        console.log(`📋 [complete-task] User ${userId}, taskId: ${req.body.taskId}`);
-
         const { taskId, isPartner, taskOwner } = req.body;
         if (!userId || !taskId) {
             return res.status(400).json({ error: 'userId and taskId required' });
@@ -1451,7 +1418,6 @@ app.post('/api/complete-task', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        console.error(`❌ [complete-task] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1459,8 +1425,6 @@ app.post('/api/complete-task', verifySession, async (req, res) => {
 app.post('/api/convert-gold-to-power', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
-        console.log(`🔄 [convert-gold-to-power] User ${userId}, amount: ${req.body.goldAmount}`);
-
         const { goldAmount } = req.body;
         if (!userId || !goldAmount) {
             return res.status(400).json({ error: 'userId and goldAmount required' });
@@ -1500,7 +1464,6 @@ app.post('/api/convert-gold-to-power', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        console.error(`❌ [convert-gold-to-power] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1508,8 +1471,6 @@ app.post('/api/convert-gold-to-power', verifySession, async (req, res) => {
 app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
-        console.log(`👥 [claim-referral-earnings] User ${userId}, type: ${req.body.type}`);
-
         const { type } = req.body;
         if (!userId || !type) {
             return res.status(400).json({ error: 'userId and type required' });
@@ -1566,7 +1527,6 @@ app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        console.error(`❌ [claim-referral-earnings] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1574,8 +1534,6 @@ app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
 app.post('/api/apply-promo', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
-        console.log(`🎫 [apply-promo] User ${userId}, code: ${req.body.code}`);
-
         const { code } = req.body;
         if (!userId || !code) {
             return res.status(400).json({ error: 'userId and code required' });
@@ -1645,7 +1603,6 @@ app.post('/api/apply-promo', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        console.error(`❌ [apply-promo] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1653,8 +1610,6 @@ app.post('/api/apply-promo', verifySession, async (req, res) => {
 app.post('/api/watch-ad', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
-        console.log(`📺 [watch-ad] User ${userId}`);
-
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -1700,7 +1655,6 @@ app.post('/api/watch-ad', verifySession, async (req, res) => {
         });
 
     } catch (error) {
-        console.error(`❌ [watch-ad] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1862,9 +1816,9 @@ app.post('/api/set-wallet', verifySession, async (req, res) => {
 app.post('/api/withdraw-gram', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
-        console.log(`💳 [withdraw-gram] User ${userId}, amount: ${req.body.goldAmount}`);
+        const { goldAmount } = req.body;
         
-        if (!userId || !req.body.goldAmount) {
+        if (!userId || !goldAmount) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
@@ -1878,7 +1832,7 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
             return res.status(400).json({ error: 'No wallet set. Please set your wallet first.' });
         }
         
-        const gold = parseFloat(req.body.goldAmount);
+        const gold = parseFloat(goldAmount);
         if (isNaN(gold) || gold <= 0) {
             return res.status(400).json({ error: 'Invalid amount' });
         }
@@ -1987,7 +1941,6 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         });
         
     } catch (error) {
-        console.error(`❌ [withdraw-gram] Error: ${error.message}`);
         res.status(500).json({ error: 'Failed to send withdrawal request: ' + error.message });
     }
 });
