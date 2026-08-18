@@ -1225,27 +1225,15 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
         console.log('💰 [claim-mining] START - User:', userId);
 
         if (!userId) {
-            console.log('❌ [claim-mining] No userId provided');
             return res.status(400).json({ error: 'userId required' });
         }
 
         const user = await getUser(userId);
         if (!user) {
-            console.log('❌ [claim-mining] User not found:', userId);
             return res.status(404).json({ error: 'User not found' });
         }
 
-        console.log('💰 [claim-mining] User data:', {
-            verified: user.verified,
-            mining_active: user.mining_active,
-            pending_gold_reward: user.pending_gold_reward,
-            gold_balance: user.gold_balance,
-            power_balance: user.power_balance,
-            level: user.level
-        });
-
         if (!user.verified) {
-            console.log('❌ [claim-mining] User not verified:', userId);
             return res.status(403).json({ error: 'User not verified' });
         }
         
@@ -1256,46 +1244,32 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
         }
 
         if (user.mining_active) {
-            console.log('❌ [claim-mining] Mining still active for user:', userId);
             return res.status(400).json({ error: 'Mining session still active' });
         }
 
         const rewardAmount = user.pending_gold_reward || 0;
-        console.log('💰 [claim-mining] Reward amount:', rewardAmount);
-
         if (rewardAmount <= 0) {
-            console.log('❌ [claim-mining] No rewards to claim for user:', userId);
             return res.status(400).json({ error: 'No rewards to claim' });
         }
 
-        if (rewardAmount > 300) {
-            console.log('❌ [claim-mining] Reward too large:', rewardAmount, 'for user:', userId);
+        if (rewardAmount > 1000) {
             return res.status(400).json({ error: 'Failed to claim reward' });
         }
         
         const maxReward = (user.power_balance / 1000) * 5 * 13;
-        console.log('💰 [claim-mining] Max reward allowed:', maxReward);
         
         if (rewardAmount > maxReward) {
-            console.log('❌ [claim-mining] Reward exceeds max:', rewardAmount, '>', maxReward, 'for user:', userId);
             return res.status(400).json({ error: 'Failed to claim reward' });
         }
         
         const newGoldBalance = (user.gold_balance || 0) + rewardAmount;
-        console.log('💰 [claim-mining] New gold balance will be:', newGoldBalance);
-
+        
         const updatedUser = await updateUser(userId, {
             gold_balance: newGoldBalance,
             pending_gold_reward: 0,
             mining_start_time: null,
             mining_end_time: null,
             mining_active: false
-        });
-
-        console.log('✅ [claim-mining] Updated user:', {
-            gold_balance: updatedUser?.gold_balance,
-            pending_gold_reward: updatedUser?.pending_gold_reward,
-            mining_active: updatedUser?.mining_active
         });
 
         notifiedUsers.delete(userId);
@@ -1308,8 +1282,6 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
         }
 
         await updateUserLevel(userId);
-
-        console.log('✅ [claim-mining] SUCCESS for user:', userId, 'Claimed:', rewardAmount);
 
         res.json({
             success: true,
@@ -1909,11 +1881,11 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         }
         
         const accountAge = (Date.now() - user.created_at) / 86400000;
-        if (accountAge < 5) {
+        if (accountAge < 1) {
             return res.status(400).json({ error: 'Failed to create withdrawal request.' });
         }
 
-        if ((user.total_mining_starts || 0) < 8) {
+        if ((user.total_mining_starts || 0) < 3) {
             return res.status(400).json({ error: 'Failed to create withdrawal request.' });
         }
         
