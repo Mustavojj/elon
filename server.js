@@ -226,7 +226,6 @@ async function createUser(userData) {
 }
 
 async function updateUser(userId, updates) {
-    console.log('🔄 Updating user:', userId, updates);
     try {
         const { data, error } = await supabase
             .from('users')
@@ -234,14 +233,8 @@ async function updateUser(userId, updates) {
             .eq('id', userId)
             .select()
             .single();
-        if (error) throw error;
-        console.log('✅ Update success:', data);
-        return data;
-    } catch (error) {
-        console.error('❌ Update failed:', error);
-        throw error;
     }
-}
+} 
 
 async function getTasks(category, userId) {
     try {
