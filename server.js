@@ -1037,16 +1037,6 @@ app.post('/api/get-user', async (req, res) => {
                             attempts: 0
                         });
                     
-                    await sendVerificationCode(userId, code);
-                    
-                    // Clear old session
-                    await updateUser(userId, {
-                        session_token: null,
-                        token_expires_at: null,
-                        verified: false,
-                        session_ip: null
-                    });
-                    
                     const [completedTasks, withdrawals] = await Promise.all([
                         getCompletedTasks(userId),
                         getWithdrawals(userId)
@@ -1078,15 +1068,6 @@ app.post('/api/get-user', async (req, res) => {
                     created_at: getCurrentTime(),
                     attempts: 0
                 });
-            
-            await sendVerificationCode(userId, code);
-            
-            await updateUser(userId, {
-                session_token: null,
-                token_expires_at: null,
-                verified: false,
-                session_ip: null
-            });
             
             const [completedTasks, withdrawals] = await Promise.all([
                 getCompletedTasks(userId),
