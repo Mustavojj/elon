@@ -690,9 +690,6 @@ class App {
             });
 
             if (result.error) {
-                console.error('Error loading user:', result.error);
-                this.showNotification('Error', 'Failed to load user data: ' + result.error, 'error');
-                this.vibrate('error');
                 return;
             }
 
@@ -772,9 +769,7 @@ class App {
             if (error.message === 'Cooldown') {
                 return;
             }
-            console.error('loadUserData error:', error);
-            this.showNotification('Error', 'Failed to load user data', 'error');
-            this.vibrate('error');
+            
         }
     }
 
