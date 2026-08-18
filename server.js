@@ -452,7 +452,7 @@ async function verifySession(req, res, next) {
     try {
         const { data: user, error } = await supabase
             .from('users')
-            .select('id, session_token, token_expires_at, verified, state, session_ip')
+            .select('id, session_token, token_expires_at, verified, state')
             .eq('session_token', sessionToken)
             .single();
 
@@ -475,7 +475,7 @@ async function verifySession(req, res, next) {
         if (getCurrentTime() > user.token_expires_at) {
             return res.status(401).json({ error: 'Session expired' });
         }
-        
+
         req._userId = user.id;
         next();
     } catch (error) {
@@ -823,8 +823,7 @@ app.post('/api/verify-code', async (req, res) => {
             session_token: sessionToken,
             token_expires_at: tokenExpiresAt,
             verified: true,
-            state: 'active',
-            session_ip: req.ip
+            state: 'active'
         });
 
         res.json({
@@ -868,8 +867,7 @@ app.post('/api/refresh-session', async (req, res) => {
 
         await updateUser(userId, {
             session_token: newToken,
-            token_expires_at: newExpiresAt,
-            session_ip: req.ip
+            token_expires_at: newExpiresAt
         });
 
         res.json({
@@ -898,8 +896,7 @@ app.post('/api/logout', async (req, res) => {
             session_token: null,
             token_expires_at: null,
             verified: false,
-            state: 'pending_verification',
-            session_ip: null
+            state: 'pending_verification'
         });
 
         res.json({ success: true });
@@ -965,8 +962,7 @@ app.post('/api/get-user', async (req, res) => {
                 promotion: null,
                 last_withdraw_time: 0,
                 referred_by_verified: false,
-                wallet: null,
-                session_ip: null
+                wallet: null
             };
 
             const referredBy = req.body.referredBy || null;
@@ -1004,11 +1000,10 @@ app.post('/api/get-user', async (req, res) => {
             });
         }
 
-        // Check if sessionToken is valid
         if (sessionToken) {
             const { data: tokenUser, error: tokenError } = await supabase
                 .from('users')
-                .select('id, session_ip')
+                .select('id')
                 .eq('session_token', sessionToken)
                 .single();
             
@@ -1016,67 +1011,13 @@ app.post('/api/get-user', async (req, res) => {
                 if (tokenUser.id !== parseInt(userId)) {
                     return res.status(403).json({ error: 'Unauthorized: Token does not match user' });
                 }
-                
-                // Check IP mismatch
-                if (tokenUser.session_ip && tokenUser.session_ip !== req.ip) {
-                    // Send new verification code
-                    const code = generateVerificationCode();
-                    const expiresAt = getCurrentTime() + APP_CONFIG.VERIFICATION_CODE_LIFETIME;
-                    
-                    await supabase
-                        .from('verifications')
-                        .upsert({
-                            user_id: userId,
-                            code: code,
-                            expires_at: expiresAt,
-                            created_at: getCurrentTime(),
-                            attempts: 0
-                        });
-                    
-                    const [completedTasks, withdrawals] = await Promise.all([
-                        getCompletedTasks(userId),
-                        getWithdrawals(userId)
-                    ]);
-                    
-                    return res.json({
-                        user: { ...user, verified: false },
-                        completedTasks,
-                        withdrawals,
-                        requiresVerification: true,
-                        message: 'New IP detected. Verification code sent.'
-                    });
-                }
+            } else {
+                return res.status(401).json({ error: 'Invalid session token' });
             }
         }
 
-        // If user exists but no valid session
-        if (user.verified && user.session_token && !sessionToken) {
-            // Session exists but client doesn't have it - send new code
-            const code = generateVerificationCode();
-            const expiresAt = getCurrentTime() + APP_CONFIG.VERIFICATION_CODE_LIFETIME;
-            
-            await supabase
-                .from('verifications')
-                .upsert({
-                    user_id: userId,
-                    code: code,
-                    expires_at: expiresAt,
-                    created_at: getCurrentTime(),
-                    attempts: 0
-                });
-            
-            const [completedTasks, withdrawals] = await Promise.all([
-                getCompletedTasks(userId),
-                getWithdrawals(userId)
-            ]);
-            
-            return res.json({
-                user: { ...user, verified: false },
-                completedTasks,
-                withdrawals,
-                requiresVerification: true,
-                message: 'Session expired. New code sent.'
-            });
+        if (!sessionToken) {
+            return res.status(401).json({ error: 'Session required' });
         }
 
         const [completedTasks, withdrawals] = await Promise.all([
