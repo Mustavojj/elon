@@ -1402,6 +1402,8 @@ class App {
     }
 
     showWithdrawalModal(amount, wallet, fees, received) {
+        const first = wallet.substring(0, 5);
+        const last = wallet.substring(wallet.length - 5);
         const modal = document.createElement('div');
         modal.className = 'modal withdrawal-modal';
         modal.style.display = 'flex';
@@ -1414,7 +1416,7 @@ class App {
                 <div class="modal-body">
                     <div class="detail-row">
                         <span class="label">${this.t('wallet_label')}</span>
-                        <span class="value">${wallet}</span>
+                        <span class="value">${first}...${last}</span>
                     </div>
                     <div class="detail-row">
                         <span class="label">${this.t('amount_label')}</span>
