@@ -690,16 +690,9 @@ class App {
             });
 
             if (result.error) {
-                return;
-            }
-
-            if (result.requiresVerification) {
-                this.sessionToken = null;
-                localStorage.removeItem('pirate_session_token');
-                localStorage.removeItem('pirate_session_expires');
-                this.verified = false;
-                this.showVerificationModal();
-                this.showNotification('Verification Required', result.message || 'Please verify your account', 'info');
+                console.error('Error loading user:', result.error);
+                this.showNotification('Error', 'Failed to load user data: ' + result.error, 'error');
+                this.vibrate('error');
                 return;
             }
 
@@ -769,7 +762,9 @@ class App {
             if (error.message === 'Cooldown') {
                 return;
             }
-            
+            console.error('loadUserData error:', error);
+            this.showNotification('Error', 'Failed to load user data', 'error');
+            this.vibrate('error');
         }
     }
 
@@ -966,6 +961,7 @@ class App {
 
     async claimReferralEarnings(type) {
         try {
+            // Show ad before claiming
             try {
                 const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-41677" });
                 await AdController.show();
