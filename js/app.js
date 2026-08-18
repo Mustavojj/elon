@@ -424,7 +424,7 @@ class App {
             });
             const result = await response.json();
 
-            if (result.error === 'Session expired' || result.error === 'Invalid token' || result.error === 'Session required' || result.error === 'IP mismatch') {
+            if (result.error === 'Session expired' || result.error === 'Invalid token' || result.error === 'Session required') {
                 this.sessionToken = null;
                 localStorage.removeItem('pirate_session_token');
                 localStorage.removeItem('pirate_session_expires');
@@ -966,7 +966,6 @@ class App {
 
     async claimReferralEarnings(type) {
         try {
-            // Show ad before claiming
             try {
                 const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-41677" });
                 await AdController.show();
