@@ -1402,56 +1402,65 @@ class App {
     }
 
     showWithdrawalModal(amount, wallet, fees, received) {
-        const modal = document.createElement('div');
-        modal.className = 'modal withdrawal-modal';
-        modal.style.display = 'flex';
-        modal.innerHTML = `
-            <div class="modal-content gold-modal">
-                <div class="modal-header gold-header">
-                    <h3><i class="fas fa-arrow-up"></i> ${this.t('withdrawal_details')}</h3>
-                    <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="detail-row">
-                        <span class="label">${this.t('wallet_label')}</span>
-                        <span class="value">${wallet}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="label">${this.t('amount_label')}</span>
-                        <span class="value">${amount} Gold</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="label">${this.t('fees_label')}</span>
-                        <span class="value fees">${fees} Gold</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="label">${this.t('received_amount')}</span>
-                        <span class="value received">${received} Gold</span>
-                    </div>
-                    <div class="confirm-note">${this.t('are_you_sure')}</div>
-                    <button id="confirm-withdrawal-btn" class="confirm-btn gold-btn">${this.t('confirm')}</button>
-                    <a href="https://t.me/mo_scam" target="_blank" class="support-link">${this.t('contact_support')}</a>
-                </div>
+    const formattedWallet = this.formatWallet(wallet);
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal withdrawal-modal';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+        <div class="modal-content gold-modal">
+            <div class="modal-header gold-header">
+                <h3><i class="fas fa-arrow-up"></i> ${this.t('withdrawal_details')}</h3>
+                <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
             </div>
-        `;
-        document.body.appendChild(modal);
+            <div class="modal-body">
+                <div class="detail-row">
+                    <span class="label">${this.t('wallet_label')}</span>
+                    <span class="value">${formattedWallet}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">${this.t('amount_label')}</span>
+                    <span class="value">${amount} Gold</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">${this.t('fees_label')}</span>
+                    <span class="value fees">${fees} Gold</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">${this.t('received_amount')}</span>
+                    <span class="value received">${received} Gold</span>
+                </div>
+                <div class="confirm-note">${this.t('are_you_sure')}</div>
+                <button id="confirm-withdrawal-btn" class="confirm-btn gold-btn">${this.t('confirm')}</button>
+                <a href="https://t.me/mo_scam" target="_blank" class="support-link">${this.t('contact_support')}</a>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
 
-        document.getElementById('confirm-withdrawal-btn')?.addEventListener('click', async () => {
+    document.getElementById('confirm-withdrawal-btn')?.addEventListener('click', async () => {
+        modal.remove();
+        await this.processWithdrawal(amount, wallet);
+    });
+
+    modal.querySelector('.modal-close')?.addEventListener('click', () => {
+        modal.remove();
+    });
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
             modal.remove();
-            await this.processWithdrawal(amount, wallet);
-        });
+        }
+    });
+}
 
-        modal.querySelector('.modal-close')?.addEventListener('click', () => {
-            modal.remove();
-        });
-
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.remove();
-            }
-        });
-    }
-
+formatWallet(wallet) {
+    if (!wallet || wallet.length < 10) return wallet || '-';
+    const first = wallet.substring(0, 5);
+    const last = wallet.substring(wallet.length - 5);
+    return `${first}...${last}`;
+}
+    
     async processWithdrawal(goldAmount, wallet) {
         if (this._withdrawLock) {
             this.showNotification('Please wait', 'You can withdraw again after 10 seconds', 'warning');
