@@ -475,11 +475,7 @@ async function verifySession(req, res, next) {
         if (getCurrentTime() > user.token_expires_at) {
             return res.status(401).json({ error: 'Session expired' });
         }
-
-        if (user.session_ip && user.session_ip !== req.ip) {
-            return res.status(401).json({ error: 'IP mismatch' });
-        }
-
+        
         req._userId = user.id;
         next();
     } catch (error) {
