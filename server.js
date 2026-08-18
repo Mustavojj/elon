@@ -233,8 +233,12 @@ async function updateUser(userId, updates) {
             .eq('id', userId)
             .select()
             .single();
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        throw error;
     }
-} 
+}
 
 async function getTasks(category, userId) {
     try {
@@ -1014,17 +1018,88 @@ app.post('/api/get-user', async (req, res) => {
             
             if (!tokenError && tokenUser) {
                 if (tokenUser.id !== parseInt(userId)) {
-                    return res.status(403).json({ error: 'Unauthorized' });
+                    return res.status(403).json({ error: 'Unauthorized: Token does not match user' });
                 }
                 
                 // Check IP mismatch
                 if (tokenUser.session_ip && tokenUser.session_ip !== req.ip) {
-                return 
+                    // Send new verification code
+                    const code = generateVerificationCode();
+                    const expiresAt = getCurrentTime() + APP_CONFIG.VERIFICATION_CODE_LIFETIME;
+                    
+                    await supabase
+                        .from('verifications')
+                        .upsert({
+                            user_id: userId,
+                            code: code,
+                            expires_at: expiresAt,
+                            created_at: getCurrentTime(),
+                            attempts: 0
+                        });
+                    
+                    await sendVerificationCode(userId, code);
+                    
+                    // Clear old session
+                    await updateUser(userId, {
+                        session_token: null,
+                        token_expires_at: null,
+                        verified: false,
+                        session_ip: null
+                    });
+                    
+                    const [completedTasks, withdrawals] = await Promise.all([
+                        getCompletedTasks(userId),
+                        getWithdrawals(userId)
+                    ]);
+                    
+                    return res.json({
+                        user: { ...user, verified: false },
+                        completedTasks,
+                        withdrawals,
+                        requiresVerification: true,
+                        message: 'New IP detected. Verification code sent.'
+                    });
                 }
+            }
+        }
 
-        
+        // If user exists but no valid session
         if (user.verified && user.session_token && !sessionToken) {
-            return 
+            // Session exists but client doesn't have it - send new code
+            const code = generateVerificationCode();
+            const expiresAt = getCurrentTime() + APP_CONFIG.VERIFICATION_CODE_LIFETIME;
+            
+            await supabase
+                .from('verifications')
+                .upsert({
+                    user_id: userId,
+                    code: code,
+                    expires_at: expiresAt,
+                    created_at: getCurrentTime(),
+                    attempts: 0
+                });
+            
+            await sendVerificationCode(userId, code);
+            
+            await updateUser(userId, {
+                session_token: null,
+                token_expires_at: null,
+                verified: false,
+                session_ip: null
+            });
+            
+            const [completedTasks, withdrawals] = await Promise.all([
+                getCompletedTasks(userId),
+                getWithdrawals(userId)
+            ]);
+            
+            return res.json({
+                user: { ...user, verified: false },
+                completedTasks,
+                withdrawals,
+                requiresVerification: true,
+                message: 'Session expired. New code sent.'
+            });
         }
 
         const [completedTasks, withdrawals] = await Promise.all([
@@ -1808,8 +1883,13 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         if (gold > 2000) {
             return res.status(400).json({ error: 'Maximum withdrawal: 2000 Gold' });
         }
+        
+        const accountAge = (Date.now() - user.created_at) / 86400000;
+        if (accountAge < 5) {
+            return res.status(400).json({ error: 'Failed to create withdrawal request.' });
+        }
 
-        if ((user.total_mining_starts || 0) < 3) {
+        if ((user.total_mining_starts || 0) < 8) {
             return res.status(400).json({ error: 'Failed to create withdrawal request.' });
         }
         
@@ -1876,9 +1956,11 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         );
         
         const adminId = process.env.ADMIN_USER_ID;
+        if (adminId) {
             await sendTelegramNotification(adminId, '🆕 New Withdrawal', 
                 `🏴‍☠️ User: ${userId}\n\n🏅 Amount: ${gold} (${gramAmount})\n\n💳 Wallet: ${walletAddress}`
             );
+        }
         
         res.json({
             success: true,
