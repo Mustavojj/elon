@@ -445,7 +445,10 @@ async function sendVerificationCode(userId, code) {
 async function verifySession(req, res, next) {
     const { userId, sessionToken } = req.body;
 
+    console.log(`🔍 [verifySession] userId: ${userId}, sessionToken: ${sessionToken ? sessionToken.substring(0, 15) + '...' : 'null'}`);
+
     if (!userId || !sessionToken) {
+        console.log('❌ [verifySession] Missing userId or sessionToken');
         return res.status(401).json({ error: 'Session required' });
     }
 
@@ -457,28 +460,38 @@ async function verifySession(req, res, next) {
             .single();
 
         if (error || !user) {
+            console.log(`❌ [verifySession] User not found for token: ${sessionToken.substring(0, 15)}...`);
             return res.status(401).json({ error: 'Invalid session' });
         }
 
+        console.log(`✅ [verifySession] User found: ${user.id}, verified: ${user.verified}, token_expires_at: ${user.token_expires_at}`);
+
         if (user.id !== parseInt(userId)) {
+            console.log(`❌ [verifySession] Token user ${user.id} does not match requested userId ${userId}`);
             return res.status(403).json({ error: 'Session does not belong to this user' });
         }
 
         if (user.state === 'ban') {
+            console.log(`❌ [verifySession] User ${userId} is banned`);
             return res.status(403).json({ error: 'Account banned' });
         }
 
         if (!user.verified) {
+            console.log(`❌ [verifySession] User ${userId} is not verified`);
             return res.status(403).json({ error: 'User not verified' });
         }
 
-        if (getCurrentTime() > user.token_expires_at) {
+        const now = getCurrentTime();
+        if (now > user.token_expires_at) {
+            console.log(`❌ [verifySession] Token expired for user ${userId}. Now: ${now}, Expires: ${user.token_expires_at}`);
             return res.status(401).json({ error: 'Session expired' });
         }
 
+        console.log(`✅ [verifySession] Session valid for user ${userId}`);
         req._userId = user.id;
         next();
     } catch (error) {
+        console.error(`❌ [verifySession] Error: ${error.message}`);
         res.status(500).json({ error: 'Session verification failed' });
     }
 }
@@ -826,6 +839,8 @@ app.post('/api/verify-code', async (req, res) => {
             state: 'active'
         });
 
+        console.log(`✅ [verify-code] User ${userId} verified, token: ${sessionToken.substring(0, 15)}...`);
+
         res.json({
             success: true,
             message: 'Verified successfully',
@@ -910,6 +925,8 @@ app.post('/api/get-user', async (req, res) => {
     try {
         const { userId, sessionToken } = req.body;
         
+        console.log(`🔍 [get-user] userId: ${userId}, sessionToken: ${sessionToken ? sessionToken.substring(0, 15) + '...' : 'null'}`);
+
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -926,6 +943,7 @@ app.post('/api/get-user', async (req, res) => {
         let user = await getUser(userId);
         
         if (!user) {
+            console.log(`🆕 [get-user] Creating new user: ${userId}`);
             const userData = {
                 id: userId,
                 username: req.body.username || '',
@@ -1000,6 +1018,7 @@ app.post('/api/get-user', async (req, res) => {
             });
         }
 
+        // Validate session token if provided
         if (sessionToken) {
             const { data: tokenUser, error: tokenError } = await supabase
                 .from('users')
@@ -1009,14 +1028,16 @@ app.post('/api/get-user', async (req, res) => {
             
             if (!tokenError && tokenUser) {
                 if (tokenUser.id !== parseInt(userId)) {
+                    console.log(`❌ [get-user] Token user ${tokenUser.id} does not match requested userId ${userId}`);
                     return res.status(403).json({ error: 'Unauthorized: Token does not match user' });
                 }
+                console.log(`✅ [get-user] Valid session token for user ${userId}`);
             } else {
+                console.log(`❌ [get-user] Invalid session token for user ${userId}`);
                 return res.status(401).json({ error: 'Invalid session token' });
             }
-        }
-
-        if (!sessionToken) {
+        } else {
+            console.log(`⚠️ [get-user] No session token provided for user ${userId}`);
             return res.status(401).json({ error: 'Session required' });
         }
 
@@ -1024,6 +1045,8 @@ app.post('/api/get-user', async (req, res) => {
             getCompletedTasks(userId),
             getWithdrawals(userId)
         ]);
+
+        console.log(`✅ [get-user] User ${userId} data loaded successfully`);
 
         res.json({
             user: {
@@ -1035,6 +1058,7 @@ app.post('/api/get-user', async (req, res) => {
         });
 
     } catch (error) {
+        console.error(`❌ [get-user] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1050,6 +1074,8 @@ app.post('/api/update-mining', verifySession, async (req, res) => {
 app.post('/api/start-mining', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
+        console.log(`⛏️ [start-mining] User ${userId}`);
+
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -1097,6 +1123,7 @@ app.post('/api/start-mining', verifySession, async (req, res) => {
         });
 
     } catch (error) {
+        console.error(`❌ [start-mining] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1104,6 +1131,8 @@ app.post('/api/start-mining', verifySession, async (req, res) => {
 app.post('/api/stop-mining', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
+        console.log(`⛏️ [stop-mining] User ${userId}`);
+
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -1143,6 +1172,7 @@ app.post('/api/stop-mining', verifySession, async (req, res) => {
         });
 
     } catch (error) {
+        console.error(`❌ [stop-mining] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1150,6 +1180,8 @@ app.post('/api/stop-mining', verifySession, async (req, res) => {
 app.post('/api/claim-mining', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
+        console.log(`💰 [claim-mining] User ${userId}`);
+
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -1213,6 +1245,7 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
         });
 
     } catch (error) {
+        console.error(`❌ [claim-mining] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1220,6 +1253,8 @@ app.post('/api/claim-mining', verifySession, async (req, res) => {
 app.post('/api/claim-quest', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
+        console.log(`🎯 [claim-quest] User ${userId}, type: ${req.body.questType}`);
+
         if (!userId || !req.body.questType) {
             return res.status(400).json({ error: 'userId and questType required' });
         }
@@ -1302,6 +1337,7 @@ app.post('/api/claim-quest', verifySession, async (req, res) => {
         });
 
     } catch (error) {
+        console.error(`❌ [claim-quest] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1309,6 +1345,8 @@ app.post('/api/claim-quest', verifySession, async (req, res) => {
 app.post('/api/complete-task', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
+        console.log(`📋 [complete-task] User ${userId}, taskId: ${req.body.taskId}`);
+
         const { taskId, isPartner, taskOwner } = req.body;
         if (!userId || !taskId) {
             return res.status(400).json({ error: 'userId and taskId required' });
@@ -1368,6 +1406,7 @@ app.post('/api/complete-task', verifySession, async (req, res) => {
         });
 
     } catch (error) {
+        console.error(`❌ [complete-task] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1375,6 +1414,8 @@ app.post('/api/complete-task', verifySession, async (req, res) => {
 app.post('/api/convert-gold-to-power', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
+        console.log(`🔄 [convert-gold-to-power] User ${userId}, amount: ${req.body.goldAmount}`);
+
         const { goldAmount } = req.body;
         if (!userId || !goldAmount) {
             return res.status(400).json({ error: 'userId and goldAmount required' });
@@ -1414,6 +1455,7 @@ app.post('/api/convert-gold-to-power', verifySession, async (req, res) => {
         });
 
     } catch (error) {
+        console.error(`❌ [convert-gold-to-power] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1421,6 +1463,8 @@ app.post('/api/convert-gold-to-power', verifySession, async (req, res) => {
 app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
+        console.log(`👥 [claim-referral-earnings] User ${userId}, type: ${req.body.type}`);
+
         const { type } = req.body;
         if (!userId || !type) {
             return res.status(400).json({ error: 'userId and type required' });
@@ -1477,6 +1521,7 @@ app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
         });
 
     } catch (error) {
+        console.error(`❌ [claim-referral-earnings] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1484,6 +1529,8 @@ app.post('/api/claim-referral-earnings', verifySession, async (req, res) => {
 app.post('/api/apply-promo', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
+        console.log(`🎫 [apply-promo] User ${userId}, code: ${req.body.code}`);
+
         const { code } = req.body;
         if (!userId || !code) {
             return res.status(400).json({ error: 'userId and code required' });
@@ -1553,6 +1600,7 @@ app.post('/api/apply-promo', verifySession, async (req, res) => {
         });
 
     } catch (error) {
+        console.error(`❌ [apply-promo] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1560,6 +1608,8 @@ app.post('/api/apply-promo', verifySession, async (req, res) => {
 app.post('/api/watch-ad', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
+        console.log(`📺 [watch-ad] User ${userId}`);
+
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
         }
@@ -1605,6 +1655,7 @@ app.post('/api/watch-ad', verifySession, async (req, res) => {
         });
 
     } catch (error) {
+        console.error(`❌ [watch-ad] Error: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1766,9 +1817,9 @@ app.post('/api/set-wallet', verifySession, async (req, res) => {
 app.post('/api/withdraw-gram', verifySession, async (req, res) => {
     try {
         const userId = req._userId;
-        const { goldAmount } = req.body;
+        console.log(`💳 [withdraw-gram] User ${userId}, amount: ${req.body.goldAmount}`);
         
-        if (!userId || !goldAmount) {
+        if (!userId || !req.body.goldAmount) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
@@ -1782,7 +1833,7 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
             return res.status(400).json({ error: 'No wallet set. Please set your wallet first.' });
         }
         
-        const gold = parseFloat(goldAmount);
+        const gold = parseFloat(req.body.goldAmount);
         if (isNaN(gold) || gold <= 0) {
             return res.status(400).json({ error: 'Invalid amount' });
         }
@@ -1891,6 +1942,7 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         });
         
     } catch (error) {
+        console.error(`❌ [withdraw-gram] Error: ${error.message}`);
         res.status(500).json({ error: 'Failed to send withdrawal request: ' + error.message });
     }
 });
