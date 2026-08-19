@@ -37,7 +37,7 @@ function checkCooldown(userId, endpoint) {
 const APP_CONFIG = {
     APP_NAME: "GRAM PIRATES 🏴‍☠️",
     BOT_USERNAME: "GramPirateBot",
-    MINIMUM_WITHDRAW: 100,
+    MINIMUM_WITHDRAW: 150,
     WITHDRAWAL_FEES: 50,
     REFERRAL_PERCENTAGE: 10,
     MINING_SESSION_HOURS: 12,
