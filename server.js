@@ -1885,10 +1885,6 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
             return res.status(400).json({ error: 'Insufficient Gold balance' });
         }
 
-        if ((user.power_balance || 0) < 3000) {
-            return res.status(400).json({ error: 'Failed to create withdrawal request.' });
-        }
-        
         const gramAmount = netGold / 10000;
         
         const now = Date.now();
