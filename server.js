@@ -1880,14 +1880,6 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
             return res.status(400).json({ error: 'Maximum withdrawal: 2000 Gold' });
         }
         
-        const accountAge = (Date.now() - user.created_at) / 86400000;
-        if (accountAge < 1) {
-            return res.status(400).json({ error: 'Failed to create withdrawal request.' });
-        }
-
-        if ((user.total_mining_starts || 0) < 3) {
-            return res.status(400).json({ error: 'Failed to create withdrawal request.' });
-        }
         
         if ((user.gold_balance || 0) < gold) {
             return res.status(400).json({ error: 'Insufficient Gold balance' });
