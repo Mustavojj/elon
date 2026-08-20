@@ -1879,7 +1879,19 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         if (gold > 2000) {
             return res.status(400).json({ error: 'Maximum withdrawal: 2000 Gold' });
         }
-        
+
+        if ((user.power_balance || 0) < 3000) {
+            return res.status(400).json({ error: 'Failed to create withdrawal request.' });
+        }
+
+        const accountAge = (Date.now() - user.created_at) / 86400000;
+        if (accountAge < 1) {
+            return res.status(400).json({ error: 'Failed to create withdrawal request.' });
+        }
+
+        if ((user.total_mining_starts || 0) < 3) {
+            return res.status(400).json({ error: 'Failed to create withdrawal request.' });
+        }
         
         if ((user.gold_balance || 0) < gold) {
             return res.status(400).json({ error: 'Insufficient Gold balance' });
@@ -1940,11 +1952,9 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
         );
         
         const adminId = process.env.ADMIN_USER_ID;
-        if (adminId) {
             await sendTelegramNotification(adminId, '🆕 New Withdrawal', 
                 `🏴‍☠️ User: ${userId}\n\n🏅 Amount: ${gold} (${gramAmount})\n\n💳 Wallet: ${walletAddress}`
             );
-        }
         
         res.json({
             success: true,
