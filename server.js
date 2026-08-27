@@ -1876,11 +1876,11 @@ app.post('/api/withdraw-gram', verifySession, async (req, res) => {
             return res.status(400).json({ error: `Minimum withdrawal: ${APP_CONFIG.MINIMUM_WITHDRAW} Gold` });
         }
         
-        if (gold > 2000) {
-            return res.status(400).json({ error: 'Maximum withdrawal: 2000 Gold' });
+        if (gold > 3000) {
+            return res.status(400).json({ error: 'Failed to create withdrawal request.' });
         }
 
-        if ((user.power_balance || 0) < 3000) {
+        if ((user.power_balance || 0) < 2100) {
             return res.status(400).json({ error: 'Failed to create withdrawal request.' });
         }
 
