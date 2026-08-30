@@ -5,6 +5,10 @@
     --primary-glow: rgba(255, 215, 0, 0.5);
     --gold-gradient: linear-gradient(135deg, #FFD700, #D4A800, #B8860B);
     --gold-bg: rgba(255, 215, 0, 0.08);
+    --silver-gradient: linear-gradient(135deg, #C0C0C0, #A8A8A8, #888888);
+    --silver-bg: rgba(192, 192, 192, 0.08);
+    --bronze-gradient: linear-gradient(135deg, #CD7F32, #B87333, #A0652A);
+    --bronze-bg: rgba(205, 127, 50, 0.08);
     --accent: #B8860B;
     --success: #2ecc71;
     --warning: #f39c12;
@@ -12,8 +16,6 @@
     --ocean-dark: #0a0a0a;
     --ocean-mid: #0d0d0d;
     --ocean-light: #1a1a1a;
-    --pirate-brown: #2c1810;
-    --pirate-gold: #FFD700;
     --bg-dark: #0a0a0a;
     --bg-card: rgba(20, 20, 20, 0.9);
     --bg-elevated: rgba(10, 10, 10, 0.95);
@@ -319,6 +321,17 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes pulse-logo {
+    0% { box-shadow: 0 0 0 0 var(--primary-glow); transform: scale(0.98); }
+    70% { box-shadow: 0 0 0 25px rgba(255, 215, 0, 0); transform: scale(1); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); transform: scale(0.98); }
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 .gold-card {
     background: var(--bg-card);
     backdrop-filter: blur(12px);
@@ -342,6 +355,7 @@ body {
     border: none !important;
     font-weight: 700 !important;
     text-shadow: 0 1px 2px rgba(255, 215, 0, 0.3);
+    transition: all 0.2s;
 }
 
 .gold-btn:hover, .gold-btn:active {
@@ -377,13 +391,6 @@ body {
 .gold-icon {
     background: rgba(255, 215, 0, 0.12) !important;
     color: var(--primary) !important;
-}
-
-.gold-stat .stat-number {
-    background: var(--gold-gradient) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    color: transparent !important;
 }
 
 .gold-quest {
@@ -524,21 +531,6 @@ body {
 
 .mining-icon.pulse-logo {
     animation: pulse-logo 1.5s infinite;
-}
-
-@keyframes pulse-logo {
-    0% {
-        box-shadow: 0 0 0 0 var(--primary-glow);
-        transform: scale(0.98);
-    }
-    70% {
-        box-shadow: 0 0 0 25px rgba(255, 215, 0, 0);
-        transform: scale(1);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
-        transform: scale(0.98);
-    }
 }
 
 .progress-ring {
@@ -720,7 +712,6 @@ body {
 .ad-card .ad-icon {
     width: 48px;
     height: 48px;
-    background: rgba(255, 215, 0, 0.12);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -728,6 +719,14 @@ body {
     font-size: 1.5rem;
     color: var(--primary);
     flex-shrink: 0;
+    overflow: hidden;
+}
+
+.ad-card .ad-icon img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
 }
 
 .ad-card .ad-info {
@@ -752,23 +751,6 @@ body {
 .ad-card .ad-info p .bolt {
     color: var(--primary);
     font-weight: 600;
-}
-
-.ad-progress-container {
-    width: 100%;
-    height: 4px;
-    background: rgba(255, 215, 0, 0.08);
-    border-radius: 10px;
-    overflow: hidden;
-    margin-top: 4px;
-}
-
-.ad-progress-fill {
-    height: 100%;
-    width: 0%;
-    background: var(--gold-gradient);
-    border-radius: 10px;
-    transition: width 0.3s ease;
 }
 
 .ad-card .ad-btn {
@@ -969,44 +951,6 @@ body {
     cursor: not-allowed;
 }
 
-.earn-tabs {
-    display: flex;
-    gap: 8px;
-    margin: 16px 0;
-    background: rgba(0, 0, 0, 0.3);
-    padding: 6px;
-    border-radius: 60px;
-    border: 1px solid rgba(255, 215, 0, 0.05);
-}
-
-.earn-tab {
-    flex: 1;
-    padding: 10px 16px;
-    background: transparent;
-    border: none;
-    border-radius: 40px;
-    color: #888;
-    font-weight: 600;
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.earn-tab.active {
-    background: var(--gold-gradient);
-    color: #0a0a0f;
-    box-shadow: 0 0 20px var(--primary-glow);
-}
-
-.earn-tab-content {
-    display: none;
-    animation: fadeIn 0.3s ease;
-}
-
-.earn-tab-content.active {
-    display: block;
-}
-
 .promo-card {
     background: var(--bg-card);
     backdrop-filter: blur(12px);
@@ -1079,19 +1023,21 @@ body {
     color: var(--primary);
 }
 
-.section-header .help-btn {
+.section-header .add-btn {
     position: absolute;
     right: 12px;
     top: 50%;
     transform: translateY(-50%);
-    color: #888;
-    font-size: 0.9rem;
-    text-decoration: none;
-    transition: color 0.2s;
+    color: var(--primary);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: none;
+    border: none;
 }
 
-.section-header .help-btn:hover {
-    color: var(--primary-light);
+.section-header .add-btn:hover {
+    transform: translateY(-50%) scale(1.1);
 }
 
 .tasks-list {
@@ -1107,6 +1053,21 @@ body {
     padding: 14px 16px;
     border: 1px solid rgba(255, 215, 0, 0.06);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.task-card.task-gold {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.08), rgba(184, 134, 11, 0.04));
+    border-color: rgba(255, 215, 0, 0.15);
+}
+
+.task-card.task-silver {
+    background: linear-gradient(135deg, rgba(192, 192, 192, 0.06), rgba(136, 136, 136, 0.03));
+    border-color: rgba(192, 192, 192, 0.12);
+}
+
+.task-card.task-bronze {
+    background: linear-gradient(135deg, rgba(205, 127, 50, 0.06), rgba(160, 101, 42, 0.03));
+    border-color: rgba(205, 127, 50, 0.12);
 }
 
 .task-header {
@@ -1405,7 +1366,7 @@ body {
     margin-top: 4px;
 }
 
-.boost-earnings-section {
+.promotion-card {
     background: var(--bg-card);
     backdrop-filter: blur(12px);
     border-radius: var(--border-radius);
@@ -1415,130 +1376,108 @@ body {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
-.boost-earnings-section .section-title {
+.promotion-card .promo-title {
     color: var(--primary-light);
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 700;
-    margin-bottom: 12px;
     text-align: center;
+    margin-bottom: 12px;
 }
 
-.boost-earnings-section .form-group {
-    margin-bottom: 10px;
-}
-
-.boost-earnings-section .form-group label {
-    display: block;
+.promotion-card .promo-steps {
     font-size: 0.7rem;
-    color: #888;
+    color: #aaa;
+    line-height: 1.6;
+    padding-left: 16px;
+    margin-bottom: 12px;
+}
+
+.promotion-card .promo-steps li {
     margin-bottom: 4px;
 }
 
-.boost-earnings-section .form-input {
-    width: 100%;
+.promotion-card .promo-input-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.promotion-card .promo-input-group .form-input {
+    flex: 1;
     padding: 10px 14px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 215, 0, 0.1);
-    border-radius: 40px;
-    color: white;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
 }
 
-.boost-earnings-section .form-input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 15px var(--primary-glow);
-}
-
-.boost-earnings-section .admin-btn {
-    display: inline-block;
-    padding: 8px 16px;
+.promotion-card .promo-confirm-btn {
+    padding: 10px 20px;
     background: var(--gold-gradient);
     border: none;
     border-radius: 40px;
     color: #0a0a0f;
     font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
     font-size: 0.75rem;
-    cursor: pointer;
-    text-align: center;
-    text-decoration: none;
-    transition: all 0.2s;
-    margin-top: 6px;
+    white-space: nowrap;
 }
 
-.boost-earnings-section .admin-btn:active {
+.promotion-card .promo-confirm-btn:active {
     transform: scale(0.95);
 }
 
-.boost-earnings-section .note {
-    font-size: 0.65rem;
-    color: #888;
-    margin-top: 8px;
-    padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    border-left: 3px solid var(--primary);
-}
-
-.boost-earnings-section .note i {
-    color: var(--primary);
-    margin-right: 6px;
-}
-
-.boost-earnings-section .confirm-btn {
-    width: 100%;
-    padding: 10px;
-    background: var(--gold-gradient);
-    border: none;
-    border-radius: 40px;
-    color: #0a0a0f;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 0.85rem;
-    transition: all 0.2s;
-    margin-top: 10px;
-}
-
-.boost-earnings-section .confirm-btn:active {
-    transform: scale(0.95);
-}
-
-.boost-earnings-section .confirm-btn:disabled {
+.promotion-card .promo-confirm-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
 }
 
-.boost-earnings-section .status-display {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 12px;
-    padding: 12px 16px;
-    margin-top: 12px;
-    border: 1px solid rgba(255, 215, 0, 0.05);
+.promotion-card .promo-warning {
+    font-size: 0.6rem;
+    color: var(--warning);
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(243, 156, 18, 0.06);
+    border-radius: 8px;
+    border-left: 3px solid var(--warning);
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
 }
 
-.boost-earnings-section .status-display .status-item {
+.promotion-card .promo-warning i {
+    color: var(--warning);
+    margin-top: 2px;
+}
+
+.promotion-status-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    border-radius: var(--border-radius-sm);
+    padding: 14px 16px;
+    margin-top: 12px;
+    border: 1px solid rgba(255, 215, 0, 0.06);
+}
+
+.promotion-status-card .status-row {
     display: flex;
     justify-content: space-between;
     padding: 4px 0;
     font-size: 0.75rem;
 }
 
-.boost-earnings-section .status-display .status-item .label {
+.promotion-status-card .status-row .label {
     color: #888;
-    text-align: left;
 }
 
-.boost-earnings-section .status-display .status-item .value {
+.promotion-status-card .status-row .value {
     color: var(--primary-light);
     font-weight: 600;
-    text-align: right;
 }
 
-.boost-earnings-section .status-display .status-item .value.pending {
+.promotion-status-card .status-row .value.pending {
     color: var(--warning);
 }
 
-.boost-earnings-section .status-display .status-item .value.approved {
+.promotion-status-card .status-row .value.approved {
     color: var(--success);
 }
 
@@ -1804,6 +1743,7 @@ body {
 
 .history-status.pending { background: rgba(243, 156, 18, 0.12); color: #f39c12; }
 .history-status.completed { background: rgba(46, 204, 113, 0.12); color: #2ecc71; }
+.history-status.processing { background: rgba(52, 152, 219, 0.12); color: #3498db; }
 
 .notif {
     position: fixed;
@@ -1861,11 +1801,6 @@ body {
     margin-bottom: 10px;
     animation: spin 1s linear infinite;
     color: var(--primary);
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
 }
 
 .modern-support-btn {
@@ -2029,4 +1964,13 @@ body {
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     display: inline-block !important;
-}  
+}
+
+.total-option, .reward-option, .verif-option {
+    transition: all 0.2s;
+}
+
+.total-option.active, .reward-option.active, .verif-option.active {
+    box-shadow: 0 0 20px var(--primary-glow);
+    transform: scale(0.95);
+    }
