@@ -911,11 +911,29 @@ class App {
         }
 
         try {
-            const initData = window.Telegram.WebApp.initData;
+            // ✅ Get initData from Telegram WebApp
+            const initData = window.Telegram?.WebApp?.initData || '';
             
+            // ✅ Log for debugging (visible in browser console)
+            console.log('📤 Sending request to:', endpoint);
+            console.log('📤 initData present:', !!initData);
+            console.log('📤 initData length:', initData.length);
+            console.log('📤 initData contains hash:', initData.includes('hash='));
+            
+            // ✅ If initData is empty, try to reload from WebApp
+            let finalInitData = initData;
+            if (!finalInitData && window.Telegram?.WebApp) {
+                console.warn('⚠️ initData empty, reloading from WebApp...');
+                finalInitData = window.Telegram.WebApp.initData || '';
+                console.log('📤 Reloaded initData length:', finalInitData.length);
+            }
+            
+            // ✅ Store for future use
+            this.initData = finalInitData;
+
             const headers = {
                 'Content-Type': 'application/json',
-                'X-Telegram-Init-Data': initData
+                'X-Telegram-Init-Data': finalInitData
             };
 
             const payload = {
@@ -925,23 +943,29 @@ class App {
                 firstName: this.tgUser?.first_name || 'User',
                 photoUrl: this.tgUser?.photo_url || this.config.DEFAULT_USER_AVATAR,
                 deviceId: this.userDeviceId,
-                initData: initData
+                initData: finalInitData
             };
+
+            console.log('📤 Payload size:', JSON.stringify(payload).length);
+            console.log('📤 Payload initData length:', payload.initData?.length || 0);
 
             const response = await fetch(`${this.serverUrl}${endpoint}`, {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify(payload)
             });
+            
             const result = await response.json();
 
             if (result.error === 'Invalid Telegram data' || result.error === 'User mismatch') {
+                console.error('❌ Auth failed:', result.error);
                 this.showNotification('Error', 'Security verification failed', 'error');
                 this.vibrate('error');
                 throw new Error('Auth failed');
             }
 
             if (result.error === 'Device mismatch') {
+                console.error('❌ Device mismatch');
                 this.showNotification('Error', 'Device verification failed', 'error');
                 this.vibrate('error');
                 throw new Error('Device mismatch');
@@ -1015,7 +1039,10 @@ class App {
         if (this._userDataLoaded) return;
 
         try {
+            // ✅ Ensure initData is available
             this.initData = window.Telegram?.WebApp?.initData || '';
+            console.log('🔍 loadUserData - initData present:', !!this.initData);
+            console.log('🔍 loadUserData - initData length:', this.initData.length);
             
             this.userDeviceId = localStorage.getItem('pirate_device_id');
             if (!this.userDeviceId) {
@@ -3301,11 +3328,14 @@ class App {
                 throw new Error('Open from Telegram');
             }
 
-            this.initData = window.Telegram.WebApp.initData;
-            console.log('✅ initData:', this.initData ? 'found' : 'empty');
-
             this.tg = window.Telegram.WebApp;
             this.tgUser = this.tg.initDataUnsafe.user;
+
+            // ✅ Save initData
+            this.initData = this.tg.initData || '';
+            console.log('🔍 initData available:', !!this.initData);
+            console.log('🔍 initData length:', this.initData.length);
+            console.log('🔍 initData contains hash:', this.initData.includes('hash='));
 
             const userId = this.tgUser.id;
             const storedUserId = localStorage.getItem('pirate_user_id');
@@ -3313,7 +3343,7 @@ class App {
             if (storedUserId && storedUserId !== userId.toString()) {
                 this.showNotification('Error', 'Device already used with another account', 'error');
                 this.tg?.close();
-                return; 
+                return;
             }
             if (!storedUserId) {
                 localStorage.setItem('pirate_user_id', userId.toString());
