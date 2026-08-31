@@ -11,10 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(cors({
-    origin: true,
-    credentials: true
-}));
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(__dirname));
@@ -24,20 +21,31 @@ const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-jwt-key-change-this-in-production';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'super-secret-refresh-key-change-this';
+const JWT_SECRET = process.env.JWT_SECRET || 'gram_pirates_jwt_2026_x7k9m2n4v8w6';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'gram_pirates_refresh_2026_a1c3e5g7i9k0';
 
 const requestCooldown = new Map();
 const notifiedUsers = new Set();
 const getUserCache = new Map();
 
+async function isDeviceUsedByOtherUser(deviceId, currentUserId) {
+    if (!deviceId) return false;
+    
+    const { data, error } = await supabase
+        .from('users')
+        .select('id, device_id')
+        .eq('device_id', deviceId)
+        .neq('id', currentUserId)
+        .single();
+    
+    return !!data;
+}
+
 function checkCooldown(userId, endpoint) {
     const now = Date.now();
     const key = `${userId}_${endpoint}`;
     const lastCall = requestCooldown.get(key) || 0;
-    if (now - lastCall < 3000) {
-        return false;
-    }
+    if (now - lastCall < 3000) return false;
     requestCooldown.set(key, now);
     return true;
 }
@@ -46,129 +54,70 @@ function validateUserId(userId) {
     return userId && typeof userId === 'number' && userId > 0;
 }
 
-function validateString(str, maxLength = 100) {
-    return str && typeof str === 'string' && str.length > 0 && str.length <= maxLength;
-}
-
-async function checkUserState(userId) {
-    try {
-        const { data: user, error } = await supabase
-            .from('users')
-            .select('state')
-            .eq('id', userId)
-            .single();
-        if (error) return { allowed: false, error: 'User not found' };
-        if (user.state === 'ban') return { allowed: false, error: 'Account banned', banned: true };
-        return { allowed: true };
-    } catch (error) {
-        return { allowed: false, error: 'Error checking user state' };
-    }
-}
-
 function generateJWT(userId, deviceId) {
-    console.log('🔐 Generating JWT for user:', userId, 'device:', deviceId);
-    return jwt.sign(
-        { userId, deviceId },
-        JWT_SECRET,
-        { expiresIn: '7d' }
-    );
-}
-
-function generateRefreshToken(userId, deviceId) {
-    return jwt.sign(
-        { userId, deviceId, type: 'refresh' },
-        JWT_REFRESH_SECRET,
-        { expiresIn: '30d' }
-    );
+    return jwt.sign({ userId, deviceId }, JWT_SECRET, { expiresIn: '7d' });
 }
 
 function verifyJWT(token) {
     try {
         return jwt.verify(token, JWT_SECRET);
     } catch (error) {
-        if (error.name === 'TokenExpiredError') {
-            console.log('⏰ JWT expired');
-        } else if (error.name === 'JsonWebTokenError') {
-            console.log('❌ Invalid JWT:', error.message);
-        } else {
-            console.log('❌ JWT verification error:', error.message);
-        }
         return null;
     }
 }
 
-function verifyRefreshToken(token) {
-    try {
-        return jwt.verify(token, JWT_REFRESH_SECRET);
-    } catch (error) {
-        console.log('❌ Refresh token verification error:', error.message);
-        return null;
-    }
-}
-
-// ✅ Middleware: التحقق من JWT
 function authenticate(req, res, next) {
-    console.log('🔐 Authenticating request...');
-    
-    // 1. محاولة الحصول من Cookie
     let token = req.cookies?.token;
-    
-    // 2. محاولة الحصول من Header
     if (!token) {
         const authHeader = req.headers.authorization;
         if (authHeader && authHeader.startsWith('Bearer ')) {
             token = authHeader.split(' ')[1];
-            console.log('📥 Token from Authorization header');
         }
     }
     
-    if (token) {
-        console.log('📥 Token found, length:', token.length);
-    } else {
-        console.log('❌ No token found in request');
+    if (!token) {
         return res.status(401).json({ error: 'No token provided' });
     }
     
     const decoded = verifyJWT(token);
     if (!decoded) {
-        console.log('❌ Invalid or expired token');
         return res.status(401).json({ error: 'Invalid or expired token' });
     }
     
-    console.log('✅ Token verified for user:', decoded.userId);
     req._userId = decoded.userId;
     req._deviceId = decoded.deviceId;
     next();
 }
 
-// ✅ Middleware: التحقق من الجهاز
 async function validateDevice(userId, deviceId) {
-    if (!deviceId) {
-        console.log('⚠️ No deviceId provided');
-        return true;
-    }
-    
+    if (!deviceId) return true;
     try {
-        const { data: user, error } = await supabase
+        const { data: user } = await supabase
             .from('users')
             .select('device_id')
             .eq('id', userId)
             .single();
-        if (error) {
-            console.log('⚠️ User not found for device validation');
-            return true;
-        }
-        
-        if (user.device_id && user.device_id !== deviceId) {
-            console.log('❌ Device mismatch:', user.device_id, 'vs', deviceId);
-            return false;
-        }
-        
-        console.log('✅ Device validated:', deviceId);
+        if (!user) return true;
+        if (user.device_id && user.device_id !== deviceId) return false;
         return true;
     } catch (error) {
-        console.log('⚠️ Device validation error:', error.message);
         return true;
+    }
+}
+
+async function checkBotIsAdminInChannel(channelUsername) {
+    if (!BOT_TOKEN) return false;
+    try {
+        const botInfo = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getMe`).then(r => r.json());
+        const botId = botInfo.result.id;
+        
+        const botMember = await fetch(
+            `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=@${channelUsername}&user_id=${botId}`
+        ).then(r => r.json());
+        
+        return ['administrator', 'creator'].includes(botMember.result?.status);
+    } catch (error) {
+        return false;
     }
 }
 
@@ -207,7 +156,8 @@ const APP_CONFIG = {
     MONETAG_AD_COOLDOWN_MINUTES: 3,
     AD_DAILY_LIMIT: 10,
     MIN_CLAIM_GOLD: 1,
-    PRICE_PER_100: 0.100,
+    PRICE_PER_100: 0.001,
+    SOCIAL_GOLD_REWARD: 1,
     QUESTS: {
         welcome_bonus: { reward: 1000, type: "power" },
         level_quests: [
@@ -659,32 +609,40 @@ app.get('/api/current-time', (req, res) => {
     res.json({ serverTime: getCurrentTime() });
 });
 
-// ✅ نقطة المصادقة الرئيسية
+app.post('/api/check-bot-admin', authenticate, async (req, res) => {
+    try {
+        const { channel } = req.body;
+        if (!channel) {
+            return res.status(400).json({ error: 'Channel is required' });
+        }
+        
+        const isAdmin = await checkBotIsAdminInChannel(channel);
+        res.json({ isAdmin });
+    } catch (error) {
+        console.error('❌ /api/check-bot-admin error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.post('/api/auth', async (req, res) => {
     try {
-        console.log('🔐 /api/auth called');
         const { userId, deviceId, firstName, username, photoUrl } = req.body;
         
         if (!validateUserId(userId)) {
-            console.log('❌ Invalid userId:', userId);
             return res.status(400).json({ error: 'Invalid user' });
         }
 
-        console.log('📥 userId:', userId, 'deviceId:', deviceId);
-
-        // التحقق من الحظر
-        const isBanned = await checkUserBanned(userId);
-        if (isBanned) {
-            console.log('❌ User banned:', userId);
-            return res.status(403).json({ error: 'Account banned', banned: true });
+        const deviceUsed = await isDeviceUsedByOtherUser(deviceId, userId);
+        if (deviceUsed) {
+            return res.status(403).json({ 
+                error: 'device_already_used',
+                message: 'This device is already linked to another account' 
+            });
         }
 
         let user = await getUser(userId);
 
-        // ✅ حالة 1: مستخدم جديد
         if (!user) {
-            console.log('🆕 Creating new user:', userId);
-            
             const userData = {
                 id: userId,
                 username: username || '',
@@ -725,9 +683,6 @@ app.post('/api/auth', async (req, res) => {
             };
 
             user = await createUser(userData);
-            console.log('✅ User created:', userId);
-
-            // توليد JWT
             const token = generateJWT(userId, deviceId);
             
             res.cookie('token', token, {
@@ -737,23 +692,12 @@ app.post('/api/auth', async (req, res) => {
                 maxAge: 7 * 24 * 60 * 60 * 1000
             });
 
-            return res.json({
-                success: true,
-                newUser: true,
-                user: user,
-                token: token
-            });
+            return res.json({ success: true, newUser: true, user, token });
         }
 
-        // ✅ حالة 2: جهاز جديد
         if (user.device_id && user.device_id !== deviceId) {
-            console.log('🔐 New device detected for user:', userId);
-            console.log('📱 Stored device:', user.device_id, 'vs', deviceId);
-            
-            // توليد كود تحقق
             const code = Math.floor(100000 + Math.random() * 900000).toString();
             
-            // حفظ الكود
             await supabase
                 .from('verification_codes')
                 .upsert({
@@ -764,31 +708,20 @@ app.post('/api/auth', async (req, res) => {
                     used: false
                 });
             
-            // إرسال الكود إلى Telegram
             await sendTelegramNotification(
                 userId,
                 '🔐 New Device Detected!',
-                `A new device is trying to access your account.\n\n🔑 Verification Code: \`${code}\`\n\n⏳ Valid for 5 minutes.\n\nIf this wasn't you, please contact support immediately.`
+                `A new device is trying to access your account.\n\n🔑 Verification Code: \`${code}\`\n\n⏳ Valid for 5 minutes.`
             );
             
-            console.log('✅ Verification code sent to user:', userId);
-            
-            return res.status(403).json({
-                error: 'new_device',
-                message: 'Verification code sent to Telegram'
-            });
+            return res.status(403).json({ error: 'new_device' });
         }
 
-        // ✅ حالة 3: جهاز معروف
-        console.log('✅ Known device for user:', userId);
-        
-        // تحديث device_id إذا لم يكن موجوداً
         if (!user.device_id && deviceId) {
             await updateUser(userId, { device_id: deviceId });
         }
 
         const token = generateJWT(userId, deviceId);
-        
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -796,12 +729,7 @@ app.post('/api/auth', async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
-        res.json({
-            success: true,
-            newUser: false,
-            user: user,
-            token: token
-        });
+        res.json({ success: true, newUser: false, user, token });
 
     } catch (error) {
         console.error('❌ /api/auth error:', error);
@@ -809,18 +737,14 @@ app.post('/api/auth', async (req, res) => {
     }
 });
 
-// ✅ التحقق من كود الجهاز الجديد
 app.post('/api/verify-device', async (req, res) => {
     try {
-        console.log('🔐 /api/verify-device called');
         const { userId, deviceId, code } = req.body;
         
         if (!validateUserId(userId) || !code) {
-            console.log('❌ Invalid userId or code');
             return res.status(400).json({ error: 'Invalid request' });
         }
 
-        // التحقق من الكود
         const { data: verification, error } = await supabase
             .from('verification_codes')
             .select('*')
@@ -830,12 +754,10 @@ app.post('/api/verify-device', async (req, res) => {
             .single();
 
         if (error || !verification) {
-            console.log('❌ Invalid or expired code for user:', userId);
             return res.status(400).json({ error: 'Invalid code' });
         }
 
         if (getCurrentTime() > verification.expires_at) {
-            console.log('⏰ Code expired for user:', userId);
             await supabase
                 .from('verification_codes')
                 .update({ used: true })
@@ -843,17 +765,13 @@ app.post('/api/verify-device', async (req, res) => {
             return res.status(400).json({ error: 'Code expired' });
         }
 
-        // تحديث deviceId
-        console.log('✅ Updating device for user:', userId, 'to', deviceId);
         await updateUser(userId, { device_id: deviceId });
         
-        // تعيين الكود كمستخدم
         await supabase
             .from('verification_codes')
             .update({ used: true })
             .eq('id', verification.id);
 
-        // توليد JWT جديد
         const token = generateJWT(userId, deviceId);
         
         res.cookie('token', token, {
@@ -864,7 +782,6 @@ app.post('/api/verify-device', async (req, res) => {
         });
 
         const user = await getUser(userId);
-        console.log('✅ Device verified for user:', userId);
 
         res.json({
             success: true,
@@ -878,7 +795,6 @@ app.post('/api/verify-device', async (req, res) => {
     }
 });
 
-// ✅ إعادة إرسال كود الجهاز
 app.post('/api/resend-device-code', async (req, res) => {
     try {
         const { userId } = req.body;
@@ -887,7 +803,6 @@ app.post('/api/resend-device-code', async (req, res) => {
             return res.status(400).json({ error: 'Invalid user' });
         }
 
-        // توليد كود جديد
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         
         await supabase
@@ -906,7 +821,6 @@ app.post('/api/resend-device-code', async (req, res) => {
             `🔑 Your new verification code: \`${code}\`\n\n⏳ Valid for 5 minutes.`
         );
         
-        console.log('✅ New code sent to user:', userId);
         res.json({ success: true });
 
     } catch (error) {
@@ -915,27 +829,20 @@ app.post('/api/resend-device-code', async (req, res) => {
     }
 });
 
-// ✅ تجديد JWT
 app.post('/api/refresh', authenticate, async (req, res) => {
     try {
-        console.log('🔄 /api/refresh called for user:', req._userId);
-        
         const userId = req._userId;
         const deviceId = req._deviceId;
         
-        // التحقق من صحة المستخدم
         const user = await getUser(userId);
         if (!user) {
-            console.log('❌ User not found:', userId);
             return res.status(404).json({ error: 'User not found' });
         }
         
         if (user.state === 'ban') {
-            console.log('❌ User banned:', userId);
             return res.status(403).json({ error: 'Account banned' });
         }
         
-        // توليد JWT جديد
         const token = generateJWT(userId, deviceId);
         
         res.cookie('token', token, {
@@ -945,7 +852,6 @@ app.post('/api/refresh', authenticate, async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
         
-        console.log('✅ Token refreshed for user:', userId);
         res.json({ success: true, token: token });
 
     } catch (error) {
@@ -954,10 +860,8 @@ app.post('/api/refresh', authenticate, async (req, res) => {
     }
 });
 
-// ✅ تسجيل الخروج
 app.post('/api/logout', authenticate, async (req, res) => {
     try {
-        console.log('🚪 Logout for user:', req._userId);
         res.clearCookie('token');
         res.json({ success: true });
     } catch (error) {
@@ -1023,7 +927,6 @@ app.post('/api/check-mining-status', async (req, res) => {
 app.post('/api/claim-welcome-bonus', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
-        console.log('🎁 Claim welcome bonus for user:', userId);
 
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
@@ -1059,15 +962,12 @@ app.post('/api/get-user', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { referredBy } = req.body;
-        
-        console.log('📥 /api/get-user called for user:', userId);
 
         const cacheKey = `getUser_${userId}`;
         const cached = getUserCache.get(cacheKey);
         const now = Date.now();
         
         if (cached && (now - cached.timestamp) < 5000) {
-            console.log('📦 Returning cached user data');
             return res.json(cached.data);
         }
 
@@ -1077,18 +977,14 @@ app.post('/api/get-user', authenticate, async (req, res) => {
 
         let user = await getUser(userId);
         if (!user) {
-            console.log('❌ User not found:', userId);
             return res.status(404).json({ error: 'User not found' });
         }
 
         if (user.state === 'ban') {
-            console.log('❌ User banned:', userId);
             return res.status(403).json({ error: 'Account banned', banned: true });
         }
 
-        // تحديث referral إذا لم يكن موجوداً
         if (referredBy && !user.referred_by && referredBy !== userId) {
-            console.log('🔗 Setting referred_by for user:', userId, 'to', referredBy);
             await updateUser(userId, { referred_by: referredBy });
             user = await getUser(userId);
         }
@@ -1107,7 +1003,6 @@ app.post('/api/get-user', authenticate, async (req, res) => {
         };
 
         getUserCache.set(cacheKey, { data: responseData, timestamp: now });
-        console.log('✅ User data returned for:', userId);
         res.json(responseData);
 
     } catch (error) {
@@ -1120,8 +1015,6 @@ app.post('/api/update-user', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { powerBalance, goldBalance, gramBalance, quests, miningActive, miningStartTime, miningEndTime, pendingGoldReward } = req.body;
-
-        console.log('📝 Updating user:', userId);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1145,7 +1038,6 @@ app.post('/api/update-user', authenticate, async (req, res) => {
         const updatedUser = await updateUser(userId, updates);
         await updateUserLevel(userId);
 
-        console.log('✅ User updated:', userId);
         res.json({ success: true, user: updatedUser });
     } catch (error) {
         console.error('❌ /api/update-user error:', error);
@@ -1157,8 +1049,6 @@ app.post('/api/start-mining', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { serverTime } = req.body;
-
-        console.log('⛏️ Start mining for user:', userId);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1200,7 +1090,6 @@ app.post('/api/start-mining', authenticate, async (req, res) => {
 
         await updateUserLevel(userId);
 
-        console.log('✅ Mining started for user:', userId);
         res.json({
             success: true,
             user: updatedUser
@@ -1215,8 +1104,6 @@ app.post('/api/start-mining', authenticate, async (req, res) => {
 app.post('/api/stop-mining', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
-
-        console.log('⛏️ Stop mining for user:', userId);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1249,7 +1136,6 @@ app.post('/api/stop-mining', authenticate, async (req, res) => {
             pending_gold_reward: rewardAmount
         });
 
-        console.log('✅ Mining stopped for user:', userId);
         res.json({
             success: true,
             user: updatedUser,
@@ -1265,7 +1151,6 @@ app.post('/api/stop-mining', authenticate, async (req, res) => {
 app.post('/api/claim-mining', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
-        console.log('💰 [claim-mining] START - User:', userId);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1323,7 +1208,6 @@ app.post('/api/claim-mining', authenticate, async (req, res) => {
 
         await updateUserLevel(userId);
 
-        console.log('✅ Mining claimed for user:', userId, 'amount:', rewardAmount);
         res.json({
             success: true,
             user: updatedUser,
@@ -1331,7 +1215,7 @@ app.post('/api/claim-mining', authenticate, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ [claim-mining] Error:', error.message);
+        console.error('❌ /api/claim-mining error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1340,8 +1224,6 @@ app.post('/api/claim-quest', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { questType } = req.body;
-
-        console.log('🎯 Claim quest for user:', userId, 'type:', questType);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1414,7 +1296,6 @@ app.post('/api/claim-quest', authenticate, async (req, res) => {
 
         await updateUserLevel(userId);
 
-        console.log('✅ Quest claimed for user:', userId, 'reward:', reward);
         res.json({
             success: true,
             user: updatedUser,
@@ -1433,8 +1314,6 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { taskId, isPartner, taskOwner } = req.body;
-
-        console.log('📋 Complete task for user:', userId, 'task:', taskId);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1487,7 +1366,6 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
 
         await updateUserLevel(userId);
 
-        console.log('✅ Task completed for user:', userId);
         res.json({
             success: true,
             user: updatedUser,
@@ -1504,8 +1382,6 @@ app.post('/api/convert-gold-to-power', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { goldAmount } = req.body;
-
-        console.log('🔄 Convert gold to power for user:', userId, 'amount:', goldAmount);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1535,7 +1411,6 @@ app.post('/api/convert-gold-to-power', authenticate, async (req, res) => {
 
         await updateUserLevel(userId);
 
-        console.log('✅ Converted for user:', userId, 'total:', totalPower);
         res.json({
             success: true,
             user: updatedUser,
@@ -1554,8 +1429,6 @@ app.post('/api/claim-referral-earnings', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { type } = req.body;
-
-        console.log('💰 Claim referral earnings for user:', userId, 'type:', type);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1602,7 +1475,6 @@ app.post('/api/claim-referral-earnings', authenticate, async (req, res) => {
         const updatedUser = await updateUser(userId, updates);
         await updateUserLevel(userId);
 
-        console.log('✅ Referral earnings claimed for user:', userId, 'amount:', amount);
         res.json({
             success: true,
             user: updatedUser,
@@ -1621,8 +1493,6 @@ app.post('/api/apply-promo', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { code } = req.body;
-
-        console.log('🎫 Apply promo for user:', userId, 'code:', code);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1684,7 +1554,6 @@ app.post('/api/apply-promo', authenticate, async (req, res) => {
         const updatedUser = await updateUser(userId, updates);
         await updateUserLevel(userId);
 
-        console.log('✅ Promo applied for user:', userId);
         res.json({
             success: true,
             user: updatedUser,
@@ -1700,8 +1569,6 @@ app.post('/api/apply-promo', authenticate, async (req, res) => {
 app.post('/api/watch-ad', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
-
-        console.log('📺 Watch ad for user:', userId);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1728,7 +1595,6 @@ app.post('/api/watch-ad', authenticate, async (req, res) => {
 
         await updateUserLevel(userId);
 
-        console.log('✅ Ad watched for user:', userId);
         res.json({
             success: true,
             user: updatedUser,
@@ -1744,8 +1610,6 @@ app.post('/api/watch-ad', authenticate, async (req, res) => {
 app.post('/api/watch-monetag-ad', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
-
-        console.log('📺 Watch Monetag ad for user:', userId);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1771,7 +1635,6 @@ app.post('/api/watch-monetag-ad', authenticate, async (req, res) => {
 
         await updateUserLevel(userId);
 
-        console.log('✅ Monetag ad watched for user:', userId);
         res.json({
             success: true,
             user: updatedUser,
@@ -1789,8 +1652,6 @@ app.post('/api/tasks/:category', authenticate, async (req, res) => {
         const userId = req._userId;
         const { category } = req.params;
 
-        console.log('📋 Get tasks for user:', userId, 'category:', category);
-
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
             return res.status(403).json({ error: 'Device mismatch' });
@@ -1801,7 +1662,6 @@ app.post('/api/tasks/:category', authenticate, async (req, res) => {
         }
         
         const tasks = await getTasks(category, userId);
-        console.log('✅ Tasks returned:', tasks.length);
         res.json({ tasks });
         
     } catch (error) {
@@ -1810,12 +1670,96 @@ app.post('/api/tasks/:category', authenticate, async (req, res) => {
     }
 });
 
+app.post('/api/my-tasks', authenticate, async (req, res) => {
+    try {
+        const userId = req._userId;
+        
+        const { data: tasks, error } = await supabase
+            .from('tasks')
+            .select('*')
+            .eq('owner', userId)
+            .eq('category', 'social')
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        res.json({ tasks: tasks || [] });
+    } catch (error) {
+        console.error('❌ /api/my-tasks error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/delete-task', authenticate, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const { taskId } = req.body;
+        
+        const { data: task, error: checkError } = await supabase
+            .from('tasks')
+            .select('owner')
+            .eq('id', taskId)
+            .single();
+        
+        if (checkError || !task) {
+            return res.status(404).json({ error: 'Task not found' });
+        }
+        
+        if (task.owner !== userId) {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+        
+        await supabase
+            .from('tasks')
+            .update({ status: 'inactive' })
+            .eq('id', taskId);
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('❌ /api/delete-task error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/add-task-amount', authenticate, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const { taskId, amount } = req.body;
+        
+        if (!amount || amount <= 0) {
+            return res.status(400).json({ error: 'Invalid amount' });
+        }
+        
+        const { data: task, error: checkError } = await supabase
+            .from('tasks')
+            .select('owner, total')
+            .eq('id', taskId)
+            .single();
+        
+        if (checkError || !task) {
+            return res.status(404).json({ error: 'Task not found' });
+        }
+        
+        if (task.owner !== userId) {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+        
+        const newTotal = task.total + amount;
+        await supabase
+            .from('tasks')
+            .update({ total: newTotal })
+            .eq('id', taskId);
+        
+        res.json({ success: true, newTotal });
+    } catch (error) {
+        console.error('❌ /api/add-task-amount error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.post('/api/check-membership', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { channel } = req.body;
-
-        console.log('🔍 Check membership for user:', userId, 'channel:', channel);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1848,7 +1792,6 @@ app.post('/api/check-membership', authenticate, async (req, res) => {
         ).then(r => r.json());
 
         const isMember = ['member', 'administrator', 'creator'].includes(response.result?.status);
-        console.log('✅ Membership check result:', isMember);
         res.json({ isMember });
 
     } catch (error) {
@@ -1861,8 +1804,6 @@ app.post('/api/setup-promotion', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { channel } = req.body;
-
-        console.log('📢 Setup promotion for user:', userId);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1877,22 +1818,14 @@ app.post('/api/setup-promotion', authenticate, async (req, res) => {
         }
 
         const channelUsername = channel.replace('https://t.me/', '');
-        const botInfo = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getMe`).then(r => r.json());
-        const botId = botInfo.result.id;
-
-        const botMember = await fetch(
-            `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=@${channelUsername}&user_id=${botId}`
-        ).then(r => r.json());
-
-        const isBotAdmin = ['administrator', 'creator'].includes(botMember.result?.status);
-
+        
+        const isBotAdmin = await checkBotIsAdminInChannel(channelUsername);
         if (!isBotAdmin) {
-            return res.status(400).json({ error: 'Bot is not an admin in the channel' });
+            return res.status(400).json({ error: 'Bot is not an admin in the channel or cannot post messages' });
         }
 
         const promotionData = {
             channel: channel,
-            link: `https://t.me/${APP_CONFIG.BOT_USERNAME}/app?startapp=${userId}`,
             status: 'pending',
             submitted_at: getCurrentTime()
         };
@@ -1901,14 +1834,6 @@ app.post('/api/setup-promotion', authenticate, async (req, res) => {
             promotion: promotionData
         });
 
-        const adminId = process.env.ADMIN_USER_ID;
-        if (adminId) {
-            await sendTelegramNotification(adminId, '🆕 New Promotion Request!', 
-                `User: ${user.first_name} (${userId})\nChannel: ${channel}\nLink: ${promotionData.link}`
-            );
-        }
-
-        console.log('✅ Promotion setup for user:', userId);
         res.json({
             success: true,
             promotion: promotionData
@@ -1924,8 +1849,6 @@ app.post('/api/set-wallet', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { wallet } = req.body;
-
-        console.log('💳 Set wallet for user:', userId);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1945,7 +1868,6 @@ app.post('/api/set-wallet', authenticate, async (req, res) => {
 
         const updatedUser = await updateUser(userId, { wallet });
 
-        console.log('✅ Wallet set for user:', userId);
         res.json({
             success: true,
             user: updatedUser,
@@ -1962,8 +1884,6 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { memo, amount, taskData } = req.body;
-
-        console.log('💳 Check payment for user:', userId, 'memo:', memo);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1995,13 +1915,27 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
             const requiredAmount = (taskData.total * taskData.reward / 1000) * (APP_CONFIG.PRICE_PER_100 || 0.001);
             
             if (txAmount >= requiredAmount * 0.95) {
+                let verification = taskData.verification || false;
+                if (verification && taskData.link) {
+                    const channelMatch = taskData.link.match(/t\.me\/([^\/\?]+)/);
+                    if (channelMatch) {
+                        const isAdmin = await checkBotIsAdminInChannel(channelMatch[1]);
+                        if (!isAdmin) {
+                            return res.json({
+                                success: false,
+                                error: 'Bot is not admin in the channel. Please add @GramPirateBot as admin.'
+                            });
+                        }
+                    }
+                }
+                
                 const taskToAdd = {
                     name: taskData.name,
                     url: taskData.link,
                     category: 'social',
                     reward: taskData.reward,
                     total: taskData.total,
-                    verification: taskData.verification || false,
+                    verification: verification,
                     owner: userId,
                     status: 'active',
                     created_at: getCurrentTime(),
@@ -2021,10 +1955,9 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
                 await sendTelegramNotification(
                     userId,
                     '✅ Task Added Successfully!',
-                    `🏴‍☠️ Your social task "${taskData.name}" has been added.\n\n📊 Total: ${taskData.total}\n💎 Reward: ${taskData.reward} Power\n🔗 Link: ${taskData.link}`
+                    `🏴‍☠️ Your social task "${taskData.name}" has been added.\n\n📊 Total: ${taskData.total}\n💎 Reward: ${taskData.reward} Power\n🪙 Gold: ${APP_CONFIG.SOCIAL_GOLD_REWARD || 1}\n🔗 Link: ${taskData.link}`
                 );
 
-                console.log('✅ Payment verified and task added for user:', userId);
                 return res.json({
                     success: true,
                     task: taskResult,
@@ -2053,8 +1986,6 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { goldAmount } = req.body;
-
-        console.log('💸 Withdraw for user:', userId, 'amount:', goldAmount);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -2156,7 +2087,6 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
             tx_hash: txHash
         });
         
-        // تحديث حالة السحب بعد 30 ثانية
         setTimeout(async () => {
             try {
                 const statusResult = await oxapay.getPayoutStatus(trackId);
@@ -2197,7 +2127,6 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
             );
         }
         
-        console.log('✅ Withdrawal processed for user:', userId);
         res.json({
             success: true,
             user: updatedUser,
@@ -2218,15 +2147,12 @@ app.post('/api/get-withdrawals', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
 
-        console.log('📋 Get withdrawals for user:', userId);
-
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
             return res.status(403).json({ error: 'Device mismatch' });
         }
 
         const withdrawals = await getWithdrawals(userId);
-        console.log('✅ Withdrawals returned:', withdrawals.length);
         res.json({ withdrawals });
 
     } catch (error) {
@@ -2239,15 +2165,12 @@ app.post('/api/get-referrals', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
 
-        console.log('📋 Get referrals for user:', userId);
-
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
             return res.status(403).json({ error: 'Device mismatch' });
         }
 
         const referrals = await getReferrals(userId);
-        console.log('✅ Referrals returned:', referrals.length);
         res.json({ referrals });
 
     } catch (error) {
