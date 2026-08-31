@@ -906,13 +906,15 @@ class App {
     }
 
     async fetchFromServer(endpoint, data = {}) {
-        console.log('🔍 Sending initData:', !!this.initData);
         if (!this.checkCooldown(endpoint)) {
             throw new Error('Cooldown');
         }
 
         try {
-            const initData = window.Telegram?.WebApp?.initData || '';
+            const initData = window.Telegram.WebApp.initData;
+            console.log('🔍 Full initData length:', initData?.length || 0);
+            console.log('🔍 Contains hash:', initData?.includes('hash='));
+            console.log('🔍 Contains auth_date:', initData?.includes('auth_date='));
             
             const headers = {
                 'Content-Type': 'application/json',
@@ -3297,7 +3299,6 @@ class App {
     }
 
     async initialize() {
-        console.log('🔍 WebApp initData:', !!window.Telegram?.WebApp?.initData);
         try {
             if (!window.Telegram?.WebApp) {
                 throw new Error('Open from Telegram');
