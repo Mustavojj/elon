@@ -207,7 +207,7 @@ const APP_CONFIG = {
     MONETAG_AD_COOLDOWN_MINUTES: 3,
     AD_DAILY_LIMIT: 10,
     MIN_CLAIM_GOLD: 1,
-    PRICE_PER_100: 0.001,
+    PRICE_PER_100: 0.100,
     QUESTS: {
         welcome_bonus: { reward: 1000, type: "power" },
         level_quests: [
