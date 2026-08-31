@@ -58,12 +58,18 @@ async function checkUserState(userId) {
 }
 
 function verifyTelegramWebAppData(initData) {
-    if (!initData || !BOT_TOKEN) return false;
+    if (!initData || !BOT_TOKEN) {
+        console.log('❌ Missing initData or BOT_TOKEN');
+        return false;
+    }
     
     try {
         const params = new URLSearchParams(initData);
         const hash = params.get('hash');
-        if (!hash) return false;
+        if (!hash) {
+            console.log('❌ No hash in initData');
+            return false;
+        }
         
         params.delete('hash');
         params.sort();
@@ -76,8 +82,19 @@ function verifyTelegramWebAppData(initData) {
             .update(dataCheckString)
             .digest('hex');
         
-        return calculatedHash === hash;
+        const isValid = calculatedHash === hash;
+        
+        if (!isValid) {
+            console.log('❌ Hash mismatch');
+            console.log('Expected:', hash);
+            console.log('Calculated:', calculatedHash);
+        } else {
+            console.log('✅ Hash verified successfully');
+        }
+        
+        return isValid;
     } catch (error) {
+        console.error('❌ Verification error:', error.message);
         return false;
     }
 }
@@ -85,23 +102,20 @@ function verifyTelegramWebAppData(initData) {
 function verifyTelegramRequest(req, res, next) {
     const { initData, userId, deviceId } = req.body;
     
+    console.log('📥 Request received:');
+    console.log('📥 initData exists:', !!initData);
+    console.log('📥 initData length:', initData?.length || 0);
+    console.log('📥 initData preview:', initData?.substring(0, 100) || 'EMPTY');
+    console.log('📥 userId:', userId);
+    console.log('📥 deviceId:', deviceId);
+    
     if (!initData) {
-        console.error('❌ initData is empty!');
+        console.error('❌ initData is EMPTY in request body!');
         return res.status(401).json({ error: 'No Telegram data provided' });
     }
     
-    if (!initData.includes('hash=')) {
-        console.error('❌ initData missing hash!');
-        return res.status(401).json({ error: 'Invalid Telegram data: missing hash' });
-    }
-    
-    if (!initData.includes('auth_date=')) {
-        console.error('❌ initData missing auth_date!');
-        return res.status(401).json({ error: 'Invalid Telegram data: missing auth_date' });
-    }
-    
     if (!verifyTelegramWebAppData(initData)) {
-        console.error('❌ Hash verification failed!');
+        console.error('❌ Invalid Telegram data');
         return res.status(401).json({ error: 'Invalid Telegram data' });
     }
     
@@ -111,13 +125,16 @@ function verifyTelegramRequest(req, res, next) {
         if (userParam) {
             const user = JSON.parse(userParam);
             if (user.id !== parseInt(userId)) {
+                console.error('❌ User mismatch:', user.id, 'vs', userId);
                 return res.status(403).json({ error: 'User mismatch' });
             }
         }
     } catch (error) {
+        console.error('❌ Invalid user data:', error.message);
         return res.status(400).json({ error: 'Invalid user data' });
     }
     
+    console.log('✅ Request verified for user:', userId);
     req._userId = userId;
     req._deviceId = deviceId;
     next();
@@ -135,6 +152,7 @@ async function validateDevice(userId, deviceId) {
         if (error) return true;
         
         if (user.device_id && user.device_id !== deviceId) {
+            console.log('❌ Device mismatch:', user.device_id, 'vs', deviceId);
             return false;
         }
         return true;
@@ -686,6 +704,12 @@ app.post('/api/check-mining-status', async (req, res) => {
 app.post('/api/claim-welcome-bonus', verifyTelegramRequest, async (req, res) => {
     try {
         const userId = req._userId;
+        
+        const validDevice = await validateDevice(userId, req._deviceId);
+        if (!validDevice) {
+            return res.status(403).json({ error: 'Device mismatch' });
+        }
+
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -719,11 +743,18 @@ app.post('/api/get-user', async (req, res) => {
     try {
         const { userId, deviceId, referredBy, username, firstName, photoUrl, initData } = req.body;
         
+        console.log('📥 /api/get-user called');
+        console.log('📥 userId:', userId);
+        console.log('📥 deviceId:', deviceId);
+        console.log('📥 initData exists:', !!initData);
+        console.log('📥 initData length:', initData?.length || 0);
+        
         if (!validateUserId(userId)) {
             return res.status(400).json({ error: 'Invalid user' });
         }
 
         if (initData && !verifyTelegramWebAppData(initData)) {
+            console.error('❌ Invalid Telegram data in /api/get-user');
             return res.status(401).json({ error: 'Invalid Telegram data' });
         }
 
@@ -747,6 +778,8 @@ app.post('/api/get-user', async (req, res) => {
         let user = await getUser(userId);
         
         if (!user) {
+            console.log('🆕 Creating new user:', userId);
+            
             const userData = {
                 id: userId,
                 username: username || '',
@@ -789,6 +822,7 @@ app.post('/api/get-user', async (req, res) => {
             const referredByUser = referredBy || null;
             if (referredByUser && referredByUser !== userId) {
                 userData.referred_by = referredByUser;
+                console.log('🔗 User referred by:', referredByUser);
             }
 
             user = await createUser(userData);
@@ -832,10 +866,12 @@ app.post('/api/get-user', async (req, res) => {
         }
 
         if (deviceId && !user.device_id) {
+            console.log('🔒 Setting device_id for user:', userId);
             await updateUser(userId, { device_id: deviceId });
         }
 
         if (user.device_id && deviceId && user.device_id !== deviceId) {
+            console.error('❌ Device mismatch for user:', userId);
             return res.status(403).json({ error: 'Device mismatch' });
         }
 
@@ -1931,6 +1967,9 @@ const PORT = process.env.PORT || 8080;
 
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🏴‍☠️ GRAM PIRATES server running on port ${PORT}`);
+    console.log(`🔍 BOT_TOKEN exists: ${!!BOT_TOKEN}`);
+    console.log(`🔍 SUPABASE_URL exists: ${!!supabaseUrl}`);
+    console.log(`🔍 SUPABASE_KEY exists: ${!!supabaseKey}`);
 });
 
 server.on('error', (error) => {
