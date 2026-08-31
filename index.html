@@ -19,7 +19,6 @@
     <div style="color:#888;font-size:0.7rem;"><i class="fas fa-spinner fa-pulse"></i> Loading...</div>
 </div>
 
-<!-- Device Verification Modal -->
 <div id="device-verification-modal" class="modal" style="display:none;">
     <div class="modal-content gold-modal" style="max-width:340px;width:90%;background:rgba(15,15,15,0.98);border-radius:24px;border:1px solid rgba(255,215,0,0.12);padding:0;">
         <div class="modal-header gold-header" style="padding:16px 20px;border-bottom:1px solid rgba(255,215,0,0.08);">
@@ -81,6 +80,7 @@
     <div id="lang-menu" class="lang-menu" style="display:none;">
         <div class="lang-menu-content">
             <button class="lang-option" data-lang="en" data-flag="🇬🇧">English</button>
+            <button class="lang-option" data-lang="ar" data-flag="🇸🇦">العربية</button>
             <button class="lang-option" data-lang="ru" data-flag="🇷🇺">Русский</button>
             <button class="lang-option" data-lang="fa" data-flag="🇮🇷">فارسی</button>
         </div>
@@ -101,9 +101,8 @@
     </nav>
 </div>
 
-<!-- Add Social Task Modal -->
 <div id="add-social-task-modal" class="modal" style="display:none;">
-    <div class="modal-content gold-modal" style="max-width:360px;width:90%;max-height:90vh;overflow-y:auto;background:rgba(15,15,15,0.98);border-radius:24px;border:1px solid rgba(255,215,0,0.12);padding:0;">
+    <div class="modal-content gold-modal" style="max-width:400px;width:92%;max-height:90vh;overflow-y:auto;background:rgba(15,15,15,0.98);border-radius:24px;border:1px solid rgba(255,215,0,0.12);padding:0;">
         <div class="modal-header gold-header" style="padding:16px 20px;border-bottom:1px solid rgba(255,215,0,0.08);">
             <h3 style="color:#FFE44D;font-size:1.1rem;display:flex;align-items:center;gap:10px;margin:0;"><i class="fas fa-plus-circle" style="color:#FFD700;"></i> Add Social Task</h3>
             <button class="modal-close" onclick="document.getElementById('add-social-task-modal').style.display='none'">&times;</button>
@@ -119,29 +118,30 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Total</label>
-                <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                    <button class="total-option gold-btn" data-value="100" style="padding:6px 14px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;">100</button>
-                    <button class="total-option gold-btn" data-value="250" style="padding:6px 14px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;">250</button>
-                    <button class="total-option gold-btn" data-value="500" style="padding:6px 14px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;">500</button>
-                    <button class="total-option gold-btn" data-value="1000" style="padding:6px 14px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;">1000</button>
-                    <button class="total-option gold-btn" data-value="custom" style="padding:6px 14px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;">Custom</button>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                    <button class="total-option" data-value="100" style="padding:6px 14px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.05);color:#888;transition:all 0.2s;">100</button>
+                    <button class="total-option" data-value="250" style="padding:6px 14px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.05);color:#888;transition:all 0.2s;">250</button>
+                    <button class="total-option" data-value="500" style="padding:6px 14px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.05);color:#888;transition:all 0.2s;">500</button>
+                    <button class="total-option" data-value="1000" style="padding:6px 14px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.05);color:#888;transition:all 0.2s;">1000</button>
+                    <button class="total-option" data-value="custom" style="padding:6px 14px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.05);color:#888;transition:all 0.2s;">Custom</button>
+                    <input type="number" id="social-task-total-custom" class="form-input gold-input" placeholder="Enter total" style="display:none;width:120px;padding:6px 12px;font-size:0.7rem;height:32px;" min="100" max="5000">
                 </div>
-                <input type="number" id="social-task-total-custom" class="form-input gold-input" placeholder="Enter total" style="display:none;margin-top:6px;min-width:100px;" min="100" max="5000">
             </div>
             <div class="form-group">
                 <label class="form-label">Reward (Power)</label>
                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                    <button class="reward-option gold-btn" data-value="10" style="padding:6px 14px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;">10</button>
-                    <button class="reward-option gold-btn" data-value="25" style="padding:6px 14px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;">25</button>
-                    <button class="reward-option gold-btn" data-value="50" style="padding:6px 14px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;">50</button>
-                    <button class="reward-option gold-btn" data-value="100" style="padding:6px 14px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;">100</button>
+                    <button class="reward-option" data-value="10" style="padding:6px 14px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.05);color:#888;transition:all 0.2s;">10</button>
+                    <button class="reward-option" data-value="25" style="padding:6px 14px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.05);color:#888;transition:all 0.2s;">25</button>
+                    <button class="reward-option" data-value="50" style="padding:6px 14px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.05);color:#888;transition:all 0.2s;">50</button>
+                    <button class="reward-option" data-value="100" style="padding:6px 14px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.05);color:#888;transition:all 0.2s;">100</button>
                 </div>
             </div>
             <div class="form-group" id="verification-group" style="display:none;">
                 <label class="form-label">Verification</label>
-                <div style="display:flex;gap:10px;">
-                    <button class="verif-option gold-btn" data-value="yes" style="padding:6px 18px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;">YES</button>
-                    <button class="verif-option gold-btn" data-value="no" style="padding:6px 18px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;">NO</button>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                    <button class="verif-option" data-value="yes" style="padding:6px 18px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.05);color:#888;transition:all 0.2s;">YES</button>
+                    <button class="verif-option" data-value="no" style="padding:6px 18px;border:none;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.05);color:#888;transition:all 0.2s;">NO</button>
+                    <span id="verification-note" style="font-size:0.6rem;color:#FFD700;display:none;margin-left:4px;"><i class="fas fa-info-circle"></i> You must add the bot as admin to verify membership</span>
                 </div>
             </div>
             <div style="background:rgba(255,215,0,0.05);border-radius:12px;padding:12px;margin:12px 0;border:1px solid rgba(255,215,0,0.05);">
@@ -155,7 +155,6 @@
     </div>
 </div>
 
-<!-- Payment Modal -->
 <div id="payment-modal" class="modal" style="display:none;">
     <div class="modal-content gold-modal" style="max-width:360px;width:90%;background:rgba(15,15,15,0.98);border-radius:24px;border:1px solid rgba(255,215,0,0.12);padding:0;">
         <div class="modal-header gold-header" style="padding:16px 20px;border-bottom:1px solid rgba(255,215,0,0.08);">
@@ -174,6 +173,20 @@
             <a id="tonkeeper-link" href="#" target="_blank" class="gold-btn" style="display:block;text-align:center;padding:12px;border:none;border-radius:60px;font-weight:700;text-decoration:none;margin-bottom:10px;background:linear-gradient(135deg,#FFD700,#D4A800);color:#0a0a0f;">Confirm on Tonkeeper</a>
             <button id="check-payment-btn" class="gold-btn" style="width:100%;padding:12px;border:none;border-radius:60px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#FFD700,#D4A800);color:#0a0a0f;">Check Payment</button>
             <div id="payment-status" style="text-align:center;margin-top:10px;font-size:0.8rem;color:#888;"></div>
+        </div>
+    </div>
+</div>
+
+<div id="my-tasks-modal" class="modal" style="display:none;">
+    <div class="modal-content gold-modal" style="max-width:400px;width:92%;max-height:90vh;overflow-y:auto;background:rgba(15,15,15,0.98);border-radius:24px;border:1px solid rgba(255,215,0,0.12);padding:0;">
+        <div class="modal-header gold-header" style="padding:16px 20px;border-bottom:1px solid rgba(255,215,0,0.08);">
+            <h3 style="color:#FFE44D;font-size:1.1rem;display:flex;align-items:center;gap:10px;margin:0;"><i class="fas fa-tasks" style="color:#FFD700;"></i> My Social Tasks</h3>
+            <button class="modal-close" onclick="document.getElementById('my-tasks-modal').style.display='none'">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:20px;">
+            <div id="my-tasks-container">
+                <div class="task-loading"><i class="fas fa-spinner fa-pulse"></i><p>Loading...</p></div>
+            </div>
         </div>
     </div>
 </div>
