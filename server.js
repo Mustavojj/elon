@@ -58,6 +58,8 @@ async function checkUserState(userId) {
 }
 
 function verifyTelegramWebAppData(initData) {
+    console.log('🔍 initData:', initData?.substring(0, 200));
+    console.log('🔍 BOT_TOKEN exists:', !!BOT_TOKEN);
     if (!initData || !BOT_TOKEN) return false;
     
     try {
@@ -83,6 +85,8 @@ function verifyTelegramWebAppData(initData) {
 }
 
 function verifyTelegramRequest(req, res, next) {
+    console.log('🔍 Request body:', req.body);
+    console.log('🔍 initData in body:', !!req.body.initData);
     const { initData, userId, deviceId } = req.body;
     
     if (!initData) {
