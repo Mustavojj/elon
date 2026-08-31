@@ -1973,4 +1973,4 @@ body {
 .total-option.active, .reward-option.active, .verif-option.active {
     box-shadow: 0 0 20px var(--primary-glow);
     transform: scale(0.95);
-    }
+}
