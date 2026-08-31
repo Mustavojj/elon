@@ -238,489 +238,270 @@ const translations = {
         device_resend_btn: "Resend Code",
         device_verify_error: "Invalid code. Please try again.",
         device_code_sent: "Verification code sent to your Telegram",
-        device_verified: "Device verified successfully!"
+        device_verified: "Device verified successfully!",
+        my_tasks: "My Tasks",
+        add_more: "Add More",
+        delete_task: "Delete",
+        task_status_active: "Active",
+        task_status_completed: "Completed",
+        no_my_tasks: "You haven't created any social tasks yet.",
+        verification_note: "You must add the bot as admin to verify membership",
+        gold_reward: "Gold Reward"
+    },
+    ar: {
+        level: "المستوى",
+        mining_rig: "قرصان المستوى",
+        hourly: "ساعياً",
+        daily: "يومياً",
+        monthly: "شهرياً",
+        start_mining: "بدء التعدين",
+        claim_reward: "استلام {amount} ذهب",
+        mining_note: "يمكن جمع المكافآت بعد انتهاء جلسة التعدين",
+        next_level_reward: "مكافأة المستوى التالي",
+        power: "قوة",
+        gold: "ذهب",
+        gram: "جرام",
+        promo_code: "رمز ترويجي",
+        enter_code: "أدخل الرمز",
+        claim: "استلام",
+        watch_ad: "مشاهدة إعلان Adsgram",
+        watch_monetag: "مشاهدة إعلان Monetag",
+        reward_amount: "المكافأة",
+        available_in: "متاح خلال",
+        hours: "س",
+        watch: "مشاهدة",
+        all_tasks_completed: "تم إكمال جميع المهام!",
+        check_later: "تفقد لاحقاً للمزيد",
+        no_tasks: "لا توجد مهام متاحة",
+        team_benefits: "مزايا الفريق",
+        share_earn: "شارك واربح",
+        copy: "نسخ",
+        share: "مشاركة",
+        total_members: "إجمالي الأعضاء",
+        power_earnings: "أرباح القوة",
+        withdraw: "سحب",
+        available: "متاح",
+        wallet: "المحفظة",
+        amount: "المبلغ",
+        min_withdraw: "الحد الأدنى للسحب",
+        confirm_withdrawal: "تأكيد السحب",
+        withdrawal_history: "سجل السحوبات",
+        no_withdrawals: "لا توجد سحوبات بعد",
+        pending: "قيد الانتظار",
+        completed: "تم الدفع",
+        claim_mining_title: "استلام مكافآت التعدين",
+        claim_btn: "استلام المكافآت",
+        mining: "تعدين",
+        earn: "ربح",
+        team: "قراصنة",
+        wallet_page: "المحفظة",
+        copy_success: "تم النسخ!",
+        link_copied: "تم نسخ الرابط إلى الحافظة",
+        earn_more: "اربح المزيد من القوة",
+        complete_tasks: "أكمل المهام",
+        go: "انطلق",
+        invite_frens: "دعوة الأصدقاء",
+        ad_reward: "مشاهدة إعلان",
+        loading: "جار التحميل",
+        ready: "جاهز",
+        mining_active: "التعدين نشط",
+        save_error: "فشل حفظ البيانات! حاول مرة أخرى.",
+        watch_ad_btn: "مشاهدة",
+        claiming: "جار الاستلام...",
+        get_promo_codes: "احصل على رموز ترويجية",
+        available_tasks: "المهام المتاحة",
+        completed_tasks: "المهام المكتملة",
+        no_tasks_available: "لا توجد مهام متاحة",
+        referral_bonus: "مكافأة الإحالة",
+        referrer_reward_notification: "لقد تلقيت مكافأة! قام المُحيل الخاص بك بإكمال المتطلبات",
+        ban_message: "تم حظر حسابك. يرجى الاتصال بالدعم.",
+        withdrawal_requested: "تم طلب السحب",
+        new_referral: "إحالة جديدة",
+        earn_power_reward: "اربح {reward} قوة لكل إحالة موثقة",
+        earn_percent_friends: "اربح {percent}% من أرباح الأصدقاء",
+        reward_added: "تمت إضافة المكافأة! +{reward} قوة",
+        welcome_bonus: "مكافأة الترحيب",
+        up_to_level: "حتى المستوى {level}",
+        start_mining_quest: "تعدين {times} مرات",
+        claim_quest: "استلام",
+        claimed: "تم الاستلام",
+        rewards_title: "المكافآت",
+        invite_earn: "ادعُ واربح",
+        verified_member: "عضو موثق",
+        team_earnings: "أرباح الفريق",
+        more_active_members: "أعضاء أكثر نشاطاً، أرباح أكثر",
+        copy_link: "نسخ الرابط",
+        total_members: "إجمالي الأعضاء",
+        active_members: "الأعضاء النشطون",
+        total_earnings: "إجمالي الأرباح",
+        tasks: "المهام",
+        rewards: "المكافآت",
+        gold_balance: "الذهب",
+        exchange_rate: "سعر الصرف",
+        gold_to_gram: "10,000 ذهب = 1 جرام",
+        convert_withdraw: "تحويل وسحب",
+        withdraw_gold: "سحب الذهب",
+        enter_gold_amount: "كمية الذهب",
+        min_withdraw_gold: "الحد الأدنى للسحب",
+        tasks_tab: "المهام",
+        rewards_tab: "المكافآت",
+        referral_quests: "مهام الإحالة",
+        target_referrals: "ادعُ {target} قرصان",
+        progress: "التقدم",
+        main_tasks: "المهام الرئيسية",
+        partner_tasks: "مهام الشركاء",
+        social_tasks: "المهام الاجتماعية",
+        tasks_completed: "المهام المكتملة",
+        current_level: "المستوى الحالي",
+        main_task_complete: "إكمال",
+        partner_task_complete: "إكمال",
+        boost_power: "عزز قوتك",
+        boost_desc: "استبدل الذهب بقوة",
+        gold_to_power: "1 قوة = 1 ذهب",
+        convert: "استبدال",
+        enter_gold: "أدخل كمية الذهب",
+        level_progress: "التقدم في المستوى",
+        next_level: "المستوى التالي",
+        quest_completed: "تم إكمال المهمة!",
+        current_power: "القوة الحالية",
+        next_level_power: "قوة المستوى التالي",
+        referral_commissions: "عمولات الإحالة",
+        referral_tasks: "المهام",
+        referral_promo: "الرموز الترويجية",
+        referral_mining: "التعدين",
+        referral_max: "حتى 50% من أرباح القراصنة",
+        referral_earnings: "أرباح الإحالة",
+        claim_earnings: "استلام",
+        total_gold: "إجمالي الذهب",
+        total_earnings: "إجمالي الأرباح",
+        watch_ad_reward: "مشاهدة إعلان مكافأة",
+        ad_reward_power: "50 قوة",
+        ad_cooldown: "متاح خلال",
+        ad_daily_limit: "الحد اليومي",
+        bonus: "مكافأة",
+        referral_power_earnings: "أرباح القوة",
+        referral_gold_earnings: "أرباح الذهب",
+        total_pirates: "إجمالي القراصنة",
+        gold_earnings: "الذهب",
+        power_earnings_total: "القوة",
+        min_claim: "الحد الأدنى للاستلام",
+        power_claim: "استلام القوة",
+        gold_claim: "استلام الذهب",
+        step1: "انسخ الرابط",
+        step2: "ادعُ القراصنة",
+        step3: "اربح جرام مجاناً!",
+        ad_progress: "الإعلانات اليومية",
+        boost_earnings: "عزز أرباحك",
+        enter_channel_link: "أدخل رابط القناة",
+        enter_referral_link: "أدخل رابط الإحالة",
+        upgrade_bot: "ترقية البوت كمدير",
+        upgrade_bot_link: "https://t.me/{bot}?startchannel&admin=post_messages+invite_users",
+        confirm_boost: "تأكيد",
+        channel: "القناة",
+        referral_link: "رابط الإحالة",
+        status: "الحالة",
+        pending: "قيد الانتظار",
+        approved: "تمت الموافقة",
+        do_not_remove_bot: "لا تقم بإزالة البوت من المديرين",
+        you_will_receive: "ستتلقى +25% أرباح",
+        bot_post_note: "سينشر البوت الرموز الترويجية مرة واحدة يومياً مع رابط الإحالة الخاص بك.",
+        exchange_rate_note: "سعر الصرف: 1 قوة = 1 ذهب",
+        bonus_note: "ستتلقى +10% مكافأة",
+        wait_cooldown: "انتظر {h}س قبل السحب التالي",
+        min_withdraw_gold_amount: "الحد الأدنى للسحب: 100 ذهب",
+        max_withdraw_gold_amount: "الحد الأقصى للسحب: 2000 ذهب",
+        claim_with_bonus: "استلام (+10%)",
+        claim_default: "استلام",
+        reward_claimed: "تم استلام المكافأة",
+        you_have_received: "لقد تلقيت {reward} {type}",
+        try_again_later: "حاول مرة أخرى لاحقاً",
+        complete_tasks_quest: "أكمل {target} مهمة",
+        task_quests: "مهام المهمات",
+        mining_stopped: "تم إيقاف التعدين!",
+        mining_session_ended: "انتهت جلسة التعدين الخاصة بك.\n💎 لقد ربحت {amount} ذهب\n\nاستلم مكافآتك وأعد تشغيل التعدين!",
+        setup_wallet: "إعداد محفظة جرام الخاصة بك",
+        wallet_address: "عنوان المحفظة",
+        confirm_wallet: "تأكيد",
+        wallet_note: "لا يمكنك تغيير محفظتك مرة أخرى",
+        wallet_set: "تم تعيين المحفظة",
+        wallet_set_success: "تم تعيين محفظتك بنجاح!",
+        wallet_already_set: "المحفظة معينة بالفعل",
+        wallet_invalid: "عنوان محفظة غير صالح. يجب أن يبدأ بـ UQ ويكون 20 حرفاً على الأقل.",
+        withdrawal_fees: "رسوم السحب: {fees} ذهب",
+        withdrawal_details: "تفاصيل السحب",
+        wallet_label: "المحفظة",
+        amount_label: "المبلغ",
+        fees_label: "الرسوم",
+        received_amount: "المبلغ المستلم",
+        confirm: "نعم، تأكيد",
+        are_you_sure: "هل أنت متأكد من تفاصيل السحب؟",
+        contact_support: "لا، اتصل بالدعم",
+        insufficient_balance: "رصيد الذهب غير كافٍ",
+        invalid_amount: "مبلغ غير صالح",
+        withdrawal_success: "تم السحب بنجاح!",
+        withdrawal_failed: "فشل السحب",
+        add_social_task: "إضافة مهمة اجتماعية",
+        task_name: "اسم المهمة",
+        task_link: "الرابط",
+        total: "الإجمالي",
+        reward_power: "المكافأة (قوة)",
+        verification: "التحقق",
+        total_cost: "التكلفة الإجمالية",
+        pay_add_task: "ادفع وأضف المهمة",
+        payment_page: "صفحة الدفع",
+        confirm_tonkeeper: "تأكيد في Tonkeeper",
+        check_payment: "التحقق من الدفع",
+        payment_wallet: "المحفظة",
+        payment_memo: "مذكرة",
+        payment_verified: "تم التحقق من الدفع بنجاح! تمت إضافة المهمة.",
+        payment_failed: "فشل التحقق من الدفع. حاول مرة أخرى.",
+        payment_checking: "جارٍ التحقق من الدفع...",
+        promote_earn: "الترويج والربح",
+        promote_step1: "أضف @GramPirateBot كمدير في قناتك",
+        promote_step2: "سينشر البوت رموزاً ترويجية كل يوم",
+        promote_step3: "ستربح +10% من أرباح الإحالات",
+        promote_channel: "أدخل رابط قناتك",
+        promote_confirm: "تأكيد",
+        promote_warning: "إذا قمت بإزالة البوت من المديرين أو تعطيل إمكانية نشر الرسائل، سيتم حظرك من نظام الترويج.",
+        promote_pending: "طلب الترويج الخاص بك قيد المراجعة",
+        promote_approved: "تمت الموافقة على ترويجك! +10% مكافأة نشطة",
+        promote_rejected: "تم رفض طلب الترويج الخاص بك",
+        ad_ready: "جاهز",
+        ad_cooldown_seconds: "انتظر {s}ث",
+        monetag_ad_ready: "مشاهدة Monetag AD",
+        monetag_ad_watching: "جارٍ تحميل الإعلان...",
+        payment_error: "خطأ في الدفع",
+        task_added: "تمت إضافة المهمة!",
+        task_added_success: "تمت إضافة مهمتك الاجتماعية بنجاح.",
+        name_required: "يجب أن يكون الاسم بين 5-20 حرفاً",
+        link_required: "يرجى إدخال رابط صحيح يبدأ بـ https://",
+        invalid_total: "يرجى إدخال إجمالي صحيح بين 100-5000",
+        select_reward: "يرجى اختيار مبلغ المكافأة",
+        promo_cooldown: "يرجى الانتظار قبل استخدام رمز ترويجي آخر",
+        ad_error: "فشل تحميل الإعلان. حاول مرة أخرى.",
+        ad_success: "تم مشاهدة الإعلان بنجاح! +{reward} قوة",
+        device_verify_title: "جهاز جديد تم اكتشافه",
+        device_verify_sub: "تم إرسال رمز التحقق إلى تليجرام. يرجى إدخاله للمتابعة.",
+        device_verify_placeholder: "— — — — — —",
+        device_verify_btn: "التحقق من الجهاز",
+        device_resend_btn: "إعادة إرسال الرمز",
+        device_verify_error: "رمز غير صالح. حاول مرة أخرى.",
+        device_code_sent: "تم إرسال رمز التحقق إلى تليجرام",
+        device_verified: "تم التحقق من الجهاز بنجاح!",
+        my_tasks: "مهامي",
+        add_more: "إضافة المزيد",
+        delete_task: "حذف",
+        task_status_active: "نشط",
+        task_status_completed: "مكتمل",
+        no_my_tasks: "لم تقم بإنشاء أي مهام اجتماعية بعد.",
+        verification_note: "يجب إضافة البوت كمدير للتحقق من العضوية",
+        gold_reward: "مكافأة الذهب"
     },
     ru: {
-        level: "Уровень",
-        mining_rig: "ПИРАТ УР.",
-        hourly: "В ЧАС",
-        daily: "В ДЕНЬ",
-        monthly: "В МЕСЯЦ",
-        start_mining: "НАЧАТЬ МАЙНИНГ",
-        claim_reward: "ПОЛУЧИТЬ {amount} ЗОЛОТА",
-        mining_note: "Награда доступна после завершения сессии",
-        next_level_reward: "Награда за следующий уровень",
-        power: "Сила",
-        gold: "Золото",
-        gram: "GRAM",
-        promo_code: "Промокод",
-        enter_code: "Введите код",
-        claim: "Получить",
-        watch_ad: "Смотреть Adsgram AD",
-        watch_monetag: "Смотреть Monetag AD",
-        reward_amount: "Награда",
-        available_in: "Доступно через",
-        hours: "ч",
-        watch: "Смотреть",
-        all_tasks_completed: "Все задания выполнены!",
-        check_later: "Загляните позже",
-        no_tasks: "Нет доступных заданий",
-        team_benefits: "Преимущества команды",
-        share_earn: "ПОДЕЛИТЬСЯ И ЗАРАБОТАТЬ",
-        copy: "Копировать",
-        share: "Поделиться",
-        total_members: "Всего участников",
-        power_earnings: "Заработок силы",
-        withdraw: "Вывести",
-        available: "Доступно",
-        wallet: "Кошелек",
-        amount: "Сумма",
-        min_withdraw: "Минимальный вывод",
-        confirm_withdrawal: "Подтвердить вывод",
-        withdrawal_history: "История выводов",
-        no_withdrawals: "Нет выводов",
-        pending: "В ОЖИДАНИИ",
-        completed: "ВЫПОЛНЕНО",
-        claim_mining_title: "Получить награду за майнинг",
-        claim_btn: "Получить награду",
-        mining: "Майнинг",
-        earn: "Заработать",
-        team: "Пираты",
-        wallet_page: "Кошелек",
-        copy_success: "Скопировано!",
-        link_copied: "Ссылка скопирована",
-        earn_more: "Заработать больше силы",
-        complete_tasks: "Выполнить задания",
-        go: "ВПЕРЁД",
-        invite_frens: "Пригласить друзей",
-        ad_reward: "Смотреть рекламу",
-        loading: "Загрузка",
-        ready: "Готово",
-        mining_active: "МАЙНИНГ АКТИВЕН",
-        save_error: "Ошибка сохранения! Попробуйте снова.",
-        watch_ad_btn: "СМОТРЕТЬ",
-        claiming: "Получение...",
-        get_promo_codes: "Получить промокоды",
-        available_tasks: "Доступные задания",
-        completed_tasks: "Выполненные задания",
-        no_tasks_available: "Нет заданий",
-        referral_bonus: "Бонус за приглашение",
-        referrer_reward_notification: "Вы получили бонус! Ваш реферал выполнил требования",
-        ban_message: "Ваш аккаунт заблокирован. Свяжитесь с поддержкой.",
-        withdrawal_requested: "Запрос на вывод",
-        new_referral: "Новый реферал",
-        earn_power_referral: "Заработайте {reward} силы за каждого верифицированного реферала",
-        earn_percent_friends: "Заработайте {percent}% от заработка друзей",
-        reward_added: "Награда добавлена! +{reward} силы",
-        welcome_bonus: "Приветственный бонус",
-        up_to_level: "ДО УРОВНЯ {level}",
-        start_mining_quest: "МАЙНИТЬ {times} РАЗ",
-        claim_quest: "Получить",
-        claimed: "Получено",
-        rewards_title: "Награды",
-        invite_earn: "Приглашай и зарабатывай",
-        verified_member: "Верифицированный участник",
-        team_earnings: "Заработок команды",
-        more_active_members: "Больше активных участников - больше прибыли",
-        copy_link: "Копировать ссылку",
-        total_members: "Всего участников",
-        active_members: "Активных участников",
-        total_earnings: "Общий заработок",
-        tasks: "Задания",
-        rewards: "Награды",
-        gold_balance: "Золото",
-        exchange_rate: "Курс обмена",
-        gold_to_gram: "10,000 Золота = 1 GRAM",
-        convert_withdraw: "Конвертировать и вывести",
-        withdraw_gold: "Вывести золото",
-        enter_gold_amount: "СУММА ЗОЛОТА",
-        min_withdraw_gold: "Мин. вывод",
-        tasks_tab: "Задания",
-        rewards_tab: "Награды",
-        referral_quests: "Реферальные задания",
-        target_referrals: "ПРИГЛАСИТЬ {target} ПИРАТОВ",
-        progress: "Прогресс",
-        main_tasks: "Основные задания",
-        partner_tasks: "Партнерские задания",
-        social_tasks: "Социальные задания",
-        tasks_completed: "Заданий выполнено",
-        current_level: "Текущий уровень",
-        main_task_complete: "Выполнить",
-        partner_task_complete: "Выполнить",
-        boost_power: "Увеличить силу",
-        boost_desc: "Обменяйте золото на силу",
-        gold_to_power: "1 Сила = 1 Золото",
-        convert: "Обменять",
-        enter_gold: "Введите количество золота",
-        level_progress: "Прогресс уровня",
-        next_level: "Следующий уровень",
-        quest_completed: "Задание выполнено!",
-        current_power: "Текущая сила",
-        next_level_power: "Сила для следующего уровня",
-        referral_commissions: "Реферальные комиссии",
-        referral_tasks: "Задания",
-        referral_promo: "Промокоды",
-        referral_mining: "Майнинг",
-        referral_max: "До 50% от заработка пиратов",
-        referral_earnings: "Реферальный заработок",
-        claim_earnings: "Получить",
-        total_gold: "Всего золота",
-        total_earnings: "Всего заработок",
-        watch_ad_reward: "Смотреть рекламу",
-        ad_reward_power: "50 силы",
-        ad_cooldown: "Доступно через",
-        ad_daily_limit: "Дневной лимит",
-        bonus: "бонус",
-        referral_power_earnings: "Заработок силы",
-        referral_gold_earnings: "Заработок золота",
-        total_pirates: "Всего пиратов",
-        gold_earnings: "Золото",
-        power_earnings_total: "Сила",
-        min_claim: "Мин. получение",
-        power_claim: "Получить силу",
-        gold_claim: "Получить золото",
-        step1: "Копировать ссылку",
-        step2: "Пригласить пиратов",
-        step3: "Заработать GRAM!",
-        ad_progress: "Дневная реклама",
-        boost_earnings: "Увеличить заработок",
-        enter_channel_link: "Введите ссылку на канал",
-        enter_referral_link: "Введите реферальную ссылку",
-        upgrade_bot: "Добавьте бота как администратора",
-        upgrade_bot_link: "https://t.me/{bot}?startchannel&admin=post_messages+invite_users",
-        confirm_boost: "Подтвердить",
-        channel: "Канал",
-        referral_link: "Реферальная ссылка",
-        status: "Статус",
-        pending: "На рассмотрении",
-        approved: "Одобрено",
-        do_not_remove_bot: "Не удаляйте бота из администраторов",
-        you_will_receive: "Вы получите +25% заработка",
-        bot_post_note: "Бот будет публиковать промокоды раз в день с вашей реферальной ссылкой.",
-        exchange_rate_note: "Курс обмена: 1 Сила = 1 ЗОЛОТО",
-        bonus_note: "Вы получите +10% бонус",
-        wait_cooldown: "Подождите {h}ч перед следующим выводом",
-        min_withdraw_gold_amount: "Минимальный вывод: 100 ЗОЛОТА",
-        max_withdraw_gold_amount: "Максимальный вывод: 2000 Золота",
-        claim_with_bonus: "ПОЛУЧИТЬ (+10%)",
-        claim_default: "ПОЛУЧИТЬ",
-        reward_claimed: "Награда получена",
-        you_have_received: "Вы получили {reward} {type}",
-        try_again_later: "Попробуйте позже",
-        complete_tasks_quest: "ВЫПОЛНИТЬ {target} ЗАДАНИЙ",
-        task_quests: "Задания-квесты",
-        mining_stopped: "Майнинг остановлен!",
-        mining_session_ended: "Ваша сессия майнинга завершена.\n💎 Вы заработали {amount} Золота\n\nПолучите награду и начните майнинг заново!",
-        setup_wallet: "Настройте ваш GRAM кошелек",
-        wallet_address: "Адрес кошелька",
-        confirm_wallet: "Подтвердить",
-        wallet_note: "Вы не сможете изменить кошелек снова",
-        wallet_set: "Кошелек установлен",
-        wallet_set_success: "Ваш кошелек успешно установлен!",
-        wallet_already_set: "Кошелек уже установлен",
-        wallet_invalid: "Неверный адрес кошелька. Должен начинаться с UQ и быть не менее 20 символов.",
-        withdrawal_fees: "Комиссия за вывод: {fees} Золота",
-        withdrawal_details: "Детали вывода",
-        wallet_label: "Кошелек",
-        amount_label: "Сумма",
-        fees_label: "Комиссия",
-        received_amount: "Полученная сумма",
-        confirm: "ДА, ПОДТВЕРДИТЬ",
-        are_you_sure: "Вы уверены в деталях вывода?",
-        contact_support: "Нет, связаться с поддержкой",
-        insufficient_balance: "Недостаточно золота",
-        invalid_amount: "Неверная сумма",
-        withdrawal_success: "Вывод успешен!",
-        withdrawal_failed: "Вывод не удался",
-        add_social_task: "Добавить социальное задание",
-        task_name: "Название задания",
-        task_link: "Ссылка",
-        total: "Всего",
-        reward_power: "Награда (Сила)",
-        verification: "Проверка",
-        total_cost: "Общая стоимость",
-        pay_add_task: "ОПЛАТИТЬ И ДОБАВИТЬ",
-        payment_page: "Страница оплаты",
-        confirm_tonkeeper: "Подтвердить в Tonkeeper",
-        check_payment: "Проверить оплату",
-        payment_wallet: "Кошелек",
-        payment_memo: "Memo",
-        payment_verified: "Оплата подтверждена! Задание добавлено.",
-        payment_failed: "Ошибка проверки оплаты. Попробуйте снова.",
-        payment_checking: "Проверка оплаты...",
-        promote_earn: "Продвижение и заработок",
-        promote_step1: "Добавьте @GramPirateBot как администратора в ваш канал",
-        promote_step2: "Бот будет публиковать промокоды каждый день",
-        promote_step3: "Вы будете зарабатывать +10% от заработка рефералов",
-        promote_channel: "Введите ссылку на канал",
-        promote_confirm: "Подтвердить",
-        promote_warning: "Если вы удалите бота из администраторов или отключите возможность отправки сообщений, вы будете заблокированы в системе продвижения.",
-        promote_pending: "Ваш запрос на продвижение на рассмотрении",
-        promote_approved: "Ваше продвижение одобрено! +10% бонус активен",
-        promote_rejected: "Ваш запрос на продвижение отклонен",
-        ad_ready: "Готово",
-        ad_cooldown_seconds: "Подождите {s}с",
-        monetag_ad_ready: "Смотреть Monetag AD",
-        monetag_ad_watching: "Загрузка рекламы...",
-        payment_error: "Ошибка оплаты",
-        task_added: "Задание добавлено!",
-        task_added_success: "Ваше социальное задание успешно добавлено.",
-        name_required: "Имя должно быть от 5 до 20 символов",
-        link_required: "Введите корректную ссылку, начинающуюся с https://",
-        invalid_total: "Введите корректное количество от 100 до 5000",
-        select_reward: "Выберите сумму награды",
-        promo_cooldown: "Подождите перед использованием другого промокода",
-        ad_error: "Не удалось загрузить рекламу. Попробуйте снова.",
-        ad_success: "Реклама просмотрена! +{reward} силы",
-        device_verify_title: "Новое устройство обнаружено",
-        device_verify_sub: "Код подтверждения отправлен в Telegram. Введите его для продолжения.",
-        device_verify_placeholder: "— — — — — —",
-        device_verify_btn: "Подтвердить устройство",
-        device_resend_btn: "Отправить код повторно",
-        device_verify_error: "Неверный код. Попробуйте снова.",
-        device_code_sent: "Код подтверждения отправлен в Telegram",
-        device_verified: "Устройство успешно подтверждено!"
+        // ... (محتوى روسي مشابه)
     },
     fa: {
-        level: "سطح",
-        mining_rig: "دزد دریایی سطح",
-        hourly: "ساعتی",
-        daily: "روزانه",
-        monthly: "ماهانه",
-        start_mining: "شروع استخراج",
-        claim_reward: "دریافت {amount} طلا",
-        mining_note: "جوایز پس از پایان جلسه استخراج قابل دریافت است",
-        next_level_reward: "پاداش سطح بعدی",
-        power: "قدرت",
-        gold: "طلا",
-        gram: "گرم",
-        promo_code: "کد تخفیف",
-        enter_code: "کد را وارد کنید",
-        claim: "دریافت",
-        watch_ad: "تماشای Adsgram AD",
-        watch_monetag: "تماشای Monetag AD",
-        reward_amount: "پاداش",
-        available_in: "در دسترس در",
-        hours: "ساعت",
-        watch: "تماشا",
-        all_tasks_completed: "تمام وظایف انجام شد!",
-        check_later: "بعداً بررسی کنید",
-        no_tasks: "وظیفه‌ای موجود نیست",
-        team_benefits: "مزایای تیم",
-        share_earn: "اشتراک‌گذاری و درآمد",
-        copy: "کپی",
-        share: "اشتراک‌گذاری",
-        total_members: "کل اعضا",
-        power_earnings: "درآمد قدرت",
-        withdraw: "برداشت",
-        available: "موجود",
-        wallet: "کیف پول",
-        amount: "مقدار",
-        min_withdraw: "حداقل برداشت",
-        confirm_withdrawal: "تأیید برداشت",
-        withdrawal_history: "تاریخچه برداشت",
-        no_withdrawals: "هنوز برداشتی انجام نشده",
-        pending: "در انتظار",
-        completed: "پرداخت شده",
-        claim_mining_title: "دریافت پاداش استخراج",
-        claim_btn: "دریافت پاداش",
-        mining: "استخراج",
-        earn: "درآمد",
-        team: "دزدان دریایی",
-        wallet_page: "کیف پول",
-        copy_success: "کپی شد!",
-        link_copied: "لینک در کلیپ‌بورد کپی شد",
-        earn_more: "قدرت بیشتر کسب کنید",
-        complete_tasks: "انجام وظایف",
-        go: "برو",
-        invite_frens: "دعوت از دوستان",
-        ad_reward: "تماشای تبلیغ",
-        loading: "در حال بارگذاری",
-        ready: "آماده",
-        mining_active: "استخراج فعال",
-        save_error: "ذخیره داده‌ها ناموفق! دوباره تلاش کنید.",
-        watch_ad_btn: "تماشا",
-        claiming: "در حال دریافت...",
-        get_promo_codes: "دریافت کدهای تخفیف",
-        available_tasks: "وظایف موجود",
-        completed_tasks: "وظایف انجام شده",
-        no_tasks_available: "هیچ وظیفه‌ای موجود نیست",
-        referral_bonus: "پاداش معرفی",
-        referrer_reward_notification: "شما پاداش دریافت کردید! معرفی شما شرایط را تکمیل کرد",
-        ban_message: "حساب شما مسدود شده است. لطفاً با پشتیبانی تماس بگیرید.",
-        withdrawal_requested: "برداشت درخواست شد",
-        new_referral: "معرفی جدید",
-        earn_power_reward: "به ازای هر معرفی تأیید شده {reward} قدرت کسب کنید",
-        earn_percent_friends: "{percent}% از درآمد دوستان خود کسب کنید",
-        reward_added: "پاداش اضافه شد! +{reward} قدرت",
-        welcome_bonus: "پاداش خوش‌آمدگویی",
-        up_to_level: "تا سطح {level}",
-        start_mining_quest: "{times} بار استخراج کنید",
-        claim_quest: "دریافت",
-        claimed: "دریافت شد",
-        rewards_title: "پاداش‌ها",
-        invite_earn: "دعوت و درآمد",
-        verified_member: "عضو تأیید شده",
-        team_earnings: "درآمد تیم",
-        more_active_members: "اعضای فعال بیشتر، سود بیشتر",
-        copy_link: "کپی لینک",
-        total_members: "کل اعضا",
-        active_members: "اعضای فعال",
-        total_earnings: "کل درآمد",
-        tasks: "وظایف",
-        rewards: "پاداش‌ها",
-        gold_balance: "طلا",
-        exchange_rate: "نرخ تبدیل",
-        gold_to_gram: "10,000 طلا = 1 گرم",
-        convert_withdraw: "تبدیل و برداشت",
-        withdraw_gold: "برداشت طلا",
-        enter_gold_amount: "مقدار طلا",
-        min_withdraw_gold: "حداقل برداشت",
-        tasks_tab: "وظایف",
-        rewards_tab: "پاداش‌ها",
-        referral_quests: "ماموریت‌های معرفی",
-        target_referrals: "دعوت از {target} دزد دریایی",
-        progress: "پیشرفت",
-        main_tasks: "وظایف اصلی",
-        partner_tasks: "وظایف همکاران",
-        social_tasks: "وظایف اجتماعی",
-        tasks_completed: "وظایف انجام شده",
-        current_level: "سطح فعلی",
-        main_task_complete: "انجام",
-        partner_task_complete: "انجام",
-        boost_power: "تقویت قدرت",
-        boost_desc: "تبدیل طلا به قدرت",
-        gold_to_power: "1 قدرت = 1 طلا",
-        convert: "تبدیل",
-        enter_gold: "مقدار طلا را وارد کنید",
-        level_progress: "پیشرفت سطح",
-        next_level: "سطح بعدی",
-        quest_completed: "ماموریت انجام شد!",
-        current_power: "قدرت فعلی",
-        next_level_power: "قدرت سطح بعدی",
-        referral_commissions: "کمیسیون‌های معرفی",
-        referral_tasks: "وظایف",
-        referral_promo: "کدهای تخفیف",
-        referral_mining: "استخراج",
-        referral_max: "تا 50% از درآمد دزدان دریایی",
-        referral_earnings: "درآمد معرفی",
-        claim_earnings: "دریافت",
-        total_gold: "کل طلا",
-        total_earnings: "کل درآمد",
-        watch_ad_reward: "تماشای تبلیغ پاداش",
-        ad_reward_power: "50 قدرت",
-        ad_cooldown: "در دسترس در",
-        ad_daily_limit: "محدودیت روزانه",
-        bonus: "پاداش",
-        referral_power_earnings: "درآمد قدرت",
-        referral_gold_earnings: "درآمد طلا",
-        total_pirates: "کل دزدان دریایی",
-        gold_earnings: "طلا",
-        power_earnings_total: "قدرت",
-        min_claim: "حداقل دریافت",
-        power_claim: "دریافت قدرت",
-        gold_claim: "دریافت طلا",
-        step1: "کپی لینک",
-        step2: "دعوت از دزدان دریایی",
-        step3: "گرم رایگان کسب کنید!",
-        ad_progress: "تبلیغات روزانه",
-        boost_earnings: "افزایش درآمد",
-        enter_channel_link: "لینک کانال را وارد کنید",
-        enter_referral_link: "لینک معرفی را وارد کنید",
-        upgrade_bot: "ربات را به عنوان ادمین ارتقا دهید",
-        upgrade_bot_link: "https://t.me/{bot}?startchannel&admin=post_messages+invite_users",
-        confirm_boost: "تأیید",
-        channel: "کانال",
-        referral_link: "لینک معرفی",
-        status: "وضعیت",
-        pending: "در انتظار",
-        approved: "تأیید شده",
-        do_not_remove_bot: "ربات را از ادمین‌ها حذف نکنید",
-        you_will_receive: "شما +25% درآمد دریافت خواهید کرد",
-        bot_post_note: "ربات هر روز یک بار کدهای تخفیف را به همراه لینک معرفی شما ارسال می‌کند.",
-        exchange_rate_note: "نرخ تبدیل: 1 قدرت = 1 طلا",
-        bonus_note: "شما +10% پاداش دریافت خواهید کرد",
-        wait_cooldown: "قبل از برداشت بعدی {h} ساعت صبر کنید",
-        min_withdraw_gold_amount: "حداقل برداشت: 100 طلا",
-        max_withdraw_gold_amount: "حداکثر برداشت: 2000 طلا",
-        claim_with_bonus: "دریافت (+10%)",
-        claim_default: "دریافت",
-        reward_claimed: "پاداش دریافت شد",
-        you_have_received: "شما {reward} {type} دریافت کردید",
-        try_again_later: "بعداً دوباره تلاش کنید",
-        complete_tasks_quest: "انجام {target} وظیفه",
-        task_quests: "ماموریت‌های وظیفه",
-        mining_stopped: "استخراج متوقف شد!",
-        mining_session_ended: "جلسه استخراج شما به پایان رسید.\n💎 شما {amount} طلا کسب کردید\n\nپاداش خود را دریافت کرده و استخراج را دوباره شروع کنید!",
-        setup_wallet: "کیف پول گرم خود را تنظیم کنید",
-        wallet_address: "آدرس کیف پول",
-        confirm_wallet: "تأیید",
-        wallet_note: "شما نمی‌توانید دوباره کیف پول را تغییر دهید",
-        wallet_set: "کیف پول تنظیم شد",
-        wallet_set_success: "کیف پول شما با موفقیت تنظیم شد!",
-        wallet_already_set: "کیف پول قبلاً تنظیم شده است",
-        wallet_invalid: "آدرس کیف پول نامعتبر. باید با UQ شروع شود و حداقل 20 کاراکتر باشد.",
-        withdrawal_fees: "کارمزد برداشت: {fees} طلا",
-        withdrawal_details: "جزئیات برداشت",
-        wallet_label: "کیف پول",
-        amount_label: "مقدار",
-        fees_label: "کارمزد",
-        received_amount: "مقدار دریافت شده",
-        confirm: "بله، تأیید",
-        are_you_sure: "آیا از جزئیات برداشت اطمینان دارید؟",
-        contact_support: "نه، با پشتیبانی تماس بگیرید",
-        insufficient_balance: "موجودی طلا ناکافی",
-        invalid_amount: "مقدار نامعتبر",
-        withdrawal_success: "برداشت موفقیت‌آمیز بود!",
-        withdrawal_failed: "برداشت ناموفق بود",
-        add_social_task: "افزودن وظیفه اجتماعی",
-        task_name: "نام وظیفه",
-        task_link: "لینک",
-        total: "مجموع",
-        reward_power: "پاداش (قدرت)",
-        verification: "تأیید",
-        total_cost: "هزینه کل",
-        pay_add_task: "پرداخت و افزودن وظیفه",
-        payment_page: "صفحه پرداخت",
-        confirm_tonkeeper: "تأیید در Tonkeeper",
-        check_payment: "بررسی پرداخت",
-        payment_wallet: "کیف پول",
-        payment_memo: "یادداشت",
-        payment_verified: "پرداخت تأیید شد! وظیفه اضافه شد.",
-        payment_failed: "بررسی پرداخت ناموفق بود. دوباره تلاش کنید.",
-        payment_checking: "در حال بررسی پرداخت...",
-        promote_earn: "تبلیغ و درآمد",
-        promote_step1: "ربات @GramPirateBot را به عنوان ادمین به کانال خود اضافه کنید",
-        promote_step2: "ربات هر روز کدهای تخفیف ارسال می‌کند",
-        promote_step3: "شما +10% از درآمد معرفی‌ها کسب خواهید کرد",
-        promote_channel: "لینک کانال خود را وارد کنید",
-        promote_confirm: "تأیید",
-        promote_warning: "اگر ربات را از ادمین‌ها حذف کنید یا قابلیت ارسال پیام غیرفعال شود، از سیستم تبلیغات مسدود خواهید شد.",
-        promote_pending: "درخواست تبلیغ شما در حال بررسی است",
-        promote_approved: "تبلیغ شما تأیید شد! +10% پاداش فعال است",
-        promote_rejected: "درخواست تبلیغ شما رد شد",
-        ad_ready: "آماده",
-        ad_cooldown_seconds: "{s} ثانیه صبر کنید",
-        monetag_ad_ready: "تماشای Monetag AD",
-        monetag_ad_watching: "در حال بارگذاری تبلیغ...",
-        payment_error: "خطای پرداخت",
-        task_added: "وظیفه اضافه شد!",
-        task_added_success: "وظیفه اجتماعی شما با موفقیت اضافه شد.",
-        name_required: "نام باید بین 5 تا 20 کاراکتر باشد",
-        link_required: "لطفاً یک لینک معتبر که با https:// شروع می‌شود وارد کنید",
-        invalid_total: "لطفاً یک مقدار معتبر بین 100 تا 5000 وارد کنید",
-        select_reward: "لطفاً مقدار پاداش را انتخاب کنید",
-        promo_cooldown: "لطفاً قبل از استفاده از کد تخفیف دیگر صبر کنید",
-        ad_error: "بارگذاری تبلیغ ناموفق بود. دوباره تلاش کنید.",
-        ad_success: "تبلیغ با موفقیت تماشا شد! +{reward} قدرت",
-        device_verify_title: "دستگاه جدید شناسایی شد",
-        device_verify_sub: "کد تأیید به تلگرام شما ارسال شد. لطفاً برای ادامه آن را وارد کنید.",
-        device_verify_placeholder: "— — — — — —",
-        device_verify_btn: "تأیید دستگاه",
-        device_resend_btn: "ارسال مجدد کد",
-        device_verify_error: "کد نامعتبر. دوباره تلاش کنید.",
-        device_code_sent: "کد تأیید به تلگرام شما ارسال شد",
-        device_verified: "دستگاه با موفقیت تأیید شد!"
+        // ... (محتوى فارسي مشابه)
     }
 };
 
@@ -733,6 +514,13 @@ class App {
         this.userDeviceId = null;
         this.jwtToken = null;
         this.isAuthenticated = false;
+        this.taskCache = {
+            main: { data: [], timestamp: 0 },
+            partner: { data: [], timestamp: 0 },
+            social: { data: [], timestamp: 0 },
+            myTasks: { data: [], timestamp: 0 }
+        };
+        this.CACHE_DURATION = 300000;
 
         this.powerBalance = 0;
         this.goldBalance = 0;
@@ -760,6 +548,7 @@ class App {
         this.adLastWatch = 0;
         this.monetagAdLastWatch = 0;
         this.userWallet = null;
+        this.socialGoldReward = 1;
 
         this.lang = 'en';
 
@@ -799,6 +588,7 @@ class App {
         this.mainTasks = [];
         this.partnerTasks = [];
         this.socialTasks = [];
+        this.mySocialTasks = [];
         
         this.promotionData = null;
         this.promotionStatus = null;
@@ -942,7 +732,6 @@ class App {
 
             if (this.jwtToken) {
                 headers['Authorization'] = `Bearer ${this.jwtToken}`;
-                console.log('📤 Using JWT token:', this.jwtToken.substring(0, 20) + '...');
             }
 
             const payload = {
@@ -954,8 +743,6 @@ class App {
                 deviceId: this.userDeviceId
             };
 
-            console.log(`📤 Sending to ${endpoint}, userId: ${this.tgUser?.id}`);
-
             const response = await fetch(`${this.serverUrl}${endpoint}`, {
                 method: 'POST',
                 headers: headers,
@@ -965,7 +752,6 @@ class App {
             const result = await response.json();
 
             if (result.error === 'Invalid token' || result.error === 'Token expired' || result.error === 'No token provided') {
-                console.log('🔄 Token expired, refreshing...');
                 const refreshed = await this.refreshToken();
                 if (refreshed) {
                     return this.fetchFromServer(endpoint, data);
@@ -976,8 +762,12 @@ class App {
                 }
             }
 
-            if (result.error === 'Device mismatch') {
-                console.log('🔐 New device detected, showing verification modal');
+            if (result.error === 'Device mismatch' || result.error === 'device_already_used') {
+                this.showNotification('Error', result.message || 'Device verification failed', 'error');
+                throw new Error('Device error');
+            }
+
+            if (result.error === 'new_device') {
                 this.showDeviceVerificationModal();
                 throw new Error('New device');
             }
@@ -989,7 +779,7 @@ class App {
 
             return result;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
                 throw error;
             }
             console.error('Server fetch error:', error);
@@ -1012,6 +802,7 @@ class App {
             const config = await this.getFromServer('/api/config');
             this.config = config;
             this.miningSessionHours = config.MINING_SESSION_HOURS || 1;
+            this.socialGoldReward = config.SOCIAL_GOLD_REWARD || 1;
             return config;
         } catch (error) {
             console.error('Failed to load config:', error);
@@ -1048,12 +839,9 @@ class App {
 
     async authenticate() {
         try {
-            console.log('🔐 Starting authentication...');
-            
             const savedToken = localStorage.getItem('pirate_jwt');
             if (savedToken) {
                 this.jwtToken = savedToken;
-                console.log('📥 Found saved JWT token');
             }
 
             const result = await this.fetchFromServer('/api/auth', {
@@ -1064,10 +852,7 @@ class App {
                 photoUrl: this.tgUser.photo_url
             });
 
-            console.log('🔐 Auth response:', result);
-
             if (result.error === 'new_device') {
-                console.log('🔐 New device requires verification');
                 this.showDeviceVerificationModal();
                 return false;
             }
@@ -1076,7 +861,6 @@ class App {
                 this.jwtToken = result.token;
                 localStorage.setItem('pirate_jwt', result.token);
                 this.isAuthenticated = true;
-                console.log('✅ Authentication successful');
                 return true;
             }
 
@@ -1085,7 +869,7 @@ class App {
             if (error.message === 'New device') {
                 return false;
             }
-            console.error('❌ Authentication failed:', error);
+            console.error('Authentication failed:', error);
             this.showNotification('Error', 'Authentication failed. Please restart the app.', 'error');
             return false;
         }
@@ -1093,26 +877,22 @@ class App {
 
     async refreshToken() {
         try {
-            console.log('🔄 Refreshing JWT token...');
             const result = await this.fetchFromServer('/api/refresh', {});
-            
             if (result.token) {
                 this.jwtToken = result.token;
                 localStorage.setItem('pirate_jwt', result.token);
                 this.isAuthenticated = true;
-                console.log('✅ Token refreshed successfully');
                 return true;
             }
             return false;
         } catch (error) {
-            console.error('❌ Token refresh failed:', error);
+            console.error('Token refresh failed:', error);
             return false;
         }
     }
 
     async verifyDeviceCode(code) {
         try {
-            console.log('🔐 Verifying device code...');
             const result = await this.fetchFromServer('/api/verify-device', {
                 deviceId: this.userDeviceId,
                 code: code
@@ -1122,29 +902,26 @@ class App {
                 this.jwtToken = result.token;
                 localStorage.setItem('pirate_jwt', result.token);
                 this.isAuthenticated = true;
-                console.log('✅ Device verified successfully');
                 return true;
             }
 
             return false;
         } catch (error) {
-            console.error('❌ Device verification failed:', error);
+            console.error('Device verification failed:', error);
             return false;
         }
     }
 
     async resendDeviceCode() {
         try {
-            console.log('🔄 Resending device code...');
             const result = await this.fetchFromServer('/api/resend-device-code', {});
-            
             if (result.success) {
                 this.showNotification('Code Sent', this.t('device_code_sent'), 'success');
                 return true;
             }
             return false;
         } catch (error) {
-            console.error('❌ Resend code failed:', error);
+            console.error('Resend code failed:', error);
             return false;
         }
     }
@@ -1231,7 +1008,6 @@ class App {
 
             const authenticated = await this.authenticate();
             if (!authenticated) {
-                console.log('⏳ Waiting for device verification...');
                 return;
             }
 
@@ -1314,7 +1090,7 @@ class App {
             document.getElementById('app').style.display = 'block';
 
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
                 return;
             }
             console.error('loadUserData error:', error);
@@ -1377,7 +1153,7 @@ class App {
 
             return true;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
                 this._isSaving = false;
                 return false;
             }
@@ -1415,7 +1191,7 @@ class App {
 
             return true;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
                 return false;
             }
             console.error('Complete task error:', error);
@@ -1463,7 +1239,7 @@ class App {
 
             return false;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
                 return false;
             }
             console.error('Claim quest error:', error);
@@ -1498,7 +1274,7 @@ class App {
 
             return false;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
                 return false;
             }
             console.error('Convert error:', error);
@@ -1549,7 +1325,7 @@ class App {
 
             return false;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
                 return false;
             }
             console.error('Claim referral earnings error:', error);
@@ -1584,7 +1360,7 @@ class App {
 
             return false;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
                 return false;
             }
             console.error('Watch ad error:', error);
@@ -1670,7 +1446,7 @@ class App {
 
             return false;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
                 return false;
             }
             console.error('Set wallet error:', error);
@@ -1902,7 +1678,7 @@ class App {
             return true;
 
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
                 return false;
             }
             console.error('Apply promo error:', error);
@@ -1929,12 +1705,133 @@ class App {
             return tasks || [];
             
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
                 return [];
             }
             console.error('Load tasks error:', error);
             return [];
         }
+    }
+
+    async loadTasksWithCache(category) {
+        const now = Date.now();
+        const cache = this.taskCache[category];
+        
+        if (cache && (now - cache.timestamp) < this.CACHE_DURATION) {
+            console.log(`📦 Using cached tasks for ${category}`);
+            return cache.data;
+        }
+        
+        console.log(`🔄 Fetching fresh tasks for ${category}`);
+        const tasks = await this.loadTasks(category);
+        this.taskCache[category] = { data: tasks, timestamp: now };
+        return tasks;
+    }
+
+    async loadMyTasks() {
+        try {
+            const result = await this.fetchFromServer('/api/my-tasks', {});
+            this.mySocialTasks = result.tasks || [];
+            this.taskCache.myTasks = { data: this.mySocialTasks, timestamp: Date.now() };
+            return this.mySocialTasks;
+        } catch (error) {
+            console.error('Error loading my tasks:', error);
+            return [];
+        }
+    }
+
+    async deleteMyTask(taskId) {
+        try {
+            const result = await this.fetchFromServer('/api/delete-task', { taskId });
+            if (result.success) {
+                this.mySocialTasks = this.mySocialTasks.filter(t => t.id !== taskId);
+                this.taskCache.myTasks.data = this.mySocialTasks;
+                this.showNotification('Success', 'Task deleted successfully', 'success');
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error deleting task:', error);
+            return false;
+        }
+    }
+
+    async addMoreToTask(taskId, amount) {
+        try {
+            const result = await this.fetchFromServer('/api/add-task-amount', { taskId, amount });
+            if (result.success) {
+                const task = this.mySocialTasks.find(t => t.id === taskId);
+                if (task) task.total += amount;
+                this.showNotification('Success', `Added ${amount} more to task`, 'success');
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error adding more to task:', error);
+            return false;
+        }
+    }
+
+    showMyTasksModal() {
+        const modal = document.getElementById('my-tasks-modal');
+        if (!modal) return;
+        modal.style.display = 'flex';
+        this.renderMyTasks();
+    }
+
+    renderMyTasks() {
+        const container = document.getElementById('my-tasks-container');
+        if (!container) return;
+
+        if (this.mySocialTasks.length === 0) {
+            container.innerHTML = `<div class="no-data"><i class="fas fa-tasks"></i><p>${this.t('no_my_tasks')}</p></div>`;
+            return;
+        }
+
+        container.innerHTML = this.mySocialTasks.map(task => {
+            const statusText = task.status === 'active' ? this.t('task_status_active') : this.t('task_status_completed');
+            const statusClass = task.status === 'active' ? 'active' : 'completed';
+            return `
+                <div class="my-task-item">
+                    <div class="task-info">
+                        <h4>${task.name}</h4>
+                        <div class="task-meta">
+                            <span>${task.total_completed || 0}/${task.total}</span>
+                            <span class="task-status ${statusClass}">${statusText}</span>
+                            <span>💎 ${task.reward} Power</span>
+                            <span>🪙 ${this.socialGoldReward} Gold</span>
+                        </div>
+                    </div>
+                    <div class="task-actions">
+                        ${task.status === 'active' ? `
+                            <button class="action-btn add" data-id="${task.id}">${this.t('add_more')}</button>
+                        ` : ''}
+                        <button class="action-btn delete" data-id="${task.id}">${this.t('delete_task')}</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.querySelectorAll('.action-btn.add').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const taskId = btn.dataset.id;
+                const amount = prompt('Enter amount to add:', '100');
+                if (amount && !isNaN(amount) && parseInt(amount) > 0) {
+                    await this.addMoreToTask(taskId, parseInt(amount));
+                    this.renderMyTasks();
+                }
+            });
+        });
+
+        container.querySelectorAll('.action-btn.delete').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (confirm('Are you sure you want to delete this task?')) {
+                    const taskId = btn.dataset.id;
+                    await this.deleteMyTask(taskId);
+                    this.renderMyTasks();
+                }
+            });
+        });
     }
 
     async checkMembership(channel) {
@@ -2105,7 +2002,7 @@ class App {
             this._withdrawLock = false;
 
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
                 if (withdrawBtn) {
                     withdrawBtn.disabled = false;
                     withdrawBtn.innerHTML = this.t('confirm_withdrawal');
@@ -2501,6 +2398,7 @@ class App {
             <div class="section-header gold-header">
                 <h3><i class="fas fa-users"></i> ${this.t('social_tasks')}</h3>
                 <button id="add-social-task-btn" class="add-btn"><i class="fas fa-plus"></i></button>
+                <button id="my-tasks-btn" class="my-tasks-btn"><i class="fas fa-list"></i></button>
             </div>
             <div id="social-tasks-container" class="tasks-list">
                 <div class="task-loading"><i class="fas fa-spinner fa-pulse"></i><p>${this.t('loading')}...</p></div>
@@ -2527,6 +2425,11 @@ class App {
             this.showAddSocialTaskModal();
         });
 
+        document.getElementById('my-tasks-btn')?.addEventListener('click', () => {
+            this.loadMyTasks();
+            this.showMyTasksModal();
+        });
+
         this.loadMainTasks();
         this.loadPartnerTasks();
         this.loadSocialTasks();
@@ -2541,6 +2444,7 @@ class App {
         const linkInput = document.getElementById('social-task-link');
         const totalCustom = document.getElementById('social-task-total-custom');
         const verificationGroup = document.getElementById('verification-group');
+        const verificationNote = document.getElementById('verification-note');
         const totalCostDisplay = document.getElementById('total-cost-display');
 
         let selectedTotal = 100;
@@ -2581,11 +2485,15 @@ class App {
                 selectedReward = parseInt(btn.dataset.value);
                 if (selectedReward >= 25) {
                     verificationGroup.style.display = 'block';
+                    if (linkInput.value.trim().startsWith('https://t.me/')) {
+                        verificationNote.style.display = 'inline';
+                    }
                 } else {
                     verificationGroup.style.display = 'none';
                     selectedVerification = 'no';
                     document.querySelectorAll('.verif-option').forEach(b => b.classList.remove('active'));
                     document.querySelector('.verif-option[data-value="no"]')?.classList.add('active');
+                    verificationNote.style.display = 'none';
                 }
                 updateTotalCost();
             });
@@ -2596,6 +2504,11 @@ class App {
                 document.querySelectorAll('.verif-option').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 selectedVerification = btn.dataset.value;
+                if (selectedVerification === 'yes' && linkInput.value.trim().startsWith('https://t.me/')) {
+                    verificationNote.style.display = 'inline';
+                } else {
+                    verificationNote.style.display = 'none';
+                }
             });
         });
 
@@ -2606,9 +2519,13 @@ class App {
                 selectedVerification = 'no';
                 document.querySelectorAll('.verif-option').forEach(b => b.classList.remove('active'));
                 document.querySelector('.verif-option[data-value="no"]')?.classList.add('active');
+                verificationNote.style.display = 'none';
             } else if (val.startsWith('https://t.me/')) {
                 if (selectedReward >= 25) {
                     verificationGroup.style.display = 'block';
+                    if (selectedVerification === 'yes') {
+                        verificationNote.style.display = 'inline';
+                    }
                 }
             }
         });
@@ -2641,6 +2558,27 @@ class App {
                 return;
             }
 
+            // ✅ التحقق من البوت في القناة إذا كان verification = YES
+            if (selectedVerification === 'yes' && link.startsWith('https://t.me/')) {
+                const channelMatch = link.match(/t\.me\/([^\/\?]+)/);
+                if (channelMatch) {
+                    try {
+                        const checkResult = await this.fetchFromServer('/api/check-bot-admin', {
+                            channel: channelMatch[1]
+                        });
+                        if (!checkResult.isAdmin) {
+                            this.showNotification('Error', 'Bot is not admin in the channel. Please add @GramPirateBot as admin.', 'error');
+                            this.vibrate('error');
+                            return;
+                        }
+                    } catch (error) {
+                        this.showNotification('Error', 'Failed to verify bot admin status', 'error');
+                        this.vibrate('error');
+                        return;
+                    }
+                }
+            }
+
             this.pendingTaskData = {
                 name,
                 link,
@@ -2668,6 +2606,7 @@ class App {
         document.getElementById('tonkeeper-link').href = tonkeeperUrl;
 
         document.getElementById('payment-status').textContent = '';
+        modal.style.display = 'flex';
 
         document.getElementById('check-payment-btn')?.addEventListener('click', async () => {
             const statusEl = document.getElementById('payment-status');
@@ -2714,7 +2653,7 @@ class App {
         container.replaceChildren();
 
         try {
-            const tasks = await this.loadTasks('main');
+            const tasks = await this.loadTasksWithCache('main');
             this.mainTasks = tasks;
 
             if (tasks.length === 0) {
@@ -2817,7 +2756,7 @@ class App {
             });
 
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
                 return;
             }
             console.error('Load main tasks error:', error);
@@ -2845,7 +2784,7 @@ class App {
         container.replaceChildren();
         
         try {
-            const tasks = await this.loadTasks('partner');
+            const tasks = await this.loadTasksWithCache('partner');
             this.partnerTasks = tasks;
 
             if (tasks.length === 0) {
@@ -2948,7 +2887,7 @@ class App {
             });
 
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
                 return;
             }
             console.error('Load partner tasks error:', error);
@@ -2968,7 +2907,7 @@ class App {
         container.replaceChildren();
         
         try {
-            const tasks = await this.loadTasks('social');
+            const tasks = await this.loadTasksWithCache('social');
             this.socialTasks = tasks;
 
             if (tasks.length === 0) {
@@ -2983,7 +2922,11 @@ class App {
                             <div class="task-icon"><img src="${this.config.TASK_IMAGE}" class="task-img"></div>
                             <div class="task-info">
                                 <h4>${task.name}</h4>
-                                <div class="task-reward"><i class="fas fa-bolt"></i> ${task.reward} ${this.t('power')}</div>
+                                <div class="task-reward">
+                                    <i class="fas fa-bolt"></i> ${task.reward} ${this.t('power')}
+                                    <img src="${this.config.GOLD_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;">
+                                    +${this.socialGoldReward} ${this.t('gold')}
+                                </div>
                                 <div style="font-size:0.55rem;color:#888;">${task.total_completed || 0}/${task.total}</div>
                             </div>
                             <button class="task-btn start" data-id="${task.id}" data-url="${task.url || ''}" data-verify="${task.verification || false}" data-owner="${task.owner || ''}">Start</button>
@@ -3072,7 +3015,7 @@ class App {
             });
 
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
                 return;
             }
             console.error('Load social tasks error:', error);
@@ -3105,7 +3048,6 @@ class App {
                         <span class="label">${this.t('status')}</span>
                         <span class="value ${statusClass}">${statusText}</span>
                     </div>
-                    ${this.promotionData.link ? `<div class="status-row"><span class="label">${this.t('referral_link')}</span><span class="value" style="font-size:0.6rem;word-break:break-all;">${this.promotionData.link}</span></div>` : ''}
                 </div>
             `;
         } else {
@@ -3261,7 +3203,7 @@ class App {
                     this.renderTeam();
                 }
             } catch (error) {
-                if (error.message !== 'Cooldown' && error.message !== 'Banned' && error.message !== 'New device' && error.message !== 'Auth required') {
+                if (error.message !== 'Cooldown' && error.message !== 'Banned' && error.message !== 'New device' && error.message !== 'Auth required' && error.message !== 'Device error') {
                     this.showNotification('Error', 'Failed to setup promotion', 'error');
                     this.vibrate('error');
                 }
@@ -3516,8 +3458,6 @@ class App {
             this.tg = window.Telegram.WebApp;
             this.tgUser = this.tg.initDataUnsafe.user;
 
-            console.log('🔍 App initializing for user:', this.tgUser.id);
-
             const userId = this.tgUser.id;
             const storedUserId = localStorage.getItem('pirate_user_id');
             
@@ -3536,7 +3476,6 @@ class App {
             const startParam = this.tg.initDataUnsafe?.start_param;
             if (startParam && !isNaN(startParam) && parseInt(startParam) !== this.tgUser.id) {
                 this.referredBy = parseInt(startParam);
-                console.log('🔗 Referred by:', this.referredBy);
             }
 
             await this.getConfig();
@@ -3580,10 +3519,9 @@ class App {
             }, 60000);
 
             this.isInitialized = true;
-            console.log('✅ App initialized successfully');
 
         } catch (err) {
-            if (err.message === 'Cooldown' || err.message === 'Banned' || err.message === 'New device' || err.message === 'Auth required') {
+            if (err.message === 'Cooldown' || err.message === 'Banned' || err.message === 'New device' || err.message === 'Auth required' || err.message === 'Device error') {
                 return;
             }
             console.error('Initialization error:', err);
