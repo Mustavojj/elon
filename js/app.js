@@ -230,7 +230,15 @@ const translations = {
         select_reward: "Please select a reward amount",
         promo_cooldown: "Please wait before using another promo code",
         ad_error: "Ad failed to load. Please try again.",
-        ad_success: "Ad watched successfully! +{reward} Power"
+        ad_success: "Ad watched successfully! +{reward} Power",
+        device_verify_title: "New Device Detected",
+        device_verify_sub: "A verification code was sent to your Telegram. Please enter it below to continue.",
+        device_verify_placeholder: "— — — — — —",
+        device_verify_btn: "Verify Device",
+        device_resend_btn: "Resend Code",
+        device_verify_error: "Invalid code. Please try again.",
+        device_code_sent: "Verification code sent to your Telegram",
+        device_verified: "Device verified successfully!"
     },
     ru: {
         level: "Уровень",
@@ -463,7 +471,15 @@ const translations = {
         select_reward: "Выберите сумму награды",
         promo_cooldown: "Подождите перед использованием другого промокода",
         ad_error: "Не удалось загрузить рекламу. Попробуйте снова.",
-        ad_success: "Реклама просмотрена! +{reward} силы"
+        ad_success: "Реклама просмотрена! +{reward} силы",
+        device_verify_title: "Новое устройство обнаружено",
+        device_verify_sub: "Код подтверждения отправлен в Telegram. Введите его для продолжения.",
+        device_verify_placeholder: "— — — — — —",
+        device_verify_btn: "Подтвердить устройство",
+        device_resend_btn: "Отправить код повторно",
+        device_verify_error: "Неверный код. Попробуйте снова.",
+        device_code_sent: "Код подтверждения отправлен в Telegram",
+        device_verified: "Устройство успешно подтверждено!"
     },
     fa: {
         level: "سطح",
@@ -696,7 +712,15 @@ const translations = {
         select_reward: "لطفاً مقدار پاداش را انتخاب کنید",
         promo_cooldown: "لطفاً قبل از استفاده از کد تخفیف دیگر صبر کنید",
         ad_error: "بارگذاری تبلیغ ناموفق بود. دوباره تلاش کنید.",
-        ad_success: "تبلیغ با موفقیت تماشا شد! +{reward} قدرت"
+        ad_success: "تبلیغ با موفقیت تماشا شد! +{reward} قدرت",
+        device_verify_title: "دستگاه جدید شناسایی شد",
+        device_verify_sub: "کد تأیید به تلگرام شما ارسال شد. لطفاً برای ادامه آن را وارد کنید.",
+        device_verify_placeholder: "— — — — — —",
+        device_verify_btn: "تأیید دستگاه",
+        device_resend_btn: "ارسال مجدد کد",
+        device_verify_error: "کد نامعتبر. دوباره تلاش کنید.",
+        device_code_sent: "کد تأیید به تلگرام شما ارسال شد",
+        device_verified: "دستگاه با موفقیت تأیید شد!"
     }
 };
 
@@ -707,7 +731,8 @@ class App {
         this.isInitialized = false;
         this.serverUrl = '';
         this.userDeviceId = null;
-        this.initData = null;
+        this.jwtToken = null;
+        this.isAuthenticated = false;
 
         this.powerBalance = 0;
         this.goldBalance = 0;
@@ -911,30 +936,14 @@ class App {
         }
 
         try {
-            // ✅ Get initData from Telegram WebApp
-            const initData = window.Telegram?.WebApp?.initData || '';
-            
-            // ✅ Log for debugging (visible in browser console)
-            console.log('📤 Sending request to:', endpoint);
-            console.log('📤 initData present:', !!initData);
-            console.log('📤 initData length:', initData.length);
-            console.log('📤 initData contains hash:', initData.includes('hash='));
-            
-            // ✅ If initData is empty, try to reload from WebApp
-            let finalInitData = initData;
-            if (!finalInitData && window.Telegram?.WebApp) {
-                console.warn('⚠️ initData empty, reloading from WebApp...');
-                finalInitData = window.Telegram.WebApp.initData || '';
-                console.log('📤 Reloaded initData length:', finalInitData.length);
-            }
-            
-            // ✅ Store for future use
-            this.initData = finalInitData;
-
             const headers = {
-                'Content-Type': 'application/json',
-                'X-Telegram-Init-Data': finalInitData
+                'Content-Type': 'application/json'
             };
+
+            if (this.jwtToken) {
+                headers['Authorization'] = `Bearer ${this.jwtToken}`;
+                console.log('📤 Using JWT token:', this.jwtToken.substring(0, 20) + '...');
+            }
 
             const payload = {
                 ...data,
@@ -942,33 +951,35 @@ class App {
                 username: this.tgUser?.username || '',
                 firstName: this.tgUser?.first_name || 'User',
                 photoUrl: this.tgUser?.photo_url || this.config.DEFAULT_USER_AVATAR,
-                deviceId: this.userDeviceId,
-                initData: finalInitData
+                deviceId: this.userDeviceId
             };
 
-            console.log('📤 Payload size:', JSON.stringify(payload).length);
-            console.log('📤 Payload initData length:', payload.initData?.length || 0);
+            console.log(`📤 Sending to ${endpoint}, userId: ${this.tgUser?.id}`);
 
             const response = await fetch(`${this.serverUrl}${endpoint}`, {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify(payload)
             });
-            
+
             const result = await response.json();
 
-            if (result.error === 'Invalid Telegram data' || result.error === 'User mismatch') {
-                console.error('❌ Auth failed:', result.error);
-                this.showNotification('Error', 'Security verification failed', 'error');
-                this.vibrate('error');
-                throw new Error('Auth failed');
+            if (result.error === 'Invalid token' || result.error === 'Token expired' || result.error === 'No token provided') {
+                console.log('🔄 Token expired, refreshing...');
+                const refreshed = await this.refreshToken();
+                if (refreshed) {
+                    return this.fetchFromServer(endpoint, data);
+                } else {
+                    this.isAuthenticated = false;
+                    this.showNotification('Error', 'Session expired. Please restart the app.', 'error');
+                    throw new Error('Auth required');
+                }
             }
 
             if (result.error === 'Device mismatch') {
-                console.error('❌ Device mismatch');
-                this.showNotification('Error', 'Device verification failed', 'error');
-                this.vibrate('error');
-                throw new Error('Device mismatch');
+                console.log('🔐 New device detected, showing verification modal');
+                this.showDeviceVerificationModal();
+                throw new Error('New device');
             }
 
             if (result.error === 'Account banned') {
@@ -978,7 +989,7 @@ class App {
 
             return result;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Device mismatch' || error.message === 'Auth failed') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
                 throw error;
             }
             console.error('Server fetch error:', error);
@@ -1035,19 +1046,193 @@ class App {
         return 'dev_' + Math.abs(hash).toString(36) + '_' + Date.now().toString(36);
     }
 
+    async authenticate() {
+        try {
+            console.log('🔐 Starting authentication...');
+            
+            const savedToken = localStorage.getItem('pirate_jwt');
+            if (savedToken) {
+                this.jwtToken = savedToken;
+                console.log('📥 Found saved JWT token');
+            }
+
+            const result = await this.fetchFromServer('/api/auth', {
+                userId: this.tgUser.id,
+                deviceId: this.userDeviceId,
+                firstName: this.tgUser.first_name,
+                username: this.tgUser.username,
+                photoUrl: this.tgUser.photo_url
+            });
+
+            console.log('🔐 Auth response:', result);
+
+            if (result.error === 'new_device') {
+                console.log('🔐 New device requires verification');
+                this.showDeviceVerificationModal();
+                return false;
+            }
+
+            if (result.token) {
+                this.jwtToken = result.token;
+                localStorage.setItem('pirate_jwt', result.token);
+                this.isAuthenticated = true;
+                console.log('✅ Authentication successful');
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            if (error.message === 'New device') {
+                return false;
+            }
+            console.error('❌ Authentication failed:', error);
+            this.showNotification('Error', 'Authentication failed. Please restart the app.', 'error');
+            return false;
+        }
+    }
+
+    async refreshToken() {
+        try {
+            console.log('🔄 Refreshing JWT token...');
+            const result = await this.fetchFromServer('/api/refresh', {});
+            
+            if (result.token) {
+                this.jwtToken = result.token;
+                localStorage.setItem('pirate_jwt', result.token);
+                this.isAuthenticated = true;
+                console.log('✅ Token refreshed successfully');
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('❌ Token refresh failed:', error);
+            return false;
+        }
+    }
+
+    async verifyDeviceCode(code) {
+        try {
+            console.log('🔐 Verifying device code...');
+            const result = await this.fetchFromServer('/api/verify-device', {
+                deviceId: this.userDeviceId,
+                code: code
+            });
+
+            if (result.success && result.token) {
+                this.jwtToken = result.token;
+                localStorage.setItem('pirate_jwt', result.token);
+                this.isAuthenticated = true;
+                console.log('✅ Device verified successfully');
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            console.error('❌ Device verification failed:', error);
+            return false;
+        }
+    }
+
+    async resendDeviceCode() {
+        try {
+            console.log('🔄 Resending device code...');
+            const result = await this.fetchFromServer('/api/resend-device-code', {});
+            
+            if (result.success) {
+                this.showNotification('Code Sent', this.t('device_code_sent'), 'success');
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('❌ Resend code failed:', error);
+            return false;
+        }
+    }
+
+    showDeviceVerificationModal() {
+        const modal = document.getElementById('device-verification-modal');
+        const errorEl = document.getElementById('device-verify-error');
+        const input = document.getElementById('device-verify-input');
+        const btn = document.getElementById('device-verify-btn');
+        const resendBtn = document.getElementById('device-resend-btn');
+
+        if (errorEl) errorEl.style.display = 'none';
+        if (input) input.value = '';
+        if (modal) modal.style.display = 'flex';
+
+        const newBtn = btn?.cloneNode(true);
+        if (btn && newBtn) {
+            btn.parentNode.replaceChild(newBtn, btn);
+            newBtn.addEventListener('click', async () => {
+                const code = document.getElementById('device-verify-input')?.value.trim();
+                if (!code || code.length < 6) {
+                    const err = document.getElementById('device-verify-error');
+                    if (err) {
+                        err.textContent = 'Please enter a valid 6-digit code';
+                        err.style.display = 'block';
+                    }
+                    return;
+                }
+                newBtn.disabled = true;
+                newBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Verifying...';
+                
+                const success = await this.verifyDeviceCode(code);
+                
+                newBtn.disabled = false;
+                newBtn.innerHTML = this.t('device_verify_btn');
+                
+                if (success) {
+                    modal.style.display = 'none';
+                    this.showNotification('Success', this.t('device_verified'), 'success');
+                    this.vibrate('success');
+                    await this.loadUserData();
+                    this.renderMining();
+                } else {
+                    const err = document.getElementById('device-verify-error');
+                    if (err) {
+                        err.textContent = this.t('device_verify_error');
+                        err.style.display = 'block';
+                    }
+                    this.vibrate('error');
+                }
+            });
+        }
+
+        const newResend = resendBtn?.cloneNode(true);
+        if (resendBtn && newResend) {
+            resendBtn.parentNode.replaceChild(newResend, resendBtn);
+            newResend.addEventListener('click', async () => {
+                newResend.disabled = true;
+                newResend.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
+                await this.resendDeviceCode();
+                newResend.disabled = false;
+                newResend.innerHTML = this.t('device_resend_btn');
+            });
+        }
+
+        if (input) {
+            input.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                const err = document.getElementById('device-verify-error');
+                if (err) err.style.display = 'none';
+            });
+        }
+    }
+
     async loadUserData() {
         if (this._userDataLoaded) return;
 
         try {
-            // ✅ Ensure initData is available
-            this.initData = window.Telegram?.WebApp?.initData || '';
-            console.log('🔍 loadUserData - initData present:', !!this.initData);
-            console.log('🔍 loadUserData - initData length:', this.initData.length);
-            
             this.userDeviceId = localStorage.getItem('pirate_device_id');
             if (!this.userDeviceId) {
                 this.userDeviceId = this.generateDeviceId();
                 localStorage.setItem('pirate_device_id', this.userDeviceId);
+            }
+
+            const authenticated = await this.authenticate();
+            if (!authenticated) {
+                console.log('⏳ Waiting for device verification...');
+                return;
             }
 
             const result = await this.fetchFromServer('/api/get-user', {
@@ -1091,7 +1276,7 @@ class App {
             this.promotionStatus = this.promotionData?.status || null;
             this.hasPromotionBonus = this.promotionStatus === 'approved';
             this.userWallet = user.wallet || null;
-            this.verified = user.verified || false;
+            this.isAuthenticated = true;
 
             if (user.quests) {
                 this.quests = user.quests;
@@ -1129,7 +1314,7 @@ class App {
             document.getElementById('app').style.display = 'block';
 
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Device mismatch' || error.message === 'Auth failed') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
                 return;
             }
             console.error('loadUserData error:', error);
@@ -1139,7 +1324,7 @@ class App {
     }
 
     async saveUserData(immediate = false) {
-        if (!this.tgUser) return false;
+        if (!this.tgUser || !this.isAuthenticated) return false;
 
         if (this._isSaving) {
             if (immediate) {
@@ -1192,7 +1377,7 @@ class App {
 
             return true;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Device mismatch' || error.message === 'Auth failed') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
                 this._isSaving = false;
                 return false;
             }
@@ -1230,7 +1415,7 @@ class App {
 
             return true;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Device mismatch' || error.message === 'Auth failed') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
                 return false;
             }
             console.error('Complete task error:', error);
@@ -1278,7 +1463,7 @@ class App {
 
             return false;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Device mismatch' || error.message === 'Auth failed') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
                 return false;
             }
             console.error('Claim quest error:', error);
@@ -1313,7 +1498,7 @@ class App {
 
             return false;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Device mismatch' || error.message === 'Auth failed') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
                 return false;
             }
             console.error('Convert error:', error);
@@ -1364,7 +1549,7 @@ class App {
 
             return false;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Device mismatch' || error.message === 'Auth failed') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
                 return false;
             }
             console.error('Claim referral earnings error:', error);
@@ -1399,7 +1584,7 @@ class App {
 
             return false;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Device mismatch' || error.message === 'Auth failed') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
                 return false;
             }
             console.error('Watch ad error:', error);
@@ -1485,7 +1670,7 @@ class App {
 
             return false;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Device mismatch' || error.message === 'Auth failed') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
                 return false;
             }
             console.error('Set wallet error:', error);
@@ -1717,7 +1902,7 @@ class App {
             return true;
 
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Device mismatch' || error.message === 'Auth failed') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
                 return false;
             }
             console.error('Apply promo error:', error);
@@ -1744,7 +1929,7 @@ class App {
             return tasks || [];
             
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Device mismatch' || error.message === 'Auth failed') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
                 return [];
             }
             console.error('Load tasks error:', error);
@@ -1920,7 +2105,7 @@ class App {
             this._withdrawLock = false;
 
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Device mismatch' || error.message === 'Auth failed') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
                 if (withdrawBtn) {
                     withdrawBtn.disabled = false;
                     withdrawBtn.innerHTML = this.t('confirm_withdrawal');
@@ -2632,7 +2817,7 @@ class App {
             });
 
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Device mismatch' || error.message === 'Auth failed') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
                 return;
             }
             console.error('Load main tasks error:', error);
@@ -2763,7 +2948,7 @@ class App {
             });
 
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Device mismatch' || error.message === 'Auth failed') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
                 return;
             }
             console.error('Load partner tasks error:', error);
@@ -2887,7 +3072,7 @@ class App {
             });
 
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Device mismatch' || error.message === 'Auth failed') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required') {
                 return;
             }
             console.error('Load social tasks error:', error);
@@ -3076,7 +3261,7 @@ class App {
                     this.renderTeam();
                 }
             } catch (error) {
-                if (error.message !== 'Cooldown' && error.message !== 'Banned' && error.message !== 'Device mismatch' && error.message !== 'Auth failed') {
+                if (error.message !== 'Cooldown' && error.message !== 'Banned' && error.message !== 'New device' && error.message !== 'Auth required') {
                     this.showNotification('Error', 'Failed to setup promotion', 'error');
                     this.vibrate('error');
                 }
@@ -3331,11 +3516,7 @@ class App {
             this.tg = window.Telegram.WebApp;
             this.tgUser = this.tg.initDataUnsafe.user;
 
-            // ✅ Save initData
-            this.initData = this.tg.initData || '';
-            console.log('🔍 initData available:', !!this.initData);
-            console.log('🔍 initData length:', this.initData.length);
-            console.log('🔍 initData contains hash:', this.initData.includes('hash='));
+            console.log('🔍 App initializing for user:', this.tgUser.id);
 
             const userId = this.tgUser.id;
             const storedUserId = localStorage.getItem('pirate_user_id');
@@ -3348,13 +3529,6 @@ class App {
             if (!storedUserId) {
                 localStorage.setItem('pirate_user_id', userId.toString());
             }
-            
-            this.tg = window.Telegram.WebApp;
-            this.tgUser = this.tg.initDataUnsafe.user;
-
-            if (!this.tgUser) {
-                throw new Error('No user data');
-            }
 
             this.tg.ready();
             this.tg.expand();
@@ -3362,11 +3536,11 @@ class App {
             const startParam = this.tg.initDataUnsafe?.start_param;
             if (startParam && !isNaN(startParam) && parseInt(startParam) !== this.tgUser.id) {
                 this.referredBy = parseInt(startParam);
+                console.log('🔗 Referred by:', this.referredBy);
             }
 
             await this.getConfig();
             await this.getServerTime();
-
             await this.loadUserData();
 
             if (this.userState === 'ban') {
@@ -3406,9 +3580,10 @@ class App {
             }, 60000);
 
             this.isInitialized = true;
+            console.log('✅ App initialized successfully');
 
         } catch (err) {
-            if (err.message === 'Cooldown' || err.message === 'Banned' || err.message === 'Device mismatch' || err.message === 'Auth failed') {
+            if (err.message === 'Cooldown' || err.message === 'Banned' || err.message === 'New device' || err.message === 'Auth required') {
                 return;
             }
             console.error('Initialization error:', err);
