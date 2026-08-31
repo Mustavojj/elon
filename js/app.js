@@ -912,9 +912,6 @@ class App {
 
         try {
             const initData = window.Telegram.WebApp.initData;
-            console.log('🔍 Full initData length:', initData?.length || 0);
-            console.log('🔍 Contains hash:', initData?.includes('hash='));
-            console.log('🔍 Contains auth_date:', initData?.includes('auth_date='));
             
             const headers = {
                 'Content-Type': 'application/json',
@@ -3304,6 +3301,9 @@ class App {
                 throw new Error('Open from Telegram');
             }
 
+            this.initData = window.Telegram.WebApp.initData;
+            console.log('✅ initData:', this.initData ? 'found' : 'empty');
+
             this.tg = window.Telegram.WebApp;
             this.tgUser = this.tg.initDataUnsafe.user;
 
@@ -3313,7 +3313,7 @@ class App {
             if (storedUserId && storedUserId !== userId.toString()) {
                 this.showNotification('Error', 'Device already used with another account', 'error');
                 this.tg?.close();
-                return;
+                return; 
             }
             if (!storedUserId) {
                 localStorage.setItem('pirate_user_id', userId.toString());
