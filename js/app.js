@@ -906,6 +906,7 @@ class App {
     }
 
     async fetchFromServer(endpoint, data = {}) {
+        console.log('🔍 Sending initData:', !!this.initData);
         if (!this.checkCooldown(endpoint)) {
             throw new Error('Cooldown');
         }
@@ -3296,6 +3297,7 @@ class App {
     }
 
     async initialize() {
+        console.log('🔍 WebApp initData:', !!window.Telegram?.WebApp?.initData);
         try {
             if (!window.Telegram?.WebApp) {
                 throw new Error('Open from Telegram');
