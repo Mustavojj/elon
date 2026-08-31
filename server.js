@@ -58,8 +58,6 @@ async function checkUserState(userId) {
 }
 
 function verifyTelegramWebAppData(initData) {
-    console.log('🔍 initData:', initData?.substring(0, 200));
-    console.log('🔍 BOT_TOKEN exists:', !!BOT_TOKEN);
     if (!initData || !BOT_TOKEN) return false;
     
     try {
@@ -85,15 +83,25 @@ function verifyTelegramWebAppData(initData) {
 }
 
 function verifyTelegramRequest(req, res, next) {
-    console.log('🔍 Request body:', req.body);
-    console.log('🔍 initData in body:', !!req.body.initData);
     const { initData, userId, deviceId } = req.body;
     
     if (!initData) {
+        console.error('❌ initData is empty!');
         return res.status(401).json({ error: 'No Telegram data provided' });
     }
     
+    if (!initData.includes('hash=')) {
+        console.error('❌ initData missing hash!');
+        return res.status(401).json({ error: 'Invalid Telegram data: missing hash' });
+    }
+    
+    if (!initData.includes('auth_date=')) {
+        console.error('❌ initData missing auth_date!');
+        return res.status(401).json({ error: 'Invalid Telegram data: missing auth_date' });
+    }
+    
     if (!verifyTelegramWebAppData(initData)) {
+        console.error('❌ Hash verification failed!');
         return res.status(401).json({ error: 'Invalid Telegram data' });
     }
     
