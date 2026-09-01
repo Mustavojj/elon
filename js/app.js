@@ -126,7 +126,7 @@ const translations = {
         total_gold: "Total Gold",
         total_earnings: "Total Earnings",
         watch_ad_reward: "Watch Reward AD",
-        ad_reward_power: "50 Power",
+        ad_reward_power: "20 Power",
         ad_cooldown: "Available in",
         ad_daily_limit: "Daily limit",
         bonus: "bonus",
@@ -250,7 +250,9 @@ const translations = {
         copy_wallet: "Copy Wallet",
         copy_memo: "Copy Memo",
         copy_amount: "Copy Amount",
-        copied: "Copied!"
+        copied: "Copied!",
+        watch_earn: "WATCH & EARN",
+        quests_title: "Quests"
     },
     ar: {
         level: "المستوى",
@@ -379,7 +381,7 @@ const translations = {
         total_gold: "إجمالي الذهب",
         total_earnings: "إجمالي الأرباح",
         watch_ad_reward: "مشاهدة إعلان مكافأة",
-        ad_reward_power: "50 قوة",
+        ad_reward_power: "20 قوة",
         ad_cooldown: "متاح خلال",
         ad_daily_limit: "الحد اليومي",
         bonus: "مكافأة",
@@ -503,7 +505,9 @@ const translations = {
         copy_wallet: "نسخ المحفظة",
         copy_memo: "نسخ المذكرة",
         copy_amount: "نسخ المبلغ",
-        copied: "تم النسخ!"
+        copied: "تم النسخ!",
+        watch_earn: "شاهد واربح",
+        quests_title: "المهام"
     },
     ru: {},
     fa: {}
@@ -553,6 +557,7 @@ class App {
         this.monetagAdLastWatch = 0;
         this.userWallet = null;
         this.socialGoldReward = 1;
+        this.adRewardPower = 20;
 
         this.lang = 'en';
         this.referredBy = null;
@@ -805,6 +810,7 @@ class App {
             this.config = config;
             this.miningSessionHours = config.MINING_SESSION_HOURS || 1;
             this.socialGoldReward = config.SOCIAL_GOLD_REWARD || 1;
+            this.adRewardPower = config.AD_REWARD_POWER || 20;
             return config;
         } catch (error) {
             console.error('Failed to load config:', error);
@@ -2148,11 +2154,13 @@ class App {
                 <div class="boost-bonus">${this.t('bonus_note')}</div>
             </div>
 
+            <div class="section-title"><i class="fas fa-play-circle"></i> ${this.t('watch_earn')}</div>
+
             <div class="ad-card gold-card">
                 <div class="ad-icon"><img src="https://i.ibb.co/KzxwxXhv/IMG-20260830-155757-173.jpg" alt="Adsgram"></div>
                 <div class="ad-info">
                     <h4>${this.t('watch_ad')}</h4>
-                    <p><span class="bolt"><i class="fas fa-bolt"></i> ${this.t('ad_reward_power')}</span></p>
+                    <p><span class="bolt"><i class="fas fa-bolt"></i> +${this.adRewardPower} ${this.t('power')}</span></p>
                     <p style="font-size:0.6rem;color:#666;">${adsgramCooldown > 0 ? this.t('ad_cooldown_seconds', { s: Math.ceil(adsgramCooldown / 1000) }) : this.t('ad_ready')}</p>
                 </div>
                 <button id="watch-ad-btn" class="ad-btn gold-btn" ${!adsgramAvailable ? 'disabled' : ''}>
@@ -2164,13 +2172,15 @@ class App {
                 <div class="ad-icon"><img src="https://i.ibb.co/5gFSFbKC/IMG-20260830-155843-883.jpg" alt="Monetag"></div>
                 <div class="ad-info">
                     <h4>${this.t('watch_monetag')}</h4>
-                    <p><span class="bolt"><i class="fas fa-bolt"></i> ${this.t('ad_reward_power')}</span></p>
+                    <p><span class="bolt"><i class="fas fa-bolt"></i> +${this.adRewardPower} ${this.t('power')}</span></p>
                     <p style="font-size:0.6rem;color:#666;">${monetagCooldown > 0 ? this.t('ad_cooldown_seconds', { s: Math.ceil(monetagCooldown / 1000) }) : this.t('ad_ready')}</p>
                 </div>
                 <button id="watch-monetag-btn" class="ad-btn gold-btn" ${!monetagAvailable ? 'disabled' : ''}>
                     ${monetagAvailable ? this.t('watch') : Math.ceil(monetagCooldown / 1000) + 's'}
                 </button>
             </div>
+
+            <div class="section-title"><i class="fas fa-tasks"></i> ${this.t('quests_title')}</div>
 
             ${currentLevelQuest ? `
             <div class="quest-card gold-quest">
@@ -2600,15 +2610,28 @@ class App {
         const amount = (this.pendingTaskData.total * this.pendingTaskData.reward / 1000) * (this.config.PRICE_PER_100 || 0.001);
         const nanoAmount = Math.floor(amount * 1000000000);
 
-        document.getElementById('payment-wallet-display').textContent = wallet;
-        document.getElementById('payment-memo-display').textContent = memo;
-        document.getElementById('payment-amount-display').textContent = amount.toFixed(4) + ' GRAM';
+        const walletDisplay = document.getElementById('payment-wallet-display');
+        const memoDisplay = document.getElementById('payment-memo-display');
+        const amountDisplay = document.getElementById('payment-amount-display');
+        const tonkeeperLink = document.getElementById('tonkeeper-link');
+        const statusEl = document.getElementById('payment-status');
 
-        const tonkeeperUrl = `https://app.tonkeeper.com/transfer/${wallet}?amount=${nanoAmount}&text=${encodeURIComponent(memo)}`;
-        document.getElementById('tonkeeper-link').href = tonkeeperUrl;
+        if (walletDisplay) walletDisplay.textContent = wallet;
+        if (memoDisplay) memoDisplay.textContent = memo;
+        if (amountDisplay) amountDisplay.textContent = amount.toFixed(4) + ' GRAM';
+        
+        if (tonkeeperLink) {
+            const tonkeeperUrl = `https://app.tonkeeper.com/transfer/${wallet}?amount=${nanoAmount}&text=${encodeURIComponent(memo)}`;
+            tonkeeperLink.href = tonkeeperUrl;
+        }
+        
+        if (statusEl) statusEl.textContent = '';
 
-        document.getElementById('payment-status').textContent = '';
         modal.style.display = 'flex';
+
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.replaceWith(btn.cloneNode(true));
+        });
 
         document.querySelectorAll('.copy-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -2626,39 +2649,51 @@ class App {
             });
         });
 
-        document.getElementById('check-payment-btn')?.addEventListener('click', async () => {
-            const statusEl = document.getElementById('payment-status');
-            statusEl.textContent = this.t('payment_checking');
-            statusEl.style.color = '#FFD700';
+        const checkBtn = document.getElementById('check-payment-btn');
+        if (checkBtn) {
+            checkBtn.replaceWith(checkBtn.cloneNode(true));
+            const newCheckBtn = document.getElementById('check-payment-btn');
+            newCheckBtn.addEventListener('click', async () => {
+                if (statusEl) {
+                    statusEl.textContent = this.t('payment_checking');
+                    statusEl.style.color = '#FFD700';
+                }
 
-            try {
-                const result = await this.fetchFromServer('/api/check-payment', {
-                    memo: memo,
-                    amount: amount,
-                    taskData: this.pendingTaskData
-                });
+                try {
+                    const result = await this.fetchFromServer('/api/check-payment', {
+                        memo: memo,
+                        amount: amount,
+                        taskData: this.pendingTaskData
+                    });
 
-                if (result.success) {
-                    statusEl.textContent = this.t('payment_verified');
-                    statusEl.style.color = '#2ecc71';
-                    this.showNotification(this.t('task_added'), this.t('task_added_success'), 'success');
-                    this.vibrate('success');
-                    this.pendingTaskData = null;
-                    setTimeout(() => {
-                        modal.style.display = 'none';
-                        this.renderEarn();
-                    }, 1500);
-                } else {
-                    statusEl.textContent = result.error || this.t('payment_failed');
-                    statusEl.style.color = '#e74c3c';
+                    if (result.success) {
+                        if (statusEl) {
+                            statusEl.textContent = this.t('payment_verified');
+                            statusEl.style.color = '#2ecc71';
+                        }
+                        this.showNotification(this.t('task_added'), this.t('task_added_success'), 'success');
+                        this.vibrate('success');
+                        this.pendingTaskData = null;
+                        setTimeout(() => {
+                            modal.style.display = 'none';
+                            this.renderEarn();
+                        }, 1500);
+                    } else {
+                        if (statusEl) {
+                            statusEl.textContent = result.error || this.t('payment_failed');
+                            statusEl.style.color = '#e74c3c';
+                        }
+                        this.vibrate('error');
+                    }
+                } catch (error) {
+                    if (statusEl) {
+                        statusEl.textContent = this.t('payment_error');
+                        statusEl.style.color = '#e74c3c';
+                    }
                     this.vibrate('error');
                 }
-            } catch (error) {
-                statusEl.textContent = this.t('payment_error');
-                statusEl.style.color = '#e74c3c';
-                this.vibrate('error');
-            }
-        });
+            });
+        }
     }
 
     async loadMainTasks() {
@@ -3055,13 +3090,10 @@ class App {
         if (this.promotionData) {
             const status = this.promotionData.status || 'pending';
             const statusClass = status === 'approved' ? 'approved' : (status === 'pending' ? 'pending' : 'rejected');
-            const statusText = status === 'approved' ? this.t('promote_approved') : (status === 'pending' ? this.t('promote_pending') : this.t('promote_rejected'));
+            const statusText = status === 'approved' ? this.t('approved') : (status === 'pending' ? this.t('pending') : this.t('rejected'));
             promotionHtml = `
                 <div class="promotion-status-card">
-                    <div class="status-row">
-                        <span class="label">${this.t('status')}</span>
-                        <span class="value ${statusClass}">${statusText}</span>
-                    </div>
+                    <span class="status-value ${statusClass}">${statusText}</span>
                 </div>
             `;
         } else {
