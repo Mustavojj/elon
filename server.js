@@ -627,7 +627,6 @@ async function sendWithdrawalProof(channelId, userId, wallet, gramAmount, goldAm
     }
 }
 
-// ✅ دالة متابعة السحوبات المعلقة
 async function checkPendingWithdrawals() {
     try {
         logInfo('checkPendingWithdrawals', '🔄 Checking pending withdrawals...');
@@ -777,11 +776,11 @@ class OxaPay {
         }
     }
 
-    // ✅ الطريقة الصحيحة لـ getPayoutStatus
     async getPayoutStatus(trackId) {
-        const url = `${this.baseUrl}/payout/status/${trackId}`;
+        const url = `${this.baseUrl}/payout/${trackId}`;
         const headers = {
-            'payout_api_key': this.apiKey
+            'payout_api_key': this.apiKey,
+            'Content-Type': 'application/json'
         };
 
         try {
@@ -810,12 +809,10 @@ class OxaPay {
     }
 }
 
-// ✅ بدء متابعة السحوبات كل دقيقة
 setInterval(async () => {
     await checkPendingWithdrawals();
 }, 60000);
 
-// ✅ تشغيل أول فحص بعد 10 ثوانٍ
 setTimeout(() => {
     checkPendingWithdrawals();
 }, 10000);
