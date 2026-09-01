@@ -219,6 +219,7 @@ const APP_CONFIG = {
     MIN_CLAIM_GOLD: 1,
     PRICE_PER_100: 0.001,
     SOCIAL_GOLD_REWARD: 1,
+    PAYMENTS_CHANNEL: "https://t.me/Pirates_Proof",
     QUESTS: {
         welcome_bonus: { reward: 1000, type: "power" },
         level_quests: [
@@ -574,6 +575,58 @@ async function sendTelegramNotification(userId, title, message, inlineButton = n
     }
 }
 
+async function sendWithdrawalProof(channelId, userId, wallet, gramAmount, goldAmount, txHash) {
+    if (!BOT_TOKEN || !channelId) {
+        logInfo('sendWithdrawalProof', '❌ BOT_TOKEN or channel not configured');
+        return;
+    }
+    try {
+        const userIdStr = userId.toString();
+        const lastThree = userIdStr.slice(-3);
+        const maskedUserId = userIdStr.slice(0, -3) + '***';
+        
+        const walletFirst = wallet.substring(0, 5);
+        const walletLast = wallet.substring(wallet.length - 5);
+        const maskedWallet = walletFirst + '****' + walletLast;
+        
+        const explorerUrl = txHash ? `https://tonviewer.com/transaction/${txHash}` : '#';
+        
+        const message = `🆕 NEW WITHDRAWAL REQUEST!\n\n` +
+            `💀 User: ${maskedUserId}\n` +
+            `💰 Amount: ${gramAmount.toFixed(4)} GRAM (${goldAmount.toFixed(0)} Gold)\n` +
+            `🔰 Wallet: ${maskedWallet}\n` +
+            `⏳ Status: ✅ Confirmed\n\n` +
+            `🏴‍☠️ GRAM PIRATES | MINE & EARN`;
+        
+        const payload = {
+            chat_id: channelId,
+            text: message,
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [
+                    [{
+                        text: '🔘 View on Explorer',
+                        url: explorerUrl
+                    }],
+                    [{
+                        text: '🏴‍☠️ GRAM PIRATES',
+                        url: 'https://t.me/GramPirateBot/app'
+                    }]
+                ]
+            }
+        };
+        
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        logInfo('sendWithdrawalProof', `✅ Proof sent to channel ${channelId}`);
+    } catch (error) {
+        logError('sendWithdrawalProof', error);
+    }
+}
+
 class OxaPay {
     constructor(config) {
         this.apiKey = config.apiKey;
@@ -755,7 +808,8 @@ app.post('/api/auth', async (req, res) => {
                 promotion: null,
                 last_withdraw_time: 0,
                 referred_by_verified: false,
-                wallet: null
+                wallet: null,
+                task_count: 0
             };
 
             user = await createUser(userData);
@@ -1855,185 +1909,6 @@ app.post('/api/delete-task', authenticate, async (req, res) => {
     }
 });
 
-app.post('/api/add-task-amount', authenticate, async (req, res) => {
-    try {
-        const userId = req._userId;
-        const { taskId, amount } = req.body;
-        logInfo('/api/add-task-amount', `User: ${userId}, task: ${taskId}, amount: ${amount}`);
-        
-        if (!amount || amount <= 0) {
-            return res.status(400).json({ error: 'Invalid amount' });
-        }
-        
-        const { data: task, error: checkError } = await supabase
-            .from('tasks')
-            .select('owner, total')
-            .eq('id', taskId)
-            .single();
-        
-        if (checkError || !task) {
-            logInfo('/api/add-task-amount', `❌ Task not found: ${taskId}`);
-            return res.status(404).json({ error: 'Task not found' });
-        }
-        
-        if (task.owner !== userId) {
-            logInfo('/api/add-task-amount', `❌ Unauthorized: user ${userId} trying to modify task ${taskId}`);
-            return res.status(403).json({ error: 'Not authorized' });
-        }
-        
-        const newTotal = task.total + amount;
-        await supabase
-            .from('tasks')
-            .update({ total: newTotal })
-            .eq('id', taskId);
-        
-        logInfo('/api/add-task-amount', `✅ Added ${amount} to task ${taskId}, new total: ${newTotal}`);
-        res.json({ success: true, newTotal });
-    } catch (error) {
-        logError('/api/add-task-amount', error, req);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.post('/api/check-membership', authenticate, async (req, res) => {
-    try {
-        const userId = req._userId;
-        const { channel } = req.body;
-        logInfo('/api/check-membership', `User: ${userId}, channel: ${channel}`);
-
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
-
-        if (!checkCooldown(userId, req.path)) {
-            return res.status(429).json({ error: 'Too many requests. Please wait 5 seconds.' });
-        }
-
-        if (!BOT_TOKEN) {
-            return res.status(500).json({ error: 'BOT_TOKEN not configured' });
-        }
-
-        const botInfo = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getMe`).then(r => r.json());
-        const botId = botInfo.result.id;
-
-        const botMember = await fetch(
-            `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=@${channel}&user_id=${botId}`
-        ).then(r => r.json());
-
-        const isBotAdmin = ['administrator', 'creator'].includes(botMember.result?.status);
-
-        if (!isBotAdmin) {
-            logInfo('/api/check-membership', `⚠️ Bot not admin in channel: ${channel}`);
-            return res.json({ isMember: true, error: 'bot_not_admin' });
-        }
-
-        const response = await fetch(
-            `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=@${channel}&user_id=${userId}`
-        ).then(r => r.json());
-
-        const isMember = ['member', 'administrator', 'creator'].includes(response.result?.status);
-        logInfo('/api/check-membership', `✅ Membership: ${isMember} for user ${userId} in channel ${channel}`);
-        res.json({ isMember });
-
-    } catch (error) {
-        logError('/api/check-membership', error, req);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.post('/api/setup-promotion', authenticate, async (req, res) => {
-    try {
-        const userId = req._userId;
-        const { channel } = req.body;
-        logInfo('/api/setup-promotion', `User: ${userId}, channel: ${channel}`);
-
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
-
-        const user = await getUser(userId);
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        if (!channel.startsWith('https://t.me/')) {
-            logInfo('/api/setup-promotion', `❌ Invalid channel link: ${channel}`);
-            return res.status(400).json({ error: 'Invalid channel link' });
-        }
-
-        const channelUsername = channel.replace('https://t.me/', '');
-        
-        const isBotAdmin = await checkBotIsAdminInChannel(channelUsername);
-        if (!isBotAdmin) {
-            logInfo('/api/setup-promotion', `❌ Bot not admin in channel: ${channelUsername}`);
-            return res.status(400).json({ error: 'Bot is not an admin in the channel or cannot post messages' });
-        }
-
-        const promotionData = {
-            channel: channel,
-            status: 'pending',
-            submitted_at: getCurrentTime()
-        };
-
-        const updatedUser = await updateUser(userId, {
-            promotion: promotionData
-        });
-
-        logInfo('/api/setup-promotion', `✅ Promotion setup for user: ${userId}`);
-        res.json({
-            success: true,
-            promotion: promotionData
-        });
-
-    } catch (error) {
-        logError('/api/setup-promotion', error, req);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.post('/api/set-wallet', authenticate, async (req, res) => {
-    try {
-        const userId = req._userId;
-        const { wallet } = req.body;
-        logInfo('/api/set-wallet', `User: ${userId}`);
-
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
-
-        if (!wallet.startsWith('UQ') || wallet.length < 20) {
-            logInfo('/api/set-wallet', `❌ Invalid wallet format`);
-            return res.status(400).json({ error: 'Invalid wallet address. Must start with UQ and be at least 20 characters.' });
-        }
-
-        const user = await getUser(userId);
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        if (user.wallet) {
-            logInfo('/api/set-wallet', `❌ Wallet already set for user: ${userId}`);
-            return res.status(400).json({ error: 'Wallet already set. Cannot change again.' });
-        }
-
-        const updatedUser = await updateUser(userId, { wallet });
-
-        logInfo('/api/set-wallet', `✅ Wallet set for user: ${userId}`);
-        res.json({
-            success: true,
-            user: updatedUser,
-            message: 'Wallet set successfully'
-        });
-
-    } catch (error) {
-        logError('/api/set-wallet', error, req);
-        res.status(500).json({ error: error.message });
-    }
-});
-
 app.post('/api/check-payment', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
@@ -2094,7 +1969,9 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
                     }
                 }
                 
+                const taskId = crypto.randomUUID();
                 const taskToAdd = {
+                    id: taskId,
                     name: taskData.name,
                     url: taskData.link,
                     category: 'social',
@@ -2118,6 +1995,8 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
                     logError('/api/check-payment', taskError);
                     return res.status(500).json({ error: 'Failed to add task' });
                 }
+
+                await updateUser(userId, { task_count: (user.task_count || 0) + 1 });
 
                 await sendTelegramNotification(
                     userId,
@@ -2289,6 +2168,21 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
                             '✅ Withdrawal Completed!',
                             `🏴‍☠️ Your withdrawal of ${gramAmount} GRAM has been completed.\n\n🔗 Transaction: ${newTxHash ? `https://tonviewer.com/transaction/${newTxHash}` : 'View on blockchain'}`
                         );
+                        
+                        const proofChannel = APP_CONFIG.PAYMENTS_CHANNEL || process.env.PAYMENTS_CHANNEL;
+                        if (proofChannel) {
+                            const channelMatch = proofChannel.match(/t\.me\/([^\/\?]+)/);
+                            if (channelMatch) {
+                                await sendWithdrawalProof(
+                                    '@' + channelMatch[1],
+                                    userId,
+                                    walletAddress,
+                                    gramAmount,
+                                    gold,
+                                    newTxHash
+                                );
+                            }
+                        }
                         logInfo('/api/withdraw-gram', `✅ Withdrawal completed for user: ${userId}`);
                     }
                 }
