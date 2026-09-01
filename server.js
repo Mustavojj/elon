@@ -28,17 +28,50 @@ const requestCooldown = new Map();
 const notifiedUsers = new Set();
 const getUserCache = new Map();
 
+console.log('🔍 Server starting...');
+console.log('🔍 BOT_TOKEN exists:', !!BOT_TOKEN);
+console.log('🔍 JWT_SECRET exists:', !!JWT_SECRET);
+console.log('🔍 SUPABASE_URL exists:', !!supabaseUrl);
+console.log('🔍 SUPABASE_KEY exists:', !!supabaseKey);
+
+// ✅ Logging utility
+function logError(endpoint, error, req = null) {
+    console.error(`❌ [${endpoint}] Error:`, error.message || error);
+    if (req) {
+        console.error(`📥 Request body:`, JSON.stringify(req.body).substring(0, 500));
+        console.error(`👤 User:`, req._userId || req.body?.userId || 'unknown');
+    }
+    if (error.stack) {
+        console.error(`📚 Stack:`, error.stack.substring(0, 500));
+    }
+}
+
+function logInfo(endpoint, message, data = null) {
+    console.log(`ℹ️ [${endpoint}] ${message}`);
+    if (data) {
+        console.log(`📊 Data:`, JSON.stringify(data).substring(0, 300));
+    }
+}
+
 async function isDeviceUsedByOtherUser(deviceId, currentUserId) {
     if (!deviceId) return false;
     
-    const { data, error } = await supabase
-        .from('users')
-        .select('id, device_id')
-        .eq('device_id', deviceId)
-        .neq('id', currentUserId)
-        .single();
-    
-    return !!data;
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('id, device_id')
+            .eq('device_id', deviceId)
+            .neq('id', currentUserId)
+            .single();
+        
+        if (error && error.code !== 'PGRST116') {
+            logError('isDeviceUsedByOtherUser', error);
+        }
+        return !!data;
+    } catch (error) {
+        logError('isDeviceUsedByOtherUser', error);
+        return false;
+    }
 }
 
 function checkCooldown(userId, endpoint) {
@@ -62,6 +95,11 @@ function verifyJWT(token) {
     try {
         return jwt.verify(token, JWT_SECRET);
     } catch (error) {
+        if (error.name === 'TokenExpiredError') {
+            logInfo('verifyJWT', 'Token expired');
+        } else if (error.name === 'JsonWebTokenError') {
+            logInfo('verifyJWT', 'Invalid token:', error.message);
+        }
         return null;
     }
 }
@@ -76,14 +114,17 @@ function authenticate(req, res, next) {
     }
     
     if (!token) {
+        logInfo('authenticate', '❌ No token provided');
         return res.status(401).json({ error: 'No token provided' });
     }
     
     const decoded = verifyJWT(token);
     if (!decoded) {
+        logInfo('authenticate', '❌ Invalid or expired token');
         return res.status(401).json({ error: 'Invalid or expired token' });
     }
     
+    logInfo('authenticate', `✅ Token verified for user: ${decoded.userId}`);
     req._userId = decoded.userId;
     req._deviceId = decoded.deviceId;
     next();
@@ -98,16 +139,25 @@ async function validateDevice(userId, deviceId) {
             .eq('id', userId)
             .single();
         if (!user) return true;
-        if (user.device_id && user.device_id !== deviceId) return false;
+        if (user.device_id && user.device_id !== deviceId) {
+            logInfo('validateDevice', `❌ Device mismatch: ${user.device_id} vs ${deviceId}`);
+            return false;
+        }
         return true;
     } catch (error) {
+        logError('validateDevice', error);
         return true;
     }
 }
 
 async function checkBotIsAdminInChannel(channelUsername) {
-    if (!BOT_TOKEN) return false;
+    if (!BOT_TOKEN) {
+        logInfo('checkBotIsAdminInChannel', '❌ BOT_TOKEN not configured');
+        return false;
+    }
     try {
+        logInfo('checkBotIsAdminInChannel', `🔍 Checking bot admin in @${channelUsername}`);
+        
         const botInfo = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getMe`).then(r => r.json());
         const botId = botInfo.result.id;
         
@@ -115,8 +165,11 @@ async function checkBotIsAdminInChannel(channelUsername) {
             `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=@${channelUsername}&user_id=${botId}`
         ).then(r => r.json());
         
-        return ['administrator', 'creator'].includes(botMember.result?.status);
+        const isAdmin = ['administrator', 'creator'].includes(botMember.result?.status);
+        logInfo('checkBotIsAdminInChannel', `✅ Bot admin: ${isAdmin}`);
+        return isAdmin;
     } catch (error) {
+        logError('checkBotIsAdminInChannel', error);
         return false;
     }
 }
@@ -480,7 +533,10 @@ async function updateStats(statName, increment) {
 }
 
 async function sendTelegramNotification(userId, title, message, inlineButton = null) {
-    if (!BOT_TOKEN) return;
+    if (!BOT_TOKEN) {
+        logInfo('sendTelegramNotification', '❌ BOT_TOKEN not configured, skipping notification');
+        return;
+    }
     try {
         const payload = {
             chat_id: userId,
@@ -504,7 +560,10 @@ async function sendTelegramNotification(userId, title, message, inlineButton = n
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-    } catch (error) {}
+        logInfo('sendTelegramNotification', `✅ Notification sent to user ${userId}`);
+    } catch (error) {
+        logError('sendTelegramNotification', error);
+    }
 }
 
 class OxaPay {
@@ -544,6 +603,7 @@ class OxaPay {
 
             return result;
         } catch (error) {
+            logError('OxaPay.request', error);
             throw error;
         }
     }
@@ -573,6 +633,7 @@ class OxaPay {
                 success: true
             };
         } catch (error) {
+            logError('OxaPay.createPayout', error);
             throw error;
         }
     }
@@ -584,10 +645,15 @@ class OxaPay {
             });
             return result;
         } catch (error) {
+            logError('OxaPay.getPayoutStatus', error);
             throw error;
         }
     }
 }
+
+// ============================================================
+// ROUTES
+// ============================================================
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -609,9 +675,15 @@ app.get('/api/current-time', (req, res) => {
     res.json({ serverTime: getCurrentTime() });
 });
 
+// ============================================================
+// AUTH ROUTES
+// ============================================================
+
 app.post('/api/check-bot-admin', authenticate, async (req, res) => {
     try {
         const { channel } = req.body;
+        logInfo('/api/check-bot-admin', `Checking bot admin for channel: ${channel}`);
+        
         if (!channel) {
             return res.status(400).json({ error: 'Channel is required' });
         }
@@ -619,7 +691,7 @@ app.post('/api/check-bot-admin', authenticate, async (req, res) => {
         const isAdmin = await checkBotIsAdminInChannel(channel);
         res.json({ isAdmin });
     } catch (error) {
-        console.error('❌ /api/check-bot-admin error:', error);
+        logError('/api/check-bot-admin', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -627,13 +699,16 @@ app.post('/api/check-bot-admin', authenticate, async (req, res) => {
 app.post('/api/auth', async (req, res) => {
     try {
         const { userId, deviceId, firstName, username, photoUrl } = req.body;
+        logInfo('/api/auth', `User: ${userId}, device: ${deviceId}`);
         
         if (!validateUserId(userId)) {
+            logInfo('/api/auth', '❌ Invalid userId');
             return res.status(400).json({ error: 'Invalid user' });
         }
 
         const deviceUsed = await isDeviceUsedByOtherUser(deviceId, userId);
         if (deviceUsed) {
+            logInfo('/api/auth', `❌ Device already used by another account: ${deviceId}`);
             return res.status(403).json({ 
                 error: 'device_already_used',
                 message: 'This device is already linked to another account' 
@@ -643,6 +718,7 @@ app.post('/api/auth', async (req, res) => {
         let user = await getUser(userId);
 
         if (!user) {
+            logInfo('/api/auth', `🆕 Creating new user: ${userId}`);
             const userData = {
                 id: userId,
                 username: username || '',
@@ -692,10 +768,12 @@ app.post('/api/auth', async (req, res) => {
                 maxAge: 7 * 24 * 60 * 60 * 1000
             });
 
+            logInfo('/api/auth', `✅ New user created: ${userId}`);
             return res.json({ success: true, newUser: true, user, token });
         }
 
         if (user.device_id && user.device_id !== deviceId) {
+            logInfo('/api/auth', `🔐 New device detected for user: ${userId}`);
             const code = Math.floor(100000 + Math.random() * 900000).toString();
             
             await supabase
@@ -719,6 +797,7 @@ app.post('/api/auth', async (req, res) => {
 
         if (!user.device_id && deviceId) {
             await updateUser(userId, { device_id: deviceId });
+            logInfo('/api/auth', `🔒 Device registered for user: ${userId}`);
         }
 
         const token = generateJWT(userId, deviceId);
@@ -729,10 +808,11 @@ app.post('/api/auth', async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
+        logInfo('/api/auth', `✅ Authenticated user: ${userId}`);
         res.json({ success: true, newUser: false, user, token });
 
     } catch (error) {
-        console.error('❌ /api/auth error:', error);
+        logError('/api/auth', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -740,6 +820,7 @@ app.post('/api/auth', async (req, res) => {
 app.post('/api/verify-device', async (req, res) => {
     try {
         const { userId, deviceId, code } = req.body;
+        logInfo('/api/verify-device', `User: ${userId}, code: ${code}`);
         
         if (!validateUserId(userId) || !code) {
             return res.status(400).json({ error: 'Invalid request' });
@@ -754,10 +835,12 @@ app.post('/api/verify-device', async (req, res) => {
             .single();
 
         if (error || !verification) {
+            logInfo('/api/verify-device', '❌ Invalid code');
             return res.status(400).json({ error: 'Invalid code' });
         }
 
         if (getCurrentTime() > verification.expires_at) {
+            logInfo('/api/verify-device', '⏰ Code expired');
             await supabase
                 .from('verification_codes')
                 .update({ used: true })
@@ -766,14 +849,12 @@ app.post('/api/verify-device', async (req, res) => {
         }
 
         await updateUser(userId, { device_id: deviceId });
-        
         await supabase
             .from('verification_codes')
             .update({ used: true })
             .eq('id', verification.id);
 
         const token = generateJWT(userId, deviceId);
-        
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -782,15 +863,11 @@ app.post('/api/verify-device', async (req, res) => {
         });
 
         const user = await getUser(userId);
-
-        res.json({
-            success: true,
-            token: token,
-            user: user
-        });
+        logInfo('/api/verify-device', `✅ Device verified for user: ${userId}`);
+        res.json({ success: true, token, user });
 
     } catch (error) {
-        console.error('❌ /api/verify-device error:', error);
+        logError('/api/verify-device', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -798,6 +875,7 @@ app.post('/api/verify-device', async (req, res) => {
 app.post('/api/resend-device-code', async (req, res) => {
     try {
         const { userId } = req.body;
+        logInfo('/api/resend-device-code', `User: ${userId}`);
         
         if (!validateUserId(userId)) {
             return res.status(400).json({ error: 'Invalid user' });
@@ -821,10 +899,11 @@ app.post('/api/resend-device-code', async (req, res) => {
             `🔑 Your new verification code: \`${code}\`\n\n⏳ Valid for 5 minutes.`
         );
         
+        logInfo('/api/resend-device-code', `✅ New code sent to user: ${userId}`);
         res.json({ success: true });
 
     } catch (error) {
-        console.error('❌ /api/resend-device-code error:', error);
+        logError('/api/resend-device-code', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -833,6 +912,7 @@ app.post('/api/refresh', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const deviceId = req._deviceId;
+        logInfo('/api/refresh', `User: ${userId}`);
         
         const user = await getUser(userId);
         if (!user) {
@@ -844,7 +924,6 @@ app.post('/api/refresh', authenticate, async (req, res) => {
         }
         
         const token = generateJWT(userId, deviceId);
-        
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -852,26 +931,33 @@ app.post('/api/refresh', authenticate, async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
         
-        res.json({ success: true, token: token });
+        logInfo('/api/refresh', `✅ Token refreshed for user: ${userId}`);
+        res.json({ success: true, token });
 
     } catch (error) {
-        console.error('❌ /api/refresh error:', error);
+        logError('/api/refresh', error, req);
         res.status(500).json({ error: error.message });
     }
 });
 
 app.post('/api/logout', authenticate, async (req, res) => {
     try {
+        logInfo('/api/logout', `User: ${req._userId}`);
         res.clearCookie('token');
         res.json({ success: true });
     } catch (error) {
-        console.error('❌ /api/logout error:', error);
+        logError('/api/logout', error, req);
         res.status(500).json({ error: error.message });
     }
 });
 
+// ============================================================
+// MINING ROUTES
+// ============================================================
+
 app.post('/api/check-mining-status', async (req, res) => {
     try {
+        logInfo('/api/check-mining-status', 'Checking mining status');
         const { data: users } = await supabase
             .from('users')
             .select('id, mining_active, mining_end_time, mining_start_time, power_balance')
@@ -917,9 +1003,10 @@ app.post('/api/check-mining-status', async (req, res) => {
             rateLimit++;
         }
 
+        logInfo('/api/check-mining-status', `✅ Notified ${notified} users`);
         res.json({ success: true, notified });
     } catch (error) {
-        console.error('❌ /api/check-mining-status error:', error);
+        logError('/api/check-mining-status', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -927,11 +1014,15 @@ app.post('/api/check-mining-status', async (req, res) => {
 app.post('/api/claim-welcome-bonus', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
+        logInfo('/api/claim-welcome-bonus', `User: ${userId}`);
 
         const user = await getUser(userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
 
         if (user.quests?.welcome_bonus_claimed || user.power_balance > 1000) {
+            logInfo('/api/claim-welcome-bonus', `❌ Already claimed: ${userId}`);
             return res.status(400).json({ error: 'Already claimed' });
         }
 
@@ -947,13 +1038,14 @@ app.post('/api/claim-welcome-bonus', authenticate, async (req, res) => {
 
         await updateUserLevel(userId);
 
+        logInfo('/api/claim-welcome-bonus', `✅ Claimed ${reward} power for user: ${userId}`);
         res.json({
             success: true,
             user: updatedUser,
             reward: reward
         });
     } catch (error) {
-        console.error('❌ /api/claim-welcome-bonus error:', error);
+        logError('/api/claim-welcome-bonus', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -962,12 +1054,14 @@ app.post('/api/get-user', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { referredBy } = req.body;
+        logInfo('/api/get-user', `User: ${userId}`);
 
         const cacheKey = `getUser_${userId}`;
         const cached = getUserCache.get(cacheKey);
         const now = Date.now();
         
         if (cached && (now - cached.timestamp) < 5000) {
+            logInfo('/api/get-user', `📦 Returning cached data for user: ${userId}`);
             return res.json(cached.data);
         }
 
@@ -977,14 +1071,17 @@ app.post('/api/get-user', authenticate, async (req, res) => {
 
         let user = await getUser(userId);
         if (!user) {
+            logInfo('/api/get-user', `❌ User not found: ${userId}`);
             return res.status(404).json({ error: 'User not found' });
         }
 
         if (user.state === 'ban') {
+            logInfo('/api/get-user', `❌ User banned: ${userId}`);
             return res.status(403).json({ error: 'Account banned', banned: true });
         }
 
         if (referredBy && !user.referred_by && referredBy !== userId) {
+            logInfo('/api/get-user', `🔗 Setting referred_by for user: ${userId} to ${referredBy}`);
             await updateUser(userId, { referred_by: referredBy });
             user = await getUser(userId);
         }
@@ -1003,10 +1100,11 @@ app.post('/api/get-user', authenticate, async (req, res) => {
         };
 
         getUserCache.set(cacheKey, { data: responseData, timestamp: now });
+        logInfo('/api/get-user', `✅ Data returned for user: ${userId}`);
         res.json(responseData);
 
     } catch (error) {
-        console.error('❌ /api/get-user error:', error);
+        logError('/api/get-user', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1015,6 +1113,7 @@ app.post('/api/update-user', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { powerBalance, goldBalance, gramBalance, quests, miningActive, miningStartTime, miningEndTime, pendingGoldReward } = req.body;
+        logInfo('/api/update-user', `User: ${userId}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1038,9 +1137,10 @@ app.post('/api/update-user', authenticate, async (req, res) => {
         const updatedUser = await updateUser(userId, updates);
         await updateUserLevel(userId);
 
+        logInfo('/api/update-user', `✅ User updated: ${userId}`);
         res.json({ success: true, user: updatedUser });
     } catch (error) {
-        console.error('❌ /api/update-user error:', error);
+        logError('/api/update-user', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1049,6 +1149,7 @@ app.post('/api/start-mining', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { serverTime } = req.body;
+        logInfo('/api/start-mining', `User: ${userId}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1056,7 +1157,9 @@ app.post('/api/start-mining', authenticate, async (req, res) => {
         }
 
         const user = await getUser(userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
 
         if (user.mining_active) {
             return res.status(400).json({ error: 'Mining already active' });
@@ -1090,13 +1193,11 @@ app.post('/api/start-mining', authenticate, async (req, res) => {
 
         await updateUserLevel(userId);
 
-        res.json({
-            success: true,
-            user: updatedUser
-        });
+        logInfo('/api/start-mining', `✅ Mining started for user: ${userId}`);
+        res.json({ success: true, user: updatedUser });
 
     } catch (error) {
-        console.error('❌ /api/start-mining error:', error);
+        logError('/api/start-mining', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1104,6 +1205,7 @@ app.post('/api/start-mining', authenticate, async (req, res) => {
 app.post('/api/stop-mining', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
+        logInfo('/api/stop-mining', `User: ${userId}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1111,7 +1213,9 @@ app.post('/api/stop-mining', authenticate, async (req, res) => {
         }
 
         const user = await getUser(userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
 
         if (!user.mining_active) {
             return res.status(400).json({ error: 'No active mining session' });
@@ -1136,14 +1240,11 @@ app.post('/api/stop-mining', authenticate, async (req, res) => {
             pending_gold_reward: rewardAmount
         });
 
-        res.json({
-            success: true,
-            user: updatedUser,
-            reward: rewardAmount
-        });
+        logInfo('/api/stop-mining', `✅ Mining stopped for user: ${userId}, reward: ${rewardAmount}`);
+        res.json({ success: true, user: updatedUser, reward: rewardAmount });
 
     } catch (error) {
-        console.error('❌ /api/stop-mining error:', error);
+        logError('/api/stop-mining', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1151,6 +1252,7 @@ app.post('/api/stop-mining', authenticate, async (req, res) => {
 app.post('/api/claim-mining', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
+        logInfo('/api/claim-mining', `💰 User: ${userId}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1178,12 +1280,14 @@ app.post('/api/claim-mining', authenticate, async (req, res) => {
         }
 
         if (rewardAmount > 1000) {
+            logInfo('/api/claim-mining', `❌ Reward too high: ${rewardAmount}`);
             return res.status(400).json({ error: 'Failed to claim reward' });
         }
         
         const maxReward = (user.power_balance / 1000) * 5 * 13;
         
         if (rewardAmount > maxReward) {
+            logInfo('/api/claim-mining', `❌ Reward exceeds max: ${rewardAmount} > ${maxReward}`);
             return res.status(400).json({ error: 'Failed to claim reward' });
         }
         
@@ -1208,14 +1312,11 @@ app.post('/api/claim-mining', authenticate, async (req, res) => {
 
         await updateUserLevel(userId);
 
-        res.json({
-            success: true,
-            user: updatedUser,
-            claimed: rewardAmount
-        });
+        logInfo('/api/claim-mining', `✅ Claimed ${rewardAmount} gold for user: ${userId}`);
+        res.json({ success: true, user: updatedUser, claimed: rewardAmount });
 
     } catch (error) {
-        console.error('❌ /api/claim-mining error:', error);
+        logError('/api/claim-mining', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1224,6 +1325,7 @@ app.post('/api/claim-quest', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { questType } = req.body;
+        logInfo('/api/claim-quest', `User: ${userId}, type: ${questType}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1231,7 +1333,9 @@ app.post('/api/claim-quest', authenticate, async (req, res) => {
         }
 
         const user = await getUser(userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
 
         let reward = 0;
         let newIndex = 0;
@@ -1296,6 +1400,7 @@ app.post('/api/claim-quest', authenticate, async (req, res) => {
 
         await updateUserLevel(userId);
 
+        logInfo('/api/claim-quest', `✅ Claimed ${reward} power for user: ${userId}`);
         res.json({
             success: true,
             user: updatedUser,
@@ -1305,7 +1410,7 @@ app.post('/api/claim-quest', authenticate, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ /api/claim-quest error:', error);
+        logError('/api/claim-quest', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1314,6 +1419,7 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { taskId, isPartner, taskOwner } = req.body;
+        logInfo('/api/complete-task', `User: ${userId}, task: ${taskId}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1321,7 +1427,9 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
         }
 
         const user = await getUser(userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
 
         const { data: task, error: taskError } = await supabase
             .from('tasks')
@@ -1330,6 +1438,7 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
             .single();
 
         if (taskError || !task) {
+            logInfo('/api/complete-task', `❌ Task not found: ${taskId}`);
             return res.status(404).json({ error: 'Task not found' });
         }
 
@@ -1341,6 +1450,7 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
             .single();
 
         if (completed) {
+            logInfo('/api/complete-task', `❌ Task already completed: ${taskId}`);
             return res.status(400).json({ error: 'Task already completed' });
         }
 
@@ -1366,6 +1476,7 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
 
         await updateUserLevel(userId);
 
+        logInfo('/api/complete-task', `✅ Task completed for user: ${userId}`);
         res.json({
             success: true,
             user: updatedUser,
@@ -1373,7 +1484,7 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ /api/complete-task error:', error);
+        logError('/api/complete-task', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1382,6 +1493,7 @@ app.post('/api/convert-gold-to-power', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { goldAmount } = req.body;
+        logInfo('/api/convert-gold-to-power', `User: ${userId}, amount: ${goldAmount}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1389,7 +1501,9 @@ app.post('/api/convert-gold-to-power', authenticate, async (req, res) => {
         }
 
         const user = await getUser(userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
 
         const amount = parseFloat(goldAmount);
         if (isNaN(amount) || amount <= 0) {
@@ -1411,6 +1525,7 @@ app.post('/api/convert-gold-to-power', authenticate, async (req, res) => {
 
         await updateUserLevel(userId);
 
+        logInfo('/api/convert-gold-to-power', `✅ Converted ${amount} gold to ${totalPower} power for user: ${userId}`);
         res.json({
             success: true,
             user: updatedUser,
@@ -1420,7 +1535,7 @@ app.post('/api/convert-gold-to-power', authenticate, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ /api/convert-gold-to-power error:', error);
+        logError('/api/convert-gold-to-power', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1429,6 +1544,7 @@ app.post('/api/claim-referral-earnings', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { type } = req.body;
+        logInfo('/api/claim-referral-earnings', `User: ${userId}, type: ${type}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1436,7 +1552,9 @@ app.post('/api/claim-referral-earnings', authenticate, async (req, res) => {
         }
 
         const user = await getUser(userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
 
         const hasPromotionBonus = user.promotion?.status === 'approved';
         const bonusMultiplier = hasPromotionBonus ? 1.10 : 1;
@@ -1475,6 +1593,7 @@ app.post('/api/claim-referral-earnings', authenticate, async (req, res) => {
         const updatedUser = await updateUser(userId, updates);
         await updateUserLevel(userId);
 
+        logInfo('/api/claim-referral-earnings', `✅ Claimed ${amount} ${type} for user: ${userId}`);
         res.json({
             success: true,
             user: updatedUser,
@@ -1484,7 +1603,7 @@ app.post('/api/claim-referral-earnings', authenticate, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ /api/claim-referral-earnings error:', error);
+        logError('/api/claim-referral-earnings', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1493,6 +1612,7 @@ app.post('/api/apply-promo', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { code } = req.body;
+        logInfo('/api/apply-promo', `User: ${userId}, code: ${code}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1500,7 +1620,9 @@ app.post('/api/apply-promo', authenticate, async (req, res) => {
         }
 
         const user = await getUser(userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
 
         const { data: usedData } = await supabase
             .from('used_promo_codes')
@@ -1554,6 +1676,7 @@ app.post('/api/apply-promo', authenticate, async (req, res) => {
         const updatedUser = await updateUser(userId, updates);
         await updateUserLevel(userId);
 
+        logInfo('/api/apply-promo', `✅ Promo applied for user: ${userId}`);
         res.json({
             success: true,
             user: updatedUser,
@@ -1561,7 +1684,7 @@ app.post('/api/apply-promo', authenticate, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ /api/apply-promo error:', error);
+        logError('/api/apply-promo', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1569,6 +1692,7 @@ app.post('/api/apply-promo', authenticate, async (req, res) => {
 app.post('/api/watch-ad', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
+        logInfo('/api/watch-ad', `User: ${userId}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1576,7 +1700,9 @@ app.post('/api/watch-ad', authenticate, async (req, res) => {
         }
 
         const user = await getUser(userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
 
         const now = getCurrentTime();
         const cooldownMs = APP_CONFIG.AD_COOLDOWN_MINUTES * 60 * 1000;
@@ -1595,6 +1721,7 @@ app.post('/api/watch-ad', authenticate, async (req, res) => {
 
         await updateUserLevel(userId);
 
+        logInfo('/api/watch-ad', `✅ Ad watched for user: ${userId}, reward: ${reward}`);
         res.json({
             success: true,
             user: updatedUser,
@@ -1602,7 +1729,7 @@ app.post('/api/watch-ad', authenticate, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ /api/watch-ad error:', error);
+        logError('/api/watch-ad', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1610,6 +1737,7 @@ app.post('/api/watch-ad', authenticate, async (req, res) => {
 app.post('/api/watch-monetag-ad', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
+        logInfo('/api/watch-monetag-ad', `User: ${userId}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1617,7 +1745,9 @@ app.post('/api/watch-monetag-ad', authenticate, async (req, res) => {
         }
 
         const user = await getUser(userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
 
         const now = getCurrentTime();
         const cooldownMs = APP_CONFIG.MONETAG_AD_COOLDOWN_MINUTES * 60 * 1000;
@@ -1635,6 +1765,7 @@ app.post('/api/watch-monetag-ad', authenticate, async (req, res) => {
 
         await updateUserLevel(userId);
 
+        logInfo('/api/watch-monetag-ad', `✅ Monetag ad watched for user: ${userId}, reward: ${reward}`);
         res.json({
             success: true,
             user: updatedUser,
@@ -1642,7 +1773,7 @@ app.post('/api/watch-monetag-ad', authenticate, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ /api/watch-monetag-ad error:', error);
+        logError('/api/watch-monetag-ad', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1651,6 +1782,7 @@ app.post('/api/tasks/:category', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { category } = req.params;
+        logInfo('/api/tasks', `User: ${userId}, category: ${category}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1662,10 +1794,11 @@ app.post('/api/tasks/:category', authenticate, async (req, res) => {
         }
         
         const tasks = await getTasks(category, userId);
+        logInfo('/api/tasks', `✅ Returned ${tasks.length} tasks for category: ${category}`);
         res.json({ tasks });
         
     } catch (error) {
-        console.error('❌ /api/tasks error:', error);
+        logError('/api/tasks', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1673,6 +1806,7 @@ app.post('/api/tasks/:category', authenticate, async (req, res) => {
 app.post('/api/my-tasks', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
+        logInfo('/api/my-tasks', `User: ${userId}`);
         
         const { data: tasks, error } = await supabase
             .from('tasks')
@@ -1682,9 +1816,10 @@ app.post('/api/my-tasks', authenticate, async (req, res) => {
             .order('created_at', { ascending: false });
         
         if (error) throw error;
+        logInfo('/api/my-tasks', `✅ Returned ${tasks?.length || 0} tasks for user: ${userId}`);
         res.json({ tasks: tasks || [] });
     } catch (error) {
-        console.error('❌ /api/my-tasks error:', error);
+        logError('/api/my-tasks', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1693,6 +1828,7 @@ app.post('/api/delete-task', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { taskId } = req.body;
+        logInfo('/api/delete-task', `User: ${userId}, task: ${taskId}`);
         
         const { data: task, error: checkError } = await supabase
             .from('tasks')
@@ -1701,10 +1837,12 @@ app.post('/api/delete-task', authenticate, async (req, res) => {
             .single();
         
         if (checkError || !task) {
+            logInfo('/api/delete-task', `❌ Task not found: ${taskId}`);
             return res.status(404).json({ error: 'Task not found' });
         }
         
         if (task.owner !== userId) {
+            logInfo('/api/delete-task', `❌ Unauthorized: user ${userId} trying to delete task ${taskId}`);
             return res.status(403).json({ error: 'Not authorized' });
         }
         
@@ -1713,9 +1851,10 @@ app.post('/api/delete-task', authenticate, async (req, res) => {
             .update({ status: 'inactive' })
             .eq('id', taskId);
         
+        logInfo('/api/delete-task', `✅ Task deleted: ${taskId}`);
         res.json({ success: true });
     } catch (error) {
-        console.error('❌ /api/delete-task error:', error);
+        logError('/api/delete-task', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1724,6 +1863,7 @@ app.post('/api/add-task-amount', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { taskId, amount } = req.body;
+        logInfo('/api/add-task-amount', `User: ${userId}, task: ${taskId}, amount: ${amount}`);
         
         if (!amount || amount <= 0) {
             return res.status(400).json({ error: 'Invalid amount' });
@@ -1736,10 +1876,12 @@ app.post('/api/add-task-amount', authenticate, async (req, res) => {
             .single();
         
         if (checkError || !task) {
+            logInfo('/api/add-task-amount', `❌ Task not found: ${taskId}`);
             return res.status(404).json({ error: 'Task not found' });
         }
         
         if (task.owner !== userId) {
+            logInfo('/api/add-task-amount', `❌ Unauthorized: user ${userId} trying to modify task ${taskId}`);
             return res.status(403).json({ error: 'Not authorized' });
         }
         
@@ -1749,9 +1891,10 @@ app.post('/api/add-task-amount', authenticate, async (req, res) => {
             .update({ total: newTotal })
             .eq('id', taskId);
         
+        logInfo('/api/add-task-amount', `✅ Added ${amount} to task ${taskId}, new total: ${newTotal}`);
         res.json({ success: true, newTotal });
     } catch (error) {
-        console.error('❌ /api/add-task-amount error:', error);
+        logError('/api/add-task-amount', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1760,6 +1903,7 @@ app.post('/api/check-membership', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { channel } = req.body;
+        logInfo('/api/check-membership', `User: ${userId}, channel: ${channel}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1784,6 +1928,7 @@ app.post('/api/check-membership', authenticate, async (req, res) => {
         const isBotAdmin = ['administrator', 'creator'].includes(botMember.result?.status);
 
         if (!isBotAdmin) {
+            logInfo('/api/check-membership', `⚠️ Bot not admin in channel: ${channel}`);
             return res.json({ isMember: true, error: 'bot_not_admin' });
         }
 
@@ -1792,10 +1937,11 @@ app.post('/api/check-membership', authenticate, async (req, res) => {
         ).then(r => r.json());
 
         const isMember = ['member', 'administrator', 'creator'].includes(response.result?.status);
+        logInfo('/api/check-membership', `✅ Membership: ${isMember} for user ${userId} in channel ${channel}`);
         res.json({ isMember });
 
     } catch (error) {
-        console.error('❌ /api/check-membership error:', error);
+        logError('/api/check-membership', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1804,6 +1950,7 @@ app.post('/api/setup-promotion', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { channel } = req.body;
+        logInfo('/api/setup-promotion', `User: ${userId}, channel: ${channel}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1811,9 +1958,12 @@ app.post('/api/setup-promotion', authenticate, async (req, res) => {
         }
 
         const user = await getUser(userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
 
         if (!channel.startsWith('https://t.me/')) {
+            logInfo('/api/setup-promotion', `❌ Invalid channel link: ${channel}`);
             return res.status(400).json({ error: 'Invalid channel link' });
         }
 
@@ -1821,6 +1971,7 @@ app.post('/api/setup-promotion', authenticate, async (req, res) => {
         
         const isBotAdmin = await checkBotIsAdminInChannel(channelUsername);
         if (!isBotAdmin) {
+            logInfo('/api/setup-promotion', `❌ Bot not admin in channel: ${channelUsername}`);
             return res.status(400).json({ error: 'Bot is not an admin in the channel or cannot post messages' });
         }
 
@@ -1834,13 +1985,14 @@ app.post('/api/setup-promotion', authenticate, async (req, res) => {
             promotion: promotionData
         });
 
+        logInfo('/api/setup-promotion', `✅ Promotion setup for user: ${userId}`);
         res.json({
             success: true,
             promotion: promotionData
         });
 
     } catch (error) {
-        console.error('❌ /api/setup-promotion error:', error);
+        logError('/api/setup-promotion', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1849,6 +2001,7 @@ app.post('/api/set-wallet', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { wallet } = req.body;
+        logInfo('/api/set-wallet', `User: ${userId}, wallet: ${wallet.substring(0, 10)}...`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1856,18 +2009,23 @@ app.post('/api/set-wallet', authenticate, async (req, res) => {
         }
 
         if (!wallet.startsWith('UQ') || wallet.length < 20) {
+            logInfo('/api/set-wallet', `❌ Invalid wallet format: ${wallet}`);
             return res.status(400).json({ error: 'Invalid wallet address. Must start with UQ and be at least 20 characters.' });
         }
 
         const user = await getUser(userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
 
         if (user.wallet) {
+            logInfo('/api/set-wallet', `❌ Wallet already set for user: ${userId}`);
             return res.status(400).json({ error: 'Wallet already set. Cannot change again.' });
         }
 
         const updatedUser = await updateUser(userId, { wallet });
 
+        logInfo('/api/set-wallet', `✅ Wallet set for user: ${userId}`);
         res.json({
             success: true,
             user: updatedUser,
@@ -1875,7 +2033,7 @@ app.post('/api/set-wallet', authenticate, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ /api/set-wallet error:', error);
+        logError('/api/set-wallet', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1884,6 +2042,7 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { memo, amount, taskData } = req.body;
+        logInfo('/api/check-payment', `User: ${userId}, memo: ${memo}, amount: ${amount}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1892,13 +2051,16 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
 
         const address = APP_CONFIG.PAYMENT_WALLET || APP_CONFIG.TON_WALLET_ADDRESS;
         if (!address) {
+            logInfo('/api/check-payment', '❌ Payment wallet not configured');
             return res.status(500).json({ error: 'Payment wallet not configured' });
         }
 
+        logInfo('/api/check-payment', `🔍 Checking transactions for address: ${address}`);
         const response = await fetch(`https://toncenter.com/api/v2/getTransactions?address=${address}&limit=50`);
         const data = await response.json();
         
         if (!data.ok) {
+            logInfo('/api/check-payment', '❌ TON API error');
             return res.status(500).json({ error: 'Payment API error' });
         }
         
@@ -1906,7 +2068,11 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
         if (data.result && data.result.length > 0) {
             foundTx = data.result.find(tx => {
                 const msg = tx.in_msg?.message;
-                return msg && msg.includes(memo);
+                const msgMatch = msg && msg.includes(memo);
+                if (msgMatch) {
+                    logInfo('/api/check-payment', `📦 Found transaction with memo: ${memo}`);
+                }
+                return msgMatch;
             });
         }
         
@@ -1914,13 +2080,17 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
             const txAmount = parseFloat(foundTx.in_msg?.value) / 1000000000 || 0;
             const requiredAmount = (taskData.total * taskData.reward / 1000) * (APP_CONFIG.PRICE_PER_100 || 0.001);
             
+            logInfo('/api/check-payment', `💰 Tx amount: ${txAmount}, Required: ${requiredAmount}`);
+            
             if (txAmount >= requiredAmount * 0.95) {
+                // ✅ التحقق من البوت مشرف في القناة إذا كان Verification = YES
                 let verification = taskData.verification || false;
                 if (verification && taskData.link) {
                     const channelMatch = taskData.link.match(/t\.me\/([^\/\?]+)/);
                     if (channelMatch) {
                         const isAdmin = await checkBotIsAdminInChannel(channelMatch[1]);
                         if (!isAdmin) {
+                            logInfo('/api/check-payment', `❌ Bot not admin in channel: ${channelMatch[1]}`);
                             return res.json({
                                 success: false,
                                 error: 'Bot is not admin in the channel. Please add @GramPirateBot as admin.'
@@ -1942,6 +2112,7 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
                     total_completed: 0
                 };
 
+                logInfo('/api/check-payment', `📝 Adding task: ${taskData.name}`);
                 const { data: taskResult, error: taskError } = await supabase
                     .from('tasks')
                     .insert([taskToAdd])
@@ -1949,6 +2120,7 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
                     .single();
 
                 if (taskError) {
+                    logError('/api/check-payment', taskError);
                     return res.status(500).json({ error: 'Failed to add task' });
                 }
 
@@ -1958,18 +2130,21 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
                     `🏴‍☠️ Your social task "${taskData.name}" has been added.\n\n📊 Total: ${taskData.total}\n💎 Reward: ${taskData.reward} Power\n🪙 Gold: ${APP_CONFIG.SOCIAL_GOLD_REWARD || 1}\n🔗 Link: ${taskData.link}`
                 );
 
+                logInfo('/api/check-payment', `✅ Task added successfully: ${taskResult.id}`);
                 return res.json({
                     success: true,
                     task: taskResult,
                     message: 'Payment verified and task added'
                 });
             } else {
+                logInfo('/api/check-payment', `❌ Insufficient amount: ${txAmount} < ${requiredAmount}`);
                 return res.json({
                     success: false,
                     error: 'Insufficient payment amount'
                 });
             }
         } else {
+            logInfo('/api/check-payment', `❌ Payment not found for memo: ${memo}`);
             return res.json({
                 success: false,
                 error: 'Payment not found'
@@ -1977,7 +2152,7 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
         }
 
     } catch (error) {
-        console.error('❌ /api/check-payment error:', error);
+        logError('/api/check-payment', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1986,6 +2161,7 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { goldAmount } = req.body;
+        logInfo('/api/withdraw-gram', `User: ${userId}, amount: ${goldAmount}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1993,10 +2169,13 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
         }
 
         const user = await getUser(userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
 
         const walletAddress = user.wallet;
         if (!walletAddress) {
+            logInfo('/api/withdraw-gram', `❌ No wallet set for user: ${userId}`);
             return res.status(400).json({ error: 'No wallet set. Please set your wallet first.' });
         }
         
@@ -2017,19 +2196,23 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
         }
         
         if (gold > 3000) {
+            logInfo('/api/withdraw-gram', `❌ Amount too high: ${gold}`);
             return res.status(400).json({ error: 'Failed to create withdrawal request.' });
         }
 
         if ((user.power_balance || 0) < 2100) {
+            logInfo('/api/withdraw-gram', `❌ Insufficient power: ${user.power_balance}`);
             return res.status(400).json({ error: 'Failed to create withdrawal request.' });
         }
 
         const accountAge = (Date.now() - user.created_at) / 86400000;
         if (accountAge < 1) {
+            logInfo('/api/withdraw-gram', `❌ Account too new: ${accountAge} days`);
             return res.status(400).json({ error: 'Failed to create withdrawal request.' });
         }
 
         if ((user.total_mining_starts || 0) < 3) {
+            logInfo('/api/withdraw-gram', `❌ Not enough mining starts: ${user.total_mining_starts}`);
             return res.status(400).json({ error: 'Failed to create withdrawal request.' });
         }
         
@@ -2051,6 +2234,7 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
             sandbox: process.env.NODE_ENV !== 'production'
         });
         
+        logInfo('/api/withdraw-gram', `💰 Creating payout for user: ${userId}, amount: ${gramAmount} GRAM`);
         const payout = await oxapay.createPayout({
             toAddress: walletAddress,
             amount: gramAmount,
@@ -2061,6 +2245,7 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
         });
         
         if (!payout || !payout.success) {
+            logInfo('/api/withdraw-gram', `❌ Payout failed: ${payout?.message || 'Unknown error'}`);
             return res.status(500).json({ 
                 error: payout?.message || payout?.error || 'Payout failed' 
             });
@@ -2087,8 +2272,10 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
             tx_hash: txHash
         });
         
+        // Update withdrawal status after 30 seconds
         setTimeout(async () => {
             try {
+                logInfo('/api/withdraw-gram', `🔄 Checking payout status for track: ${trackId}`);
                 const statusResult = await oxapay.getPayoutStatus(trackId);
                 if (statusResult && statusResult.data) {
                     const newStatus = statusResult.data.status === 'completed' ? 'completed' : 'processing';
@@ -2108,10 +2295,11 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
                             '✅ Withdrawal Completed!',
                             `🏴‍☠️ Your withdrawal of ${gramAmount} GRAM has been completed.\n\n🔗 Transaction: ${newTxHash ? `https://tonviewer.com/transaction/${newTxHash}` : 'View on blockchain'}`
                         );
+                        logInfo('/api/withdraw-gram', `✅ Withdrawal completed for user: ${userId}`);
                     }
                 }
             } catch (e) {
-                console.error('Failed to update withdrawal status:', e);
+                logError('/api/withdraw-gram', e);
             }
         }, 30000);
         
@@ -2127,6 +2315,7 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
             );
         }
         
+        logInfo('/api/withdraw-gram', `✅ Withdrawal processed for user: ${userId}`);
         res.json({
             success: true,
             user: updatedUser,
@@ -2138,7 +2327,7 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
         });
         
     } catch (error) {
-        console.error('❌ /api/withdraw-gram error:', error);
+        logError('/api/withdraw-gram', error, req);
         res.status(500).json({ error: 'Failed to send withdrawal request: ' + error.message });
     }
 });
@@ -2146,6 +2335,7 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
 app.post('/api/get-withdrawals', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
+        logInfo('/api/get-withdrawals', `User: ${userId}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -2153,10 +2343,11 @@ app.post('/api/get-withdrawals', authenticate, async (req, res) => {
         }
 
         const withdrawals = await getWithdrawals(userId);
+        logInfo('/api/get-withdrawals', `✅ Returned ${withdrawals.length} withdrawals`);
         res.json({ withdrawals });
 
     } catch (error) {
-        console.error('❌ /api/get-withdrawals error:', error);
+        logError('/api/get-withdrawals', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2164,6 +2355,7 @@ app.post('/api/get-withdrawals', authenticate, async (req, res) => {
 app.post('/api/get-referrals', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
+        logInfo('/api/get-referrals', `User: ${userId}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -2171,10 +2363,11 @@ app.post('/api/get-referrals', authenticate, async (req, res) => {
         }
 
         const referrals = await getReferrals(userId);
+        logInfo('/api/get-referrals', `✅ Returned ${referrals.length} referrals`);
         res.json({ referrals });
 
     } catch (error) {
-        console.error('❌ /api/get-referrals error:', error);
+        logError('/api/get-referrals', error, req);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2194,6 +2387,7 @@ server.on('error', (error) => {
 });
 
 process.on('SIGTERM', () => {
+    console.log('🛑 Shutting down gracefully...');
     server.close(() => {
         process.exit(0);
     });
