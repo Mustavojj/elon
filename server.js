@@ -34,7 +34,6 @@ console.log('🔍 JWT_SECRET exists:', !!JWT_SECRET);
 console.log('🔍 SUPABASE_URL exists:', !!supabaseUrl);
 console.log('🔍 SUPABASE_KEY exists:', !!supabaseKey);
 
-// ✅ Logging utility
 function logError(endpoint, error, req = null) {
     console.error(`❌ [${endpoint}] Error:`, error.message || error);
     if (req) {
@@ -159,11 +158,20 @@ async function checkBotIsAdminInChannel(channelUsername) {
         logInfo('checkBotIsAdminInChannel', `🔍 Checking bot admin in @${channelUsername}`);
         
         const botInfo = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getMe`).then(r => r.json());
+        if (!botInfo.ok) {
+            logInfo('checkBotIsAdminInChannel', `❌ Telegram API error: ${botInfo.description}`);
+            return false;
+        }
         const botId = botInfo.result.id;
         
         const botMember = await fetch(
             `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=@${channelUsername}&user_id=${botId}`
         ).then(r => r.json());
+        
+        if (!botMember.ok) {
+            logInfo('checkBotIsAdminInChannel', `❌ Failed to check bot membership: ${botMember.description}`);
+            return false;
+        }
         
         const isAdmin = ['administrator', 'creator'].includes(botMember.result?.status);
         logInfo('checkBotIsAdminInChannel', `✅ Bot admin: ${isAdmin}`);
@@ -203,8 +211,8 @@ const APP_CONFIG = {
     REFERRAL_MAX_PERCENTAGE: 50,
     REFERRAL_MAX_COMMISSION_GOLD: 20,
     REFERRAL_MAX_COMMISSION_POWER: 100,
-    AD_REWARD_POWER: 50,
-    MONETAG_AD_REWARD_POWER: 50,
+    AD_REWARD_POWER: 20,
+    MONETAG_AD_REWARD_POWER: 20,
     AD_COOLDOWN_MINUTES: 5,
     MONETAG_AD_COOLDOWN_MINUTES: 3,
     AD_DAILY_LIMIT: 10,
@@ -651,10 +659,6 @@ class OxaPay {
     }
 }
 
-// ============================================================
-// ROUTES
-// ============================================================
-
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -674,10 +678,6 @@ app.get('/api/config', (req, res) => {
 app.get('/api/current-time', (req, res) => {
     res.json({ serverTime: getCurrentTime() });
 });
-
-// ============================================================
-// AUTH ROUTES
-// ============================================================
 
 app.post('/api/check-bot-admin', authenticate, async (req, res) => {
     try {
@@ -950,10 +950,6 @@ app.post('/api/logout', authenticate, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
-// ============================================================
-// MINING ROUTES
-// ============================================================
 
 app.post('/api/check-mining-status', async (req, res) => {
     try {
@@ -1712,7 +1708,7 @@ app.post('/api/watch-ad', authenticate, async (req, res) => {
             return res.status(400).json({ error: `Cooldown: ${remaining}s remaining` });
         }
 
-        const reward = APP_CONFIG.AD_REWARD_POWER;
+        const reward = APP_CONFIG.AD_REWARD_POWER || 20;
         const updatedUser = await updateUser(userId, {
             power_balance: (user.power_balance || 0) + reward,
             ad_watch_count: (user.ad_watch_count || 0) + 1,
@@ -1757,7 +1753,7 @@ app.post('/api/watch-monetag-ad', authenticate, async (req, res) => {
             return res.status(400).json({ error: `Cooldown: ${remaining}s remaining` });
         }
 
-        const reward = APP_CONFIG.MONETAG_AD_REWARD_POWER || 50;
+        const reward = APP_CONFIG.MONETAG_AD_REWARD_POWER || 20;
         const updatedUser = await updateUser(userId, {
             power_balance: (user.power_balance || 0) + reward,
             monetag_ad_last_watch: now
@@ -2001,7 +1997,7 @@ app.post('/api/set-wallet', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { wallet } = req.body;
-        logInfo('/api/set-wallet', `User: ${userId}, wallet: ${wallet.substring(0, 10)}...`);
+        logInfo('/api/set-wallet', `User: ${userId}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -2009,7 +2005,7 @@ app.post('/api/set-wallet', authenticate, async (req, res) => {
         }
 
         if (!wallet.startsWith('UQ') || wallet.length < 20) {
-            logInfo('/api/set-wallet', `❌ Invalid wallet format: ${wallet}`);
+            logInfo('/api/set-wallet', `❌ Invalid wallet format`);
             return res.status(400).json({ error: 'Invalid wallet address. Must start with UQ and be at least 20 characters.' });
         }
 
@@ -2042,7 +2038,7 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { memo, amount, taskData } = req.body;
-        logInfo('/api/check-payment', `User: ${userId}, memo: ${memo}, amount: ${amount}`);
+        logInfo('/api/check-payment', `User: ${userId}, memo: ${memo}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -2083,7 +2079,6 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
             logInfo('/api/check-payment', `💰 Tx amount: ${txAmount}, Required: ${requiredAmount}`);
             
             if (txAmount >= requiredAmount * 0.95) {
-                // ✅ التحقق من البوت مشرف في القناة إذا كان Verification = YES
                 let verification = taskData.verification || false;
                 if (verification && taskData.link) {
                     const channelMatch = taskData.link.match(/t\.me\/([^\/\?]+)/);
@@ -2161,7 +2156,7 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { goldAmount } = req.body;
-        logInfo('/api/withdraw-gram', `User: ${userId}, amount: ${goldAmount}`);
+        logInfo('/api/withdraw-gram', `User: ${userId}`);
 
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -2234,7 +2229,7 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
             sandbox: process.env.NODE_ENV !== 'production'
         });
         
-        logInfo('/api/withdraw-gram', `💰 Creating payout for user: ${userId}, amount: ${gramAmount} GRAM`);
+        logInfo('/api/withdraw-gram', `💰 Creating payout for user: ${userId}`);
         const payout = await oxapay.createPayout({
             toAddress: walletAddress,
             amount: gramAmount,
@@ -2272,7 +2267,6 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
             tx_hash: txHash
         });
         
-        // Update withdrawal status after 30 seconds
         setTimeout(async () => {
             try {
                 logInfo('/api/withdraw-gram', `🔄 Checking payout status for track: ${trackId}`);
