@@ -200,7 +200,7 @@ const translations = {
         total_cost: "Total Cost",
         pay_add_task: "PAY & ADD TASK",
         payment_page: "Payment Page",
-        confirm_tonkeeper: "Confirm on Tonkeeper",
+        confirm_tonkeeper: "Pay with Tonkeeper",
         check_payment: "Check Payment",
         payment_wallet: "Wallet",
         payment_memo: "Memo",
@@ -246,7 +246,11 @@ const translations = {
         task_status_completed: "Completed",
         no_my_tasks: "You haven't created any social tasks yet.",
         verification_note: "You must add the bot as admin to verify membership",
-        gold_reward: "Gold Reward"
+        gold_reward: "Gold Reward",
+        copy_wallet: "Copy Wallet",
+        copy_memo: "Copy Memo",
+        copy_amount: "Copy Amount",
+        copied: "Copied!"
     },
     ar: {
         level: "المستوى",
@@ -449,7 +453,7 @@ const translations = {
         total_cost: "التكلفة الإجمالية",
         pay_add_task: "ادفع وأضف المهمة",
         payment_page: "صفحة الدفع",
-        confirm_tonkeeper: "تأكيد في Tonkeeper",
+        confirm_tonkeeper: "ادفع عبر Tonkeeper",
         check_payment: "التحقق من الدفع",
         payment_wallet: "المحفظة",
         payment_memo: "مذكرة",
@@ -495,14 +499,14 @@ const translations = {
         task_status_completed: "مكتمل",
         no_my_tasks: "لم تقم بإنشاء أي مهام اجتماعية بعد.",
         verification_note: "يجب إضافة البوت كمدير للتحقق من العضوية",
-        gold_reward: "مكافأة الذهب"
+        gold_reward: "مكافأة الذهب",
+        copy_wallet: "نسخ المحفظة",
+        copy_memo: "نسخ المذكرة",
+        copy_amount: "نسخ المبلغ",
+        copied: "تم النسخ!"
     },
-    ru: {
-        // ... (محتوى روسي مشابه)
-    },
-    fa: {
-        // ... (محتوى فارسي مشابه)
-    }
+    ru: {},
+    fa: {}
 };
 
 class App {
@@ -551,12 +555,10 @@ class App {
         this.socialGoldReward = 1;
 
         this.lang = 'en';
-
         this.referredBy = null;
         this.referralRewardGiven = false;
         this.totalTasksCompleted = 0;
         this.totalMiningStarts = 0;
-
         this.serverTimeOffset = 0;
 
         this._dirtyPower = false;
@@ -1718,11 +1720,9 @@ class App {
         const cache = this.taskCache[category];
         
         if (cache && (now - cache.timestamp) < this.CACHE_DURATION) {
-            console.log(`📦 Using cached tasks for ${category}`);
             return cache.data;
         }
         
-        console.log(`🔄 Fetching fresh tasks for ${category}`);
         const tasks = await this.loadTasks(category);
         this.taskCache[category] = { data: tasks, timestamp: now };
         return tasks;
@@ -2558,7 +2558,6 @@ class App {
                 return;
             }
 
-            // ✅ التحقق من البوت في القناة إذا كان verification = YES
             if (selectedVerification === 'yes' && link.startsWith('https://t.me/')) {
                 const channelMatch = link.match(/t\.me\/([^\/\?]+)/);
                 if (channelMatch) {
@@ -2598,15 +2597,34 @@ class App {
 
         const wallet = this.config.PAYMENT_WALLET || this.config.TON_WALLET_ADDRESS || 'UQCrXfE4_ktpwyZJzmGuCt6zXE5mErFV8VczSjEZvRuLy9_q';
         const memo = 'task_' + Date.now().toString(36) + '_' + this.tgUser.id;
+        const amount = (this.pendingTaskData.total * this.pendingTaskData.reward / 1000) * (this.config.PRICE_PER_100 || 0.001);
+        const nanoAmount = Math.floor(amount * 1000000000);
 
         document.getElementById('payment-wallet-display').textContent = wallet;
         document.getElementById('payment-memo-display').textContent = memo;
+        document.getElementById('payment-amount-display').textContent = amount.toFixed(4) + ' GRAM';
 
-        const tonkeeperUrl = `https://tonkeeper.com/transfer/${wallet}?amount=${(this.pendingTaskData.total * this.pendingTaskData.reward / 1000 * (this.config.PRICE_PER_100 || 0.001) * 1000000000).toFixed(0)}&memo=${memo}`;
+        const tonkeeperUrl = `https://app.tonkeeper.com/transfer/${wallet}?amount=${nanoAmount}&text=${encodeURIComponent(memo)}`;
         document.getElementById('tonkeeper-link').href = tonkeeperUrl;
 
         document.getElementById('payment-status').textContent = '';
         modal.style.display = 'flex';
+
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.dataset.target;
+                let text = '';
+                if (target === 'wallet') text = wallet;
+                else if (target === 'memo') text = memo;
+                else if (target === 'amount') text = amount.toFixed(4) + ' GRAM';
+                
+                if (text) {
+                    navigator.clipboard.writeText(text);
+                    this.showNotification(this.t('copied'), this.t('copy_success'), 'success');
+                    this.vibrate('success');
+                }
+            });
+        });
 
         document.getElementById('check-payment-btn')?.addEventListener('click', async () => {
             const statusEl = document.getElementById('payment-status');
@@ -2616,7 +2634,7 @@ class App {
             try {
                 const result = await this.fetchFromServer('/api/check-payment', {
                     memo: memo,
-                    amount: (this.pendingTaskData.total * this.pendingTaskData.reward / 1000 * (this.config.PRICE_PER_100 || 0.001)),
+                    amount: amount,
                     taskData: this.pendingTaskData
                 });
 
@@ -3036,14 +3054,10 @@ class App {
         let promotionHtml = '';
         if (this.promotionData) {
             const status = this.promotionData.status || 'pending';
-            const statusClass = status === 'approved' ? 'approved' : (status === 'pending' ? 'pending' : '');
+            const statusClass = status === 'approved' ? 'approved' : (status === 'pending' ? 'pending' : 'rejected');
             const statusText = status === 'approved' ? this.t('promote_approved') : (status === 'pending' ? this.t('promote_pending') : this.t('promote_rejected'));
             promotionHtml = `
                 <div class="promotion-status-card">
-                    <div class="status-row">
-                        <span class="label">${this.t('channel')}</span>
-                        <span class="value">${this.promotionData.channel || '-'}</span>
-                    </div>
                     <div class="status-row">
                         <span class="label">${this.t('status')}</span>
                         <span class="value ${statusClass}">${statusText}</span>
