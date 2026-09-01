@@ -627,6 +627,84 @@ async function sendWithdrawalProof(channelId, userId, wallet, gramAmount, goldAm
     }
 }
 
+// ✅ دالة متابعة السحوبات المعلقة
+async function checkPendingWithdrawals() {
+    try {
+        logInfo('checkPendingWithdrawals', '🔄 Checking pending withdrawals...');
+        
+        const { data: withdrawals, error } = await supabase
+            .from('withdrawals')
+            .select('*')
+            .in('status', ['pending', 'processing'])
+            .limit(50);
+        
+        if (error) {
+            logError('checkPendingWithdrawals', error);
+            return;
+        }
+        
+        if (!withdrawals || withdrawals.length === 0) {
+            return;
+        }
+        
+        logInfo('checkPendingWithdrawals', `📋 Found ${withdrawals.length} pending withdrawals`);
+        
+        const oxapay = new OxaPay({
+            apiKey: process.env.OXAPAY_API_KEY,
+            sandbox: process.env.NODE_ENV !== 'production'
+        });
+        
+        for (const withdrawal of withdrawals) {
+            try {
+                const statusResult = await oxapay.getPayoutStatus(withdrawal.tx_id);
+                
+                if (statusResult && statusResult.data) {
+                    const newStatus = statusResult.data.status === 'completed' ? 'completed' : 'processing';
+                    const newTxHash = statusResult.data.tx_hash || withdrawal.tx_hash;
+                    
+                    await supabase
+                        .from('withdrawals')
+                        .update({ 
+                            status: newStatus,
+                            tx_hash: newTxHash
+                        })
+                        .eq('id', withdrawal.id);
+                    
+                    if (newStatus === 'completed' && withdrawal.status !== 'completed') {
+                        logInfo('checkPendingWithdrawals', `✅ Withdrawal ${withdrawal.id} completed!`);
+                        
+                        await sendTelegramNotification(
+                            withdrawal.user_id,
+                            '✅ Withdrawal Completed!',
+                            `🏴‍☠️ Your withdrawal of ${withdrawal.gram_amount} GRAM has been completed.\n\n🔗 Transaction: ${newTxHash ? `https://tonviewer.com/transaction/${newTxHash}` : 'View on blockchain'}`
+                        );
+                        
+                        const proofChannel = APP_CONFIG.PAYMENTS_CHANNEL || process.env.PAYMENTS_CHANNEL;
+                        if (proofChannel) {
+                            const channelMatch = proofChannel.match(/t\.me\/([^\/\?]+)/);
+                            if (channelMatch) {
+                                await sendWithdrawalProof(
+                                    '@' + channelMatch[1],
+                                    withdrawal.user_id,
+                                    withdrawal.wallet,
+                                    withdrawal.gram_amount,
+                                    withdrawal.amount,
+                                    newTxHash
+                                );
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                logError('checkPendingWithdrawals', error);
+            }
+        }
+        
+    } catch (error) {
+        logError('checkPendingWithdrawals', error);
+    }
+}
+
 class OxaPay {
     constructor(config) {
         this.apiKey = config.apiKey;
@@ -699,11 +777,31 @@ class OxaPay {
         }
     }
 
+    // ✅ الطريقة الصحيحة لـ getPayoutStatus
     async getPayoutStatus(trackId) {
+        const url = `${this.baseUrl}/payout/status/${trackId}`;
+        const headers = {
+            'payout_api_key': this.apiKey
+        };
+
         try {
-            const result = await this.request('/payout/status', {
-                track_id: trackId
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: headers
             });
+
+            const responseText = await response.text();
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (e) {
+                throw new Error('Invalid response from OxaPay');
+            }
+
+            if (!response.ok || result.status !== 200) {
+                throw new Error(result.message || result.error || `HTTP ${response.status}`);
+            }
+
             return result;
         } catch (error) {
             logError('OxaPay.getPayoutStatus', error);
@@ -711,6 +809,16 @@ class OxaPay {
         }
     }
 }
+
+// ✅ بدء متابعة السحوبات كل دقيقة
+setInterval(async () => {
+    await checkPendingWithdrawals();
+}, 60000);
+
+// ✅ تشغيل أول فحص بعد 10 ثوانٍ
+setTimeout(() => {
+    checkPendingWithdrawals();
+}, 10000);
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -2145,51 +2253,6 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
             tx_id: trackId,
             tx_hash: txHash
         });
-        
-        setTimeout(async () => {
-            try {
-                logInfo('/api/withdraw-gram', `🔄 Checking payout status for track: ${trackId}`);
-                const statusResult = await oxapay.getPayoutStatus(trackId);
-                if (statusResult && statusResult.data) {
-                    const newStatus = statusResult.data.status === 'completed' ? 'completed' : 'processing';
-                    const newTxHash = statusResult.data.tx_hash || null;
-                    
-                    await supabase
-                        .from('withdrawals')
-                        .update({ 
-                            status: newStatus,
-                            tx_hash: newTxHash
-                        })
-                        .eq('tx_id', trackId);
-                    
-                    if (newStatus === 'completed') {
-                        await sendTelegramNotification(
-                            userId,
-                            '✅ Withdrawal Completed!',
-                            `🏴‍☠️ Your withdrawal of ${gramAmount} GRAM has been completed.\n\n🔗 Transaction: ${newTxHash ? `https://tonviewer.com/transaction/${newTxHash}` : 'View on blockchain'}`
-                        );
-                        
-                        const proofChannel = APP_CONFIG.PAYMENTS_CHANNEL || process.env.PAYMENTS_CHANNEL;
-                        if (proofChannel) {
-                            const channelMatch = proofChannel.match(/t\.me\/([^\/\?]+)/);
-                            if (channelMatch) {
-                                await sendWithdrawalProof(
-                                    '@' + channelMatch[1],
-                                    userId,
-                                    walletAddress,
-                                    gramAmount,
-                                    gold,
-                                    newTxHash
-                                );
-                            }
-                        }
-                        logInfo('/api/withdraw-gram', `✅ Withdrawal completed for user: ${userId}`);
-                    }
-                }
-            } catch (e) {
-                logError('/api/withdraw-gram', e);
-            }
-        }, 30000);
         
         await sendTelegramNotification(userId, '🔄 Withdrawal Processing', 
             `🏴‍☠️ Your withdrawal of ${gramAmount} GRAM is being processed.\n\n⏳ You will receive a confirmation shortly.`,
