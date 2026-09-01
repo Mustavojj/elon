@@ -156,21 +156,31 @@
 </div>
 
 <div id="payment-modal" class="modal" style="display:none;">
-    <div class="modal-content gold-modal" style="max-width:360px;width:90%;background:rgba(15,15,15,0.98);border-radius:24px;border:1px solid rgba(255,215,0,0.12);padding:0;">
+    <div class="modal-content gold-modal" style="max-width:380px;width:92%;background:rgba(15,15,15,0.98);border-radius:24px;border:1px solid rgba(255,215,0,0.12);padding:0;">
         <div class="modal-header gold-header" style="padding:16px 20px;border-bottom:1px solid rgba(255,215,0,0.08);">
             <h3 style="color:#FFE44D;font-size:1.1rem;display:flex;align-items:center;gap:10px;margin:0;"><i class="fas fa-credit-card" style="color:#FFD700;"></i> Payment Page</h3>
             <button class="modal-close" onclick="document.getElementById('payment-modal').style.display='none'">&times;</button>
         </div>
         <div class="modal-body" style="padding:20px;">
             <div class="form-group">
-                <label class="form-label">Wallet</label>
-                <div style="background:rgba(0,0,0,0.3);padding:10px 14px;border-radius:40px;font-size:0.75rem;font-family:monospace;color:#888;word-break:break-all;border:1px solid rgba(255,215,0,0.05);" id="payment-wallet-display">-</div>
+                <label class="form-label">Wallet <span style="color:#888;font-size:0.6rem;">(Click to copy)</span></label>
+                <div style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.3);padding:8px 14px;border-radius:40px;border:1px solid rgba(255,215,0,0.05);cursor:pointer;" id="payment-wallet-display" onclick="window.app?.copyToClipboard(this.textContent)">
+                    <span style="font-size:0.7rem;font-family:monospace;color:#888;word-break:break-all;flex:1;">-</span>
+                </div>
             </div>
             <div class="form-group">
-                <label class="form-label">Memo</label>
-                <div style="background:rgba(0,0,0,0.3);padding:10px 14px;border-radius:40px;font-size:0.75rem;font-family:monospace;color:#FFD700;word-break:break-all;border:1px solid rgba(255,215,0,0.05);" id="payment-memo-display">-</div>
+                <label class="form-label">Memo <span style="color:#888;font-size:0.6rem;">(Click to copy)</span></label>
+                <div style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.3);padding:8px 14px;border-radius:40px;border:1px solid rgba(255,215,0,0.05);cursor:pointer;" id="payment-memo-display" onclick="window.app?.copyToClipboard(this.textContent)">
+                    <span style="font-size:0.7rem;font-family:monospace;color:#FFD700;word-break:break-all;flex:1;">-</span>
+                </div>
             </div>
-            <a id="tonkeeper-link" href="#" target="_blank" class="gold-btn" style="display:block;text-align:center;padding:12px;border:none;border-radius:60px;font-weight:700;text-decoration:none;margin-bottom:10px;background:linear-gradient(135deg,#FFD700,#D4A800);color:#0a0a0f;">Confirm on Tonkeeper</a>
+            <div class="form-group">
+                <label class="form-label">Amount <span style="color:#888;font-size:0.6rem;">(Click to copy)</span></label>
+                <div style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.3);padding:8px 14px;border-radius:40px;border:1px solid rgba(255,215,0,0.05);cursor:pointer;" id="payment-amount-display" onclick="window.app?.copyToClipboard(this.textContent)">
+                    <span style="font-size:0.8rem;font-family:monospace;color:#FFD700;font-weight:600;flex:1;">0.0000 GRAM</span>
+                </div>
+            </div>
+            <a id="tonkeeper-link" href="#" target="_blank" class="gold-btn" style="display:block;text-align:center;padding:12px;border:none;border-radius:60px;font-weight:700;text-decoration:none;margin-bottom:10px;background:linear-gradient(135deg,#FFD700,#D4A800);color:#0a0a0f;">Pay with Tonkeeper</a>
             <button id="check-payment-btn" class="gold-btn" style="width:100%;padding:12px;border:none;border-radius:60px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#FFD700,#D4A800);color:#0a0a0f;">Check Payment</button>
             <div id="payment-status" style="text-align:center;margin-top:10px;font-size:0.8rem;color:#888;"></div>
         </div>
