@@ -153,6 +153,7 @@ const translations = {
         status: "Status",
         pending: "Pending",
         approved: "Approved",
+        rejected: "Rejected",
         do_not_remove_bot: "Do not remove the bot from admins",
         you_will_receive: "You will receive +25% earnings",
         bot_post_note: "The bot will post promotional codes one time every day along with your referral link.",
@@ -214,9 +215,9 @@ const translations = {
         promote_channel: "Enter Your Channel Link",
         promote_confirm: "Confirm",
         promote_warning: "If you removed the bot from admins or ability to post messages has been disabled, you will be blocked from promotion system.",
-        promote_pending: "Your promotion request is pending review",
-        promote_approved: "Your promotion is approved! +10% bonus active",
-        promote_rejected: "Your promotion request was rejected",
+        promote_pending: "Pending",
+        promote_approved: "Approved",
+        promote_rejected: "Rejected",
         ad_ready: "Ready",
         ad_cooldown_seconds: "Wait {s}s",
         monetag_ad_ready: "Watch Monetag AD",
@@ -240,19 +241,15 @@ const translations = {
         device_code_sent: "Verification code sent to your Telegram",
         device_verified: "Device verified successfully!",
         my_tasks: "My Tasks",
-        add_more: "Add More",
-        delete_task: "Delete",
         task_status_active: "Active",
         task_status_completed: "Completed",
         no_my_tasks: "You haven't created any social tasks yet.",
         verification_note: "You must add the bot as admin to verify membership",
         gold_reward: "Gold Reward",
-        copy_wallet: "Copy Wallet",
-        copy_memo: "Copy Memo",
-        copy_amount: "Copy Amount",
-        copied: "Copied!",
         watch_earn: "WATCH & EARN",
-        quests_title: "Quests"
+        quests_title: "Quests",
+        payments_channel: "Payments Channel",
+        click_to_copy: "(Click to copy)"
     },
     ar: {
         level: "المستوى",
@@ -408,6 +405,7 @@ const translations = {
         status: "الحالة",
         pending: "قيد الانتظار",
         approved: "تمت الموافقة",
+        rejected: "مرفوض",
         do_not_remove_bot: "لا تقم بإزالة البوت من المديرين",
         you_will_receive: "ستتلقى +25% أرباح",
         bot_post_note: "سينشر البوت الرموز الترويجية مرة واحدة يومياً مع رابط الإحالة الخاص بك.",
@@ -469,9 +467,9 @@ const translations = {
         promote_channel: "أدخل رابط قناتك",
         promote_confirm: "تأكيد",
         promote_warning: "إذا قمت بإزالة البوت من المديرين أو تعطيل إمكانية نشر الرسائل، سيتم حظرك من نظام الترويج.",
-        promote_pending: "طلب الترويج الخاص بك قيد المراجعة",
-        promote_approved: "تمت الموافقة على ترويجك! +10% مكافأة نشطة",
-        promote_rejected: "تم رفض طلب الترويج الخاص بك",
+        promote_pending: "قيد الانتظار",
+        promote_approved: "تمت الموافقة",
+        promote_rejected: "مرفوض",
         ad_ready: "جاهز",
         ad_cooldown_seconds: "انتظر {s}ث",
         monetag_ad_ready: "مشاهدة Monetag AD",
@@ -495,19 +493,15 @@ const translations = {
         device_code_sent: "تم إرسال رمز التحقق إلى تليجرام",
         device_verified: "تم التحقق من الجهاز بنجاح!",
         my_tasks: "مهامي",
-        add_more: "إضافة المزيد",
-        delete_task: "حذف",
         task_status_active: "نشط",
         task_status_completed: "مكتمل",
         no_my_tasks: "لم تقم بإنشاء أي مهام اجتماعية بعد.",
         verification_note: "يجب إضافة البوت كمدير للتحقق من العضوية",
         gold_reward: "مكافأة الذهب",
-        copy_wallet: "نسخ المحفظة",
-        copy_memo: "نسخ المذكرة",
-        copy_amount: "نسخ المبلغ",
-        copied: "تم النسخ!",
         watch_earn: "شاهد واربح",
-        quests_title: "المهام"
+        quests_title: "المهام",
+        payments_channel: "قناة المدفوعات",
+        click_to_copy: "(انقر للنسخ)"
     },
     ru: {},
     fa: {}
@@ -558,6 +552,7 @@ class App {
         this.userWallet = null;
         this.socialGoldReward = 1;
         this.adRewardPower = 20;
+        this.userTaskCount = 0;
 
         this.lang = 'en';
         this.referredBy = null;
@@ -604,6 +599,14 @@ class App {
         this.pendingTaskData = null;
 
         this.loadSettings();
+    }
+
+    copyToClipboard(text) {
+        if (!text || text === '-') return;
+        navigator.clipboard.writeText(text).then(() => {
+            this.showNotification(this.t('copy_success'), this.t('link_copied'), 'success');
+            this.vibrate('success');
+        }).catch(() => {});
     }
 
     vibrate(type) {
@@ -1061,6 +1064,7 @@ class App {
             this.hasPromotionBonus = this.promotionStatus === 'approved';
             this.userWallet = user.wallet || null;
             this.isAuthenticated = true;
+            this.userTaskCount = user.task_count || 0;
 
             if (user.quests) {
                 this.quests = user.quests;
@@ -1762,22 +1766,6 @@ class App {
         }
     }
 
-    async addMoreToTask(taskId, amount) {
-        try {
-            const result = await this.fetchFromServer('/api/add-task-amount', { taskId, amount });
-            if (result.success) {
-                const task = this.mySocialTasks.find(t => t.id === taskId);
-                if (task) task.total += amount;
-                this.showNotification('Success', `Added ${amount} more to task`, 'success');
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.error('Error adding more to task:', error);
-            return false;
-        }
-    }
-
     showMyTasksModal() {
         const modal = document.getElementById('my-tasks-modal');
         if (!modal) return;
@@ -1797,37 +1785,27 @@ class App {
         container.innerHTML = this.mySocialTasks.map(task => {
             const statusText = task.status === 'active' ? this.t('task_status_active') : this.t('task_status_completed');
             const statusClass = task.status === 'active' ? 'active' : 'completed';
+            const progress = task.total > 0 ? Math.min(100, (task.total_completed || 0) / task.total * 100) : 0;
             return `
                 <div class="my-task-item">
                     <div class="task-info">
                         <h4>${task.name}</h4>
-                        <div class="task-meta">
-                            <span>${task.total_completed || 0}/${task.total}</span>
-                            <span class="task-status ${statusClass}">${statusText}</span>
-                            <span>💎 ${task.reward} Power</span>
-                            <span>🪙 ${this.socialGoldReward} Gold</span>
+                        <div class="task-progress-container">
+                            <div class="task-progress-bar">
+                                <div class="task-progress-fill" style="width: ${progress}%"></div>
+                            </div>
+                            <div class="task-progress-text">
+                                <span>${task.total_completed || 0}/${task.total}</span>
+                                <span class="task-status ${statusClass}">${statusText}</span>
+                            </div>
                         </div>
                     </div>
                     <div class="task-actions">
-                        ${task.status === 'active' ? `
-                            <button class="action-btn add" data-id="${task.id}">${this.t('add_more')}</button>
-                        ` : ''}
                         <button class="action-btn delete" data-id="${task.id}">${this.t('delete_task')}</button>
                     </div>
                 </div>
             `;
         }).join('');
-
-        container.querySelectorAll('.action-btn.add').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const taskId = btn.dataset.id;
-                const amount = prompt('Enter amount to add:', '100');
-                if (amount && !isNaN(amount) && parseInt(amount) > 0) {
-                    await this.addMoreToTask(taskId, parseInt(amount));
-                    this.renderMyTasks();
-                }
-            });
-        });
 
         container.querySelectorAll('.action-btn.delete').forEach(btn => {
             btn.addEventListener('click', async () => {
@@ -1904,6 +1882,7 @@ class App {
                     </div>
                     <div class="confirm-note">${this.t('are_you_sure')}</div>
                     <button id="confirm-withdrawal-btn" class="confirm-btn gold-btn">${this.t('confirm')}</button>
+                    <a href="${this.config.PAYMENTS_CHANNEL || 'https://t.me/Pirates_Proof'}" target="_blank" class="payments-link">${this.t('payments_channel')}</a>
                     <a href="https://t.me/mo_scam" target="_blank" class="support-link">${this.t('contact_support')}</a>
                 </div>
             </div>
@@ -2160,7 +2139,7 @@ class App {
                 <div class="ad-icon"><img src="https://i.ibb.co/KzxwxXhv/IMG-20260830-155757-173.jpg" alt="Adsgram"></div>
                 <div class="ad-info">
                     <h4>${this.t('watch_ad')}</h4>
-                    <p><span class="bolt"><i class="fas fa-bolt"></i> +${this.adRewardPower} ${this.t('power')}</span></p>
+                    <p><span class="bolt"><i class="fas fa-bolt"></i> ${this.adRewardPower} ${this.t('power')}</span></p>
                     <p style="font-size:0.6rem;color:#666;">${adsgramCooldown > 0 ? this.t('ad_cooldown_seconds', { s: Math.ceil(adsgramCooldown / 1000) }) : this.t('ad_ready')}</p>
                 </div>
                 <button id="watch-ad-btn" class="ad-btn gold-btn" ${!adsgramAvailable ? 'disabled' : ''}>
@@ -2172,7 +2151,7 @@ class App {
                 <div class="ad-icon"><img src="https://i.ibb.co/5gFSFbKC/IMG-20260830-155843-883.jpg" alt="Monetag"></div>
                 <div class="ad-info">
                     <h4>${this.t('watch_monetag')}</h4>
-                    <p><span class="bolt"><i class="fas fa-bolt"></i> +${this.adRewardPower} ${this.t('power')}</span></p>
+                    <p><span class="bolt"><i class="fas fa-bolt"></i> ${this.adRewardPower} ${this.t('power')}</span></p>
                     <p style="font-size:0.6rem;color:#666;">${monetagCooldown > 0 ? this.t('ad_cooldown_seconds', { s: Math.ceil(monetagCooldown / 1000) }) : this.t('ad_ready')}</p>
                 </div>
                 <button id="watch-monetag-btn" class="ad-btn gold-btn" ${!monetagAvailable ? 'disabled' : ''}>
@@ -2606,7 +2585,7 @@ class App {
         if (!modal || !this.pendingTaskData) return;
 
         const wallet = this.config.PAYMENT_WALLET || this.config.TON_WALLET_ADDRESS || 'UQCrXfE4_ktpwyZJzmGuCt6zXE5mErFV8VczSjEZvRuLy9_q';
-        const memo = 'task_' + Date.now().toString(36) + '_' + this.tgUser.id;
+        const memo = 'task_' + this.tgUser.id + '_' + (this.userTaskCount + 1);
         const amount = (this.pendingTaskData.total * this.pendingTaskData.reward / 1000) * (this.config.PRICE_PER_100 || 0.001);
         const nanoAmount = Math.floor(amount * 1000000000);
 
@@ -2616,9 +2595,18 @@ class App {
         const tonkeeperLink = document.getElementById('tonkeeper-link');
         const statusEl = document.getElementById('payment-status');
 
-        if (walletDisplay) walletDisplay.textContent = wallet;
-        if (memoDisplay) memoDisplay.textContent = memo;
-        if (amountDisplay) amountDisplay.textContent = amount.toFixed(4) + ' GRAM';
+        if (walletDisplay) {
+            walletDisplay.textContent = wallet;
+            walletDisplay.onclick = () => this.copyToClipboard(wallet);
+        }
+        if (memoDisplay) {
+            memoDisplay.textContent = memo;
+            memoDisplay.onclick = () => this.copyToClipboard(memo);
+        }
+        if (amountDisplay) {
+            amountDisplay.textContent = amount.toFixed(4) + ' GRAM';
+            amountDisplay.onclick = () => this.copyToClipboard(amount.toFixed(4) + ' GRAM');
+        }
         
         if (tonkeeperLink) {
             const tonkeeperUrl = `https://app.tonkeeper.com/transfer/${wallet}?amount=${nanoAmount}&text=${encodeURIComponent(memo)}`;
@@ -2628,26 +2616,6 @@ class App {
         if (statusEl) statusEl.textContent = '';
 
         modal.style.display = 'flex';
-
-        document.querySelectorAll('.copy-btn').forEach(btn => {
-            btn.replaceWith(btn.cloneNode(true));
-        });
-
-        document.querySelectorAll('.copy-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const target = btn.dataset.target;
-                let text = '';
-                if (target === 'wallet') text = wallet;
-                else if (target === 'memo') text = memo;
-                else if (target === 'amount') text = amount.toFixed(4) + ' GRAM';
-                
-                if (text) {
-                    navigator.clipboard.writeText(text);
-                    this.showNotification(this.t('copied'), this.t('copy_success'), 'success');
-                    this.vibrate('success');
-                }
-            });
-        });
 
         const checkBtn = document.getElementById('check-payment-btn');
         if (checkBtn) {
@@ -2671,11 +2639,14 @@ class App {
                             statusEl.textContent = this.t('payment_verified');
                             statusEl.style.color = '#2ecc71';
                         }
+                        this.userTaskCount = this.userTaskCount + 1;
                         this.showNotification(this.t('task_added'), this.t('task_added_success'), 'success');
                         this.vibrate('success');
                         this.pendingTaskData = null;
                         setTimeout(() => {
                             modal.style.display = 'none';
+                            this.loadSocialTasks();
+                            this.loadMyTasks();
                             this.renderEarn();
                         }, 1500);
                     } else {
@@ -2969,6 +2940,8 @@ class App {
             }
 
             container.innerHTML = tasks.map(task => {
+                const powerReward = task.reward || 0;
+                const goldReward = this.socialGoldReward || 1;
                 return `
                     <div class="task-card task-bronze" data-task-id="${task.id}">
                         <div class="task-header">
@@ -2976,11 +2949,9 @@ class App {
                             <div class="task-info">
                                 <h4>${task.name}</h4>
                                 <div class="task-reward">
-                                    <i class="fas fa-bolt"></i> ${task.reward} ${this.t('power')}
-                                    <img src="${this.config.GOLD_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;">
-                                    +${this.socialGoldReward} ${this.t('gold')}
+                                    <span class="reward-badge"><i class="fas fa-bolt"></i> ${powerReward}</span>
+                                    <span class="reward-badge"><img src="${this.config.GOLD_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> ${goldReward}</span>
                                 </div>
-                                <div style="font-size:0.55rem;color:#888;">${task.total_completed || 0}/${task.total}</div>
                             </div>
                             <button class="task-btn start" data-id="${task.id}" data-url="${task.url || ''}" data-verify="${task.verification || false}" data-owner="${task.owner || ''}">Start</button>
                         </div>
@@ -3090,7 +3061,7 @@ class App {
         if (this.promotionData) {
             const status = this.promotionData.status || 'pending';
             const statusClass = status === 'approved' ? 'approved' : (status === 'pending' ? 'pending' : 'rejected');
-            const statusText = status === 'approved' ? this.t('approved') : (status === 'pending' ? this.t('pending') : this.t('rejected'));
+            const statusText = status === 'approved' ? this.t('promote_approved') : (status === 'pending' ? this.t('promote_pending') : this.t('promote_rejected'));
             promotionHtml = `
                 <div class="promotion-status-card">
                     <span class="status-value ${statusClass}">${statusText}</span>
@@ -3353,8 +3324,10 @@ class App {
                 </div>
             </div>
 
+            <div class="section-header gold-header" style="margin-top:16px;">
+                <h3><i class="fas fa-history"></i> ${this.t('withdrawal_history')}</h3>
+            </div>
             <div class="history-list">
-                <h4><i class="fas fa-history"></i> ${this.t('withdrawal_history')}</h4>
                 ${historyHtml}
             </div>
         `;
