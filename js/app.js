@@ -2614,7 +2614,7 @@ class App {
         }
         
         if (tonkeeperLink) {
-            const tonkeeperUrl = `https://app.tonkeeper.com/transfer/${wallet}&text=${encodeURIComponent(memo)}`;
+            const tonkeeperUrl = `https://app.tonkeeper.com/transfer/${wallet}?text=${encodeURIComponent(memo)}`;
             tonkeeperLink.href = tonkeeperUrl;
         }
         
