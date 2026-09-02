@@ -1,5 +1,3 @@
-// ============= server.js (كامل مع التصحيح النهائي) =============
-
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -517,20 +515,43 @@ async function sendTelegramNotification(userId, title, message, inlineButton = n
 }
 
 async function sendWithdrawalProof(channelId, userId, wallet, gramAmount, goldAmount, txHash) {
-    if (!BOT_TOKEN || !channelId) return;
+    console.log(`📢 [sendWithdrawalProof] ===== START =====`);
+    console.log(`📢 [sendWithdrawalProof] channelId: ${channelId}`);
+    console.log(`📢 [sendWithdrawalProof] userId: ${userId}`);
+    console.log(`📢 [sendWithdrawalProof] wallet: ${wallet}`);
+    console.log(`📢 [sendWithdrawalProof] gramAmount: ${gramAmount}`);
+    console.log(`📢 [sendWithdrawalProof] goldAmount: ${goldAmount}`);
+    console.log(`📢 [sendWithdrawalProof] txHash: ${txHash}`);
+    console.log(`📢 [sendWithdrawalProof] BOT_TOKEN exists: ${!!BOT_TOKEN}`);
+    
+    if (!BOT_TOKEN || !channelId) {
+        console.log(`❌ [sendWithdrawalProof] Missing BOT_TOKEN or channelId`);
+        return;
+    }
+
     try {
         const userIdStr = userId.toString();
+        const lastThree = userIdStr.slice(-3);
         const maskedUserId = userIdStr.slice(0, -3) + '***';
+        console.log(`📢 [sendWithdrawalProof] maskedUserId: ${maskedUserId}`);
+        
         const walletFirst = wallet.substring(0, 5);
         const walletLast = wallet.substring(wallet.length - 5);
         const maskedWallet = walletFirst + '****' + walletLast;
+        console.log(`📢 [sendWithdrawalProof] maskedWallet: ${maskedWallet}`);
+        
         const explorerUrl = txHash ? `https://tonviewer.com/transaction/${txHash}` : '#';
+        console.log(`📢 [sendWithdrawalProof] explorerUrl: ${explorerUrl}`);
+        
         const message = `🆕 NEW WITHDRAWAL REQUEST!\n\n` +
             `💀 User: ${maskedUserId}\n` +
             `💰 Amount: ${gramAmount.toFixed(4)} GRAM (${goldAmount.toFixed(0)} Gold)\n` +
             `🔰 Wallet: ${maskedWallet}\n` +
             `⏳ Status: ✅ Confirmed\n\n` +
             `🏴‍☠️ GRAM PIRATES | MINE & EARN`;
+        
+        console.log(`📢 [sendWithdrawalProof] Message:`, message);
+        
         const payload = {
             chat_id: channelId,
             text: message,
@@ -548,14 +569,37 @@ async function sendWithdrawalProof(channelId, userId, wallet, gramAmount, goldAm
                 ]
             }
         };
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        
+        console.log(`📢 [sendWithdrawalProof] Payload:`, JSON.stringify(payload, null, 2));
+        
+        const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        console.log(`✅ [sendWithdrawalProof] Proof sent to channel ${channelId}`);
+        
+        const responseText = await response.text();
+        console.log(`📢 [sendWithdrawalProof] Response status: ${response.status}`);
+        console.log(`📢 [sendWithdrawalProof] Response body:`, responseText);
+        
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch (e) {
+            console.error(`❌ [sendWithdrawalProof] Invalid JSON response:`, responseText);
+            return;
+        }
+        
+        if (!result.ok) {
+            console.error(`❌ [sendWithdrawalProof] Telegram API error:`, result.description);
+            console.error(`❌ [sendWithdrawalProof] Error code:`, result.error_code);
+        } else {
+            console.log(`✅ [sendWithdrawalProof] Success! Message sent to ${channelId}`);
+        }
+        console.log(`📢 [sendWithdrawalProof] ===== END =====`);
     } catch (error) {
         logError('sendWithdrawalProof', error);
+        console.log(`📢 [sendWithdrawalProof] ===== ERROR =====`);
     }
 }
 
@@ -601,25 +645,35 @@ async function checkPendingWithdrawals() {
                         
                         console.log(`🎉 [checkPendingWithdrawals] Withdrawal ${withdrawal.id} completed!`);
                         
+                        console.log(`📨 [checkPendingWithdrawals] Sending notification to user ${withdrawal.user_id}...`);
                         await sendTelegramNotification(
                             withdrawal.user_id,
                             '✅ Withdrawal Completed!',
                             `🏴‍☠️ Your withdrawal of ${withdrawal.gram_amount} GRAM has been completed.\n\n🔗 Transaction: ${statusResult.data.tx_hash ? `https://tonviewer.com/transaction/${statusResult.data.tx_hash}` : 'View on blockchain'}`
                         );
+                        console.log(`✅ [checkPendingWithdrawals] User notification sent to ${withdrawal.user_id}`);
                         
                         const proofChannel = APP_CONFIG.PAYMENTS_CHANNEL || process.env.PAYMENTS_CHANNEL;
+                        console.log(`📢 [checkPendingWithdrawals] Proof channel from config: ${proofChannel}`);
                         if (proofChannel) {
                             const channelMatch = proofChannel.match(/t\.me\/([^\/\?]+)/);
+                            console.log(`📢 [checkPendingWithdrawals] Channel match:`, channelMatch);
                             if (channelMatch) {
+                                const channelUsername = '@' + channelMatch[1];
+                                console.log(`📢 [checkPendingWithdrawals] Sending proof to channel: ${channelUsername}`);
                                 await sendWithdrawalProof(
-                                    '@' + channelMatch[1],
+                                    channelUsername,
                                     withdrawal.user_id,
                                     withdrawal.wallet,
                                     withdrawal.gram_amount,
                                     withdrawal.amount,
                                     statusResult.data.tx_hash || withdrawal.tx_hash
                                 );
+                            } else {
+                                console.log(`❌ [checkPendingWithdrawals] Failed to extract channel from: ${proofChannel}`);
                             }
+                        } else {
+                            console.log(`❌ [checkPendingWithdrawals] No PAYMENTS_CHANNEL configured`);
                         }
                         console.log(`✅ [checkPendingWithdrawals] Notifications sent for withdrawal ${withdrawal.id}`);
                     } else {
