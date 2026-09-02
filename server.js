@@ -517,10 +517,10 @@ async function sendWithdrawalProof(channelId, userId, wallet, gramAmount, goldAm
         
         const message = `<b>🆕 New Withdrawal Confirmed!</b>\n\n` +
             `<b>💀 User:</b> ${maskedUserId}\n` +
-            `<b>💰 Amount:</b> ${gramAmount.toFixed(4)} GRAM (${goldAmount.toFixed(0)} Gold)\n` +
+            `<b>💰 Amount:</b> ${gramAmount.toFixed(5)} GRAM\n` +
             `<b>🔰 Wallet:</b> ${maskedWallet}\n` +
-            `<b>⏳ Status:</b> ✅ Confirmed\n\n` +
-            `<b>🏴‍☠️ GRAM PIRATES | MINE & EARN</b>`;
+            `<b>⏳ Status:</b> Confirmed\n\n` +
+            `<b>⛏️ MINE & EARN FREE GRAM</b>`;
         
         const payload = {
             chat_id: channelId,
@@ -584,15 +584,26 @@ async function checkPendingWithdrawals() {
                             .eq('id', withdrawal.id);
                         
                         const userMessage = `<b>✅ Your Withdrawal Confirmed!</b>\n\n` +
-                            `💸 <code>${withdrawal.gram_amount.toFixed(3)}</code> <b>GRAM has been sent to your wallet (${withdrawal.wallet.substring(0, 6)}...)</b>\n\n` +
-                            `<a href="${statusResult.data.tx_hash ? `https://tonviewer.com/transaction/${statusResult.data.tx_hash}` : '#'}">🔘 View on Explorer</a>\n\n` +
-                            `<b>🏴‍☠️ GRAM PIRATES | MINE & EARN</b>`;
+                            `💸 <code>${withdrawal.gram_amount.toFixed(3)}</code> <b>GRAM has been sent</b>\n\n` +
+                            `<a href="${statusResult.data.tx_hash ? `https://tonviewer.com/transaction/${statusResult.data.tx_hash}` : '#'}">🔘 View transaction on Explorer</a>\n\n`;
                         
                         await sendTelegramNotification(
                             withdrawal.user_id,
                             '✅ Withdrawal Completed!',
                             userMessage
                         );
+
+                        const user = await getUser(withdrawal.user_id);
+                        const username = user?.username ? '@' + user.username : 'N/A';
+                        const adminId = process.env.ADMIN_USER_ID;
+                        
+                        const adminMessage = `<b>✅ Withdrawal Completed!</b>\n\n` +
+                            `<b>👤 User:</b> ${withdrawal.user_id} (${username})\n` +
+                            `<b>💰 Amount:</b> ${withdrawal.gram_amount.toFixed(4)} GRAM\n` +
+                            `<b>🔰 Wallet:</b> ${withdrawal.wallet}\n` +
+                            `<b>🔗 TX:</b> <a href="${statusResult.data.tx_hash ? `https://tonviewer.com/transaction/${statusResult.data.tx_hash}` : '#'}">View on Explorer</a>`;
+                        await sendTelegramNotification(adminId, '✅ Withdrawal Completed!', adminMessage);
+                    }
                         
                         const proofChannel = APP_CONFIG.PAYMENTS_CHANNEL || process.env.PAYMENTS_CHANNEL;
                         if (proofChannel) {
