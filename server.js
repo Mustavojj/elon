@@ -28,12 +28,6 @@ const requestCooldown = new Map();
 const notifiedUsers = new Set();
 const getUserCache = new Map();
 
-console.log('🚀 Server starting...');
-console.log('📡 BOT_TOKEN exists:', !!BOT_TOKEN);
-console.log('📡 JWT_SECRET exists:', !!JWT_SECRET);
-console.log('📡 SUPABASE_URL exists:', !!supabaseUrl);
-console.log('📡 SUPABASE_KEY exists:', !!supabaseKey);
-
 function logInfo(endpoint, message) {
     console.log(`ℹ️ [${endpoint}] ${message}`);
 }
@@ -515,47 +509,29 @@ async function sendTelegramNotification(userId, title, message, inlineButton = n
 }
 
 async function sendWithdrawalProof(channelId, userId, wallet, gramAmount, goldAmount, txHash) {
-    console.log(`📢 [sendWithdrawalProof] ===== START =====`);
-    console.log(`📢 [sendWithdrawalProof] channelId: ${channelId}`);
-    console.log(`📢 [sendWithdrawalProof] userId: ${userId}`);
-    console.log(`📢 [sendWithdrawalProof] wallet: ${wallet}`);
-    console.log(`📢 [sendWithdrawalProof] gramAmount: ${gramAmount}`);
-    console.log(`📢 [sendWithdrawalProof] goldAmount: ${goldAmount}`);
-    console.log(`📢 [sendWithdrawalProof] txHash: ${txHash}`);
-    console.log(`📢 [sendWithdrawalProof] BOT_TOKEN exists: ${!!BOT_TOKEN}`);
     
-    if (!BOT_TOKEN || !channelId) {
-        console.log(`❌ [sendWithdrawalProof] Missing BOT_TOKEN or channelId`);
-        return;
-    }
-
     try {
         const userIdStr = userId.toString();
         const lastThree = userIdStr.slice(-3);
         const maskedUserId = userIdStr.slice(0, -3) + '***';
-        console.log(`📢 [sendWithdrawalProof] maskedUserId: ${maskedUserId}`);
         
         const walletFirst = wallet.substring(0, 5);
         const walletLast = wallet.substring(wallet.length - 5);
         const maskedWallet = walletFirst + '****' + walletLast;
-        console.log(`📢 [sendWithdrawalProof] maskedWallet: ${maskedWallet}`);
         
         const explorerUrl = txHash ? `https://tonviewer.com/transaction/${txHash}` : '#';
-        console.log(`📢 [sendWithdrawalProof] explorerUrl: ${explorerUrl}`);
         
-        const message = `🆕 NEW WITHDRAWAL REQUEST!\n\n` +
-            `💀 User: ${maskedUserId}\n` +
-            `💰 Amount: ${gramAmount.toFixed(4)} GRAM (${goldAmount.toFixed(0)} Gold)\n` +
-            `🔰 Wallet: ${maskedWallet}\n` +
-            `⏳ Status: ✅ Confirmed\n\n` +
-            `🏴‍☠️ GRAM PIRATES | MINE & EARN`;
-        
-        console.log(`📢 [sendWithdrawalProof] Message:`, message);
+        const message = `<b>🆕 New Withdrawal Confirmed!</b>\n\n` +
+            `<b>💀 User:</b> ${maskedUserId}\n` +
+            `<b>💰 Amount:</b> ${gramAmount.toFixed(4)} GRAM (${goldAmount.toFixed(0)} Gold)\n` +
+            `<b>🔰 Wallet:</b> ${maskedWallet}\n` +
+            `<b>⏳ Status:</b> ✅ Confirmed<b>\n\n` +
+            `<b>🏴‍☠️ GRAM PIRATES | MINE & EARN</b>`;
         
         const payload = {
             chat_id: channelId,
             text: message,
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [
                     [{
@@ -570,8 +546,6 @@ async function sendWithdrawalProof(channelId, userId, wallet, gramAmount, goldAm
             }
         };
         
-        console.log(`📢 [sendWithdrawalProof] Payload:`, JSON.stringify(payload, null, 2));
-        
         const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -579,32 +553,25 @@ async function sendWithdrawalProof(channelId, userId, wallet, gramAmount, goldAm
         });
         
         const responseText = await response.text();
-        console.log(`📢 [sendWithdrawalProof] Response status: ${response.status}`);
-        console.log(`📢 [sendWithdrawalProof] Response body:`, responseText);
         
         let result;
         try {
             result = JSON.parse(responseText);
         } catch (e) {
-            console.error(`❌ [sendWithdrawalProof] Invalid JSON response:`, responseText);
             return;
         }
         
         if (!result.ok) {
-            console.error(`❌ [sendWithdrawalProof] Telegram API error:`, result.description);
-            console.error(`❌ [sendWithdrawalProof] Error code:`, result.error_code);
+            
         } else {
-            console.log(`✅ [sendWithdrawalProof] Success! Message sent to ${channelId}`);
+            
         }
-        console.log(`📢 [sendWithdrawalProof] ===== END =====`);
     } catch (error) {
         logError('sendWithdrawalProof', error);
-        console.log(`📢 [sendWithdrawalProof] ===== ERROR =====`);
     }
 }
 
 async function checkPendingWithdrawals() {
-    console.log('🔄 [checkPendingWithdrawals] Checking pending withdrawals...');
     try {
         const { data: withdrawals, error } = await supabase
             .from('withdrawals')
@@ -616,22 +583,17 @@ async function checkPendingWithdrawals() {
             return;
         }
         if (!withdrawals || withdrawals.length === 0) {
-            console.log('📭 [checkPendingWithdrawals] No pending withdrawals');
             return;
         }
-        console.log(`📋 [checkPendingWithdrawals] Found ${withdrawals.length} pending withdrawals`);
         const oxapay = new OxaPay({
             apiKey: process.env.OXAPAY_API_KEY,
             sandbox: process.env.NODE_ENV !== 'production'
         });
         for (const withdrawal of withdrawals) {
-            console.log(`🔍 [checkPendingWithdrawals] Checking withdrawal ID: ${withdrawal.id}, track_id: ${withdrawal.tx_id}`);
             try {
                 const statusResult = await oxapay.getPayoutStatus(withdrawal.tx_id);
-                console.log(`📊 [checkPendingWithdrawals] Status result:`, JSON.stringify(statusResult, null, 2));
                 if (statusResult && statusResult.data) {
                     const oxaPayStatus = statusResult.data.status;
-                    console.log(`📌 [checkPendingWithdrawals] OxaPay status: ${oxaPayStatus}, DB status: ${withdrawal.status}`);
                     
                     if (oxaPayStatus === 'confirmed' || oxaPayStatus === 'completed') {
                         console.log(`🔄 [checkPendingWithdrawals] Updating withdrawal ${withdrawal.id} to completed`);
