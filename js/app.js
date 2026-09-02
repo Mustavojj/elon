@@ -2585,9 +2585,9 @@ class App {
         const modal = document.getElementById('payment-modal');
         if (!modal || !this.pendingTaskData) return;
 
-        const wallet = this.config.PAYMENT_WALLET || this.config.TON_WALLET_ADDRESS || 'UQCrXfE4_ktpwyZJzmGuCt6zXE5mErFV8VczSjEZvRuLy9_q';
+        const wallet = this.config.PAYMENT_WALLET || this.config.TON_WALLET_ADDRESS;
         const memo = 'task_' + this.tgUser.id + '_' + (this.userTaskCount + 1);
-        const amount = (this.pendingTaskData.total * this.pendingTaskData.reward / 1000) * (this.config.PRICE_PER_100 || 0.001);
+        const amount = (this.pendingTaskData.total * this.pendingTaskData.reward / 1000) * (this.config.PRICE_PER_100);
         const nanoAmount = Math.floor(amount * 1000000000);
         
         const walletDisplays = wallet.length > 12 ? 
@@ -2614,7 +2614,7 @@ class App {
         }
         
         if (tonkeeperLink) {
-            const tonkeeperUrl = `https://app.tonkeeper.com/transfer/${wallet}?amount=${nanoAmount}&text=${encodeURIComponent(memo)}`;
+            const tonkeeperUrl = `https://app.tonkeeper.com/transfer/${wallet}&text=${encodeURIComponent(memo)}`;
             tonkeeperLink.href = tonkeeperUrl;
         }
         
