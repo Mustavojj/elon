@@ -2589,6 +2589,10 @@ class App {
         const memo = 'task_' + this.tgUser.id + '_' + (this.userTaskCount + 1);
         const amount = (this.pendingTaskData.total * this.pendingTaskData.reward / 1000) * (this.config.PRICE_PER_100 || 0.001);
         const nanoAmount = Math.floor(amount * 1000000000);
+        
+        const walletDisplay = wallet.length > 12 ? 
+        wallet.substring(0, 5) + '.....' + wallet.substring(wallet.length - 5) : 
+        wallet;
 
         const walletDisplay = document.getElementById('payment-wallet-display');
         const memoDisplay = document.getElementById('payment-memo-display');
@@ -2597,7 +2601,7 @@ class App {
         const statusEl = document.getElementById('payment-status');
 
         if (walletDisplay) {
-            walletDisplay.textContent = wallet;
+            walletDisplay.textContent = walletDisplay;
             walletDisplay.onclick = () => this.copyToClipboard(wallet);
         }
         if (memoDisplay) {
