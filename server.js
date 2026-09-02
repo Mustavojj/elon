@@ -28,6 +28,12 @@ const requestCooldown = new Map();
 const notifiedUsers = new Set();
 const getUserCache = new Map();
 
+console.log('🚀 Server starting...');
+console.log('📡 BOT_TOKEN exists:', !!BOT_TOKEN);
+console.log('📡 JWT_SECRET exists:', !!JWT_SECRET);
+console.log('📡 SUPABASE_URL exists:', !!supabaseUrl);
+console.log('📡 SUPABASE_KEY exists:', !!supabaseKey);
+
 function logInfo(endpoint, message) {
     console.log(`ℹ️ [${endpoint}] ${message}`);
 }
@@ -545,12 +551,14 @@ async function sendWithdrawalProof(channelId, userId, wallet, gramAmount, goldAm
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
+        console.log(`✅ [sendWithdrawalProof] Proof sent to channel ${channelId}`);
     } catch (error) {
         logError('sendWithdrawalProof', error);
     }
 }
 
 async function checkPendingWithdrawals() {
+    console.log('🔄 [checkPendingWithdrawals] Checking pending withdrawals...');
     try {
         const { data: withdrawals, error } = await supabase
             .from('withdrawals')
@@ -562,15 +570,19 @@ async function checkPendingWithdrawals() {
             return;
         }
         if (!withdrawals || withdrawals.length === 0) {
+            console.log('📭 [checkPendingWithdrawals] No pending withdrawals');
             return;
         }
+        console.log(`📋 [checkPendingWithdrawals] Found ${withdrawals.length} pending withdrawals`);
         const oxapay = new OxaPay({
             apiKey: process.env.OXAPAY_API_KEY,
             sandbox: process.env.NODE_ENV !== 'production'
         });
         for (const withdrawal of withdrawals) {
+            console.log(`🔍 [checkPendingWithdrawals] Checking withdrawal ID: ${withdrawal.id}, track_id: ${withdrawal.tx_id}`);
             try {
                 const statusResult = await oxapay.getPayoutStatus(withdrawal.tx_id);
+                console.log(`📊 [checkPendingWithdrawals] Status result:`, JSON.stringify(statusResult, null, 2));
                 if (statusResult && statusResult.data) {
                     const newStatus = statusResult.data.status === 'completed' ? 'completed' : 'processing';
                     const newTxHash = statusResult.data.tx_hash || withdrawal.tx_hash;
@@ -582,6 +594,7 @@ async function checkPendingWithdrawals() {
                         })
                         .eq('id', withdrawal.id);
                     if (newStatus === 'completed' && withdrawal.status !== 'completed') {
+                        console.log(`✅ [checkPendingWithdrawals] Withdrawal ${withdrawal.id} completed!`);
                         await sendTelegramNotification(
                             withdrawal.user_id,
                             '✅ Withdrawal Completed!',
@@ -619,6 +632,8 @@ class OxaPay {
         this.baseUrl = this.sandbox 
             ? 'https://sandbox.oxapay.com/v1' 
             : 'https://api.oxapay.com/v1';
+        console.log(`🔧 [OxaPay] Initialized with API key: ${this.apiKey ? '✅ present' : '❌ missing'}`);
+        console.log(`🔧 [OxaPay] Base URL: ${this.baseUrl}`);
     }
 
     async request(endpoint, data) {
@@ -627,6 +642,7 @@ class OxaPay {
             'Content-Type': 'application/json',
             'payout_api_key': this.apiKey
         };
+        console.log(`📤 [OxaPay.request] ${endpoint} - URL: ${url}`);
         try {
             const response = await fetch(url, {
                 method: 'POST',
@@ -634,6 +650,8 @@ class OxaPay {
                 body: JSON.stringify(data)
             });
             const responseText = await response.text();
+            console.log(`📥 [OxaPay.request] Status: ${response.status}`);
+            console.log(`📥 [OxaPay.request] Response: ${responseText.substring(0, 300)}`);
             let result;
             try {
                 result = JSON.parse(responseText);
@@ -651,6 +669,8 @@ class OxaPay {
     }
 
     async createPayout(data) {
+        console.log(`💰 [OxaPay.createPayout] Creating payout...`);
+        console.log(`📊 Data:`, JSON.stringify(data, null, 2));
         try {
             const payload = {
                 address: data.toAddress,
@@ -664,6 +684,7 @@ class OxaPay {
             const trackId = result?.data?.track_id || result?.track_id;
             const status = result?.data?.status || result?.status || 'processing';
             const txHash = result?.data?.tx_hash || result?.tx_hash || null;
+            console.log(`✅ [OxaPay.createPayout] Success! track_id: ${trackId}, status: ${status}`);
             return { 
                 ...result, 
                 trackId: trackId || 'N/A',
@@ -678,17 +699,21 @@ class OxaPay {
     }
 
     async getPayoutStatus(trackId) {
+        console.log(`🔍 [OxaPay.getPayoutStatus] Checking status for track_id: ${trackId}`);
         const url = `${this.baseUrl}/payout/${trackId}`;
         const headers = {
             'payout_api_key': this.apiKey,
             'Content-Type': 'application/json'
         };
+        console.log(`📤 [OxaPay.getPayoutStatus] URL: ${url}`);
         try {
             const response = await fetch(url, {
                 method: 'GET',
                 headers: headers
             });
+            console.log(`📥 [OxaPay.getPayoutStatus] Status: ${response.status}`);
             const responseText = await response.text();
+            console.log(`📥 [OxaPay.getPayoutStatus] Response: ${responseText.substring(0, 500)}`);
             let result;
             try {
                 result = JSON.parse(responseText);
@@ -701,6 +726,7 @@ class OxaPay {
                 logError('OxaPay.getPayoutStatus', new Error(errorMsg));
                 throw new Error(errorMsg);
             }
+            console.log(`✅ [OxaPay.getPayoutStatus] Success! status: ${result.data?.status}`);
             return result;
         } catch (error) {
             logError('OxaPay.getPayoutStatus', error);
