@@ -625,10 +625,6 @@ async function checkPendingWithdrawals() {
                 logError('checkPendingWithdrawals', error);
             }
         }
-    } catch (error) {
-        logError('checkPendingWithdrawals', error);
-    }
-}
 
 class OxaPay {
     constructor(config) {
