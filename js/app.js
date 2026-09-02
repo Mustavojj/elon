@@ -249,7 +249,8 @@ const translations = {
         watch_earn: "WATCH & EARN",
         quests_title: "Quests",
         payments_channel: "Payments Channel",
-        click_to_copy: "(Click to copy)"
+        click_to_copy: "(Click to copy)",
+        view_on_explorer: "View on Explorer"
     },
     ar: {
         level: "المستوى",
@@ -501,7 +502,8 @@ const translations = {
         watch_earn: "شاهد واربح",
         quests_title: "المهام",
         payments_channel: "قناة المدفوعات",
-        click_to_copy: "(انقر للنسخ)"
+        click_to_copy: "(انقر للنسخ)",
+        view_on_explorer: "عرض على المستكشف"
     },
     ru: {},
     fa: {}
@@ -1882,7 +1884,6 @@ class App {
                     </div>
                     <div class="confirm-note">${this.t('are_you_sure')}</div>
                     <button id="confirm-withdrawal-btn" class="confirm-btn gold-btn">${this.t('confirm')}</button>
-                    <a href="${this.config.PAYMENTS_CHANNEL || 'https://t.me/Pirates_Proof'}" target="_blank" class="payments-link">${this.t('payments_channel')}</a>
                     <a href="https://t.me/mo_scam" target="_blank" class="support-link">${this.t('contact_support')}</a>
                 </div>
             </div>
@@ -2692,7 +2693,9 @@ class App {
                             <div class="task-icon"><img src="${this.config.TASK_IMAGE}" class="task-img"></div>
                             <div class="task-info">
                                 <h4>${task.name}</h4>
-                                <div class="task-reward"><i class="fas fa-bolt"></i> ${task.reward} ${this.t('power')}</div>
+                                <div class="task-reward">
+                                    <span class="reward-badge"><i class="fas fa-bolt"></i> ${task.reward}</span>
+                                </div>
                             </div>
                             <button class="task-btn start" data-id="${task.id}" data-url="${task.url || ''}">Start</button>
                         </div>
@@ -2823,7 +2826,9 @@ class App {
                             <div class="task-icon"><img src="${this.config.TASK_IMAGE}" class="task-img"></div>
                             <div class="task-info">
                                 <h4>${task.name}</h4>
-                                <div class="task-reward"><i class="fas fa-bolt"></i> ${task.reward} ${this.t('power')}</div>
+                                <div class="task-reward">
+                                    <span class="reward-badge"><i class="fas fa-bolt"></i> ${task.reward}</span>
+                                </div>
                             </div>
                             <button class="task-btn start" data-id="${task.id}" data-url="${task.url || ''}" data-verify="${task.verification || false}" data-owner="${task.owner || ''}">Start</button>
                         </div>
@@ -3239,12 +3244,18 @@ class App {
         const minWithdrawGold = this.config.MINIMUM_WITHDRAW || 100;
         const withdrawalFees = this.config.WITHDRAWAL_FEES || 50;
 
+        const walletDisplay = this.userWallet ? 
+            this.userWallet.substring(0, 5) + '.....' + this.userWallet.substring(this.userWallet.length - 5) : 
+            '-';
+
         const historyHtml = this.withdrawals && this.withdrawals.length ? this.withdrawals.slice(0, 5).map(w => {
             const date = new Date(w.timestamp);
             const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
             const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             const statusClass = w.status || 'pending';
             const statusText = statusClass === 'completed' ? this.t('completed') : (statusClass === 'processing' ? 'PROCESSING' : this.t('pending'));
+            const explorerLink = statusClass === 'completed' && w.tx_hash ? 
+                `<a href="https://tonscan.org/tx/${w.tx_hash}" target="_blank" class="history-explorer-link"><i class="fas fa-arrow-up-right-from-square"></i> ${this.t('view_on_explorer')}</a>` : '';
             return `
             <div class="history-item gold-item">
                 <div class="history-details">
@@ -3254,7 +3265,7 @@ class App {
                         <span style="color:#888;font-size:0.65rem;">- ${w.gram_amount.toFixed(4)} GRAM</span>
                     </div>
                     <div class="history-date" style="font-size:0.6rem;color:#666;">${dateStr} ${timeStr}</div>
-                    ${w.tx_hash ? `<div style="font-size:0.5rem;color:#888;word-break:break-all;">TX: ${w.tx_hash.substring(0, 12)}...</div>` : ''}
+                    ${explorerLink}
                 </div>
                 <div class="history-status ${statusClass}" style="font-size:0.65rem;font-weight:600;">${statusText}</div>
             </div>
@@ -3305,8 +3316,8 @@ class App {
 
                 <div class="form-group">
                     <label class="form-label">${this.t('wallet')}</label>
-                    <div class="input-wrapper">
-                        <input type="text" id="wallet-addr" class="form-input gold-input" placeholder="UQ..." value="${this.userWallet || '-'}" ${this.userWallet ? 'readonly' : ''}>
+                    <div class="wallet-address-display" id="wallet-addr" onclick="window.app?.copyToClipboard('${this.userWallet || ''}')">
+                        ${walletDisplay}
                     </div>
                 </div>
 
@@ -3366,7 +3377,7 @@ class App {
         withdrawBtn?.addEventListener('click', () => {
             if (withdrawBtn.disabled) return;
             const amount = parseFloat(amountInput.value);
-            const wallet = walletInput.value.trim();
+            const wallet = this.userWallet;
             if (!wallet || wallet.length < 20) {
                 this.showNotification('Error', 'Invalid wallet address', 'error');
                 this.vibrate('error');
@@ -3440,6 +3451,20 @@ class App {
             this.lang = s.lang || 'en';
         } else {
             this.lang = 'en';
+        }
+        this.updateLangFlag();
+    }
+
+    updateLangFlag() {
+        const flagMap = {
+            'en': 'https://flagcdn.com/w40/gb.png',
+            'ar': 'https://flagcdn.com/w40/sa.png',
+            'ru': 'https://flagcdn.com/w40/ru.png',
+            'fa': 'https://flagcdn.com/w40/ir.png'
+        };
+        const flag = document.getElementById('current-flag');
+        if (flag) {
+            flag.src = flagMap[this.lang] || flagMap['en'];
         }
     }
 
@@ -3577,6 +3602,7 @@ class App {
                 settings.lang = this.lang;
                 localStorage.setItem('pirate_team_settings', JSON.stringify(settings));
                 langMenu.style.display = 'none';
+                this.updateLangFlag();
                 this.renderMining();
                 if (this._earnLoaded) this.renderEarn();
                 if (this._teamLoaded) this.renderTeam();
