@@ -586,34 +586,47 @@ async function checkPendingWithdrawals() {
                 if (statusResult && statusResult.data) {
                     const newStatus = statusResult.data.status === 'completed' ? 'completed' : 'processing';
                     const newTxHash = statusResult.data.tx_hash || withdrawal.tx_hash;
-                    await supabase
-                        .from('withdrawals')
-                        .update({ 
-                            status: newStatus,
-                            tx_hash: newTxHash
-                        })
-                        .eq('id', withdrawal.id);
-                    if (newStatus === 'completed' && withdrawal.status !== 'completed') {
-                        console.log(`✅ [checkPendingWithdrawals] Withdrawal ${withdrawal.id} completed!`);
-                        await sendTelegramNotification(
-                            withdrawal.user_id,
-                            '✅ Withdrawal Completed!',
-                            `🏴‍☠️ Your withdrawal of ${withdrawal.gram_amount} GRAM has been completed.\n\n🔗 Transaction: ${newTxHash ? `https://tonviewer.com/transaction/${newTxHash}` : 'View on blockchain'}`
-                        );
-                        const proofChannel = APP_CONFIG.PAYMENTS_CHANNEL || process.env.PAYMENTS_CHANNEL;
-                        if (proofChannel) {
-                            const channelMatch = proofChannel.match(/t\.me\/([^\/\?]+)/);
-                            if (channelMatch) {
-                                await sendWithdrawalProof(
-                                    '@' + channelMatch[1],
-                                    withdrawal.user_id,
-                                    withdrawal.wallet,
-                                    withdrawal.gram_amount,
-                                    withdrawal.amount,
-                                    newTxHash
-                                );
+                    
+                    // ✅ تحديث الحالة بغض النظر عن القيمة السابقة
+                    if (newStatus !== withdrawal.status) {
+                        console.log(`🔄 [checkPendingWithdrawals] Updating withdrawal ${withdrawal.id} from ${withdrawal.status} to ${newStatus}`);
+                        await supabase
+                            .from('withdrawals')
+                            .update({ 
+                                status: newStatus,
+                                tx_hash: newTxHash
+                            })
+                            .eq('id', withdrawal.id);
+                        
+                        console.log(`✅ [checkPendingWithdrawals] Updated withdrawal ${withdrawal.id} from ${withdrawal.status} to ${newStatus}`);
+                        
+                        if (newStatus === 'completed') {
+                            console.log(`🎉 [checkPendingWithdrawals] Withdrawal ${withdrawal.id} completed! Sending notifications...`);
+                            
+                            await sendTelegramNotification(
+                                withdrawal.user_id,
+                                '✅ Withdrawal Completed!',
+                                `🏴‍☠️ Your withdrawal of ${withdrawal.gram_amount} GRAM has been completed.\n\n🔗 Transaction: ${newTxHash ? `https://tonviewer.com/transaction/${newTxHash}` : 'View on blockchain'}`
+                            );
+                            
+                            const proofChannel = APP_CONFIG.PAYMENTS_CHANNEL || process.env.PAYMENTS_CHANNEL;
+                            if (proofChannel) {
+                                const channelMatch = proofChannel.match(/t\.me\/([^\/\?]+)/);
+                                if (channelMatch) {
+                                    await sendWithdrawalProof(
+                                        '@' + channelMatch[1],
+                                        withdrawal.user_id,
+                                        withdrawal.wallet,
+                                        withdrawal.gram_amount,
+                                        withdrawal.amount,
+                                        newTxHash
+                                    );
+                                }
                             }
+                            console.log(`✅ [checkPendingWithdrawals] Notifications sent for withdrawal ${withdrawal.id}`);
                         }
+                    } else {
+                        console.log(`ℹ️ [checkPendingWithdrawals] Withdrawal ${withdrawal.id} already ${newStatus}, no update needed`);
                     }
                 }
             } catch (error) {
