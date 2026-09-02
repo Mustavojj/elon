@@ -2175,3 +2175,11 @@ body {
     color: var(--primary-light);
     word-break: break-all;
 }
+
+.copyable-text {
+    color: #FFD700 !important;
+    font-weight: 700 !important;
+    font-family: 'Courier New', monospace !important;
+    font-size: 0.75rem !important;
+    letter-spacing: 0.5px;
+} 
