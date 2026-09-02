@@ -2591,7 +2591,7 @@ class App {
         const nanoAmount = Math.floor(amount * 1000000000);
         
         const walletDisplays = wallet.length > 12 ? 
-        wallet.substring(0, 5) + '.....' + wallet.substring(wallet.length - 5) : 
+        wallet.substring(0, 10) + '.....' + wallet.substring(wallet.length - 10) : 
         wallet;
 
         const walletDisplay = document.getElementById('payment-wallet-display');
@@ -2613,7 +2613,7 @@ class App {
         if (amountDisplay) {
             amountDisplay.textContent = amount.toFixed(2) + ' GRAM';
             amountDisplay.className = 'copyable-text';
-            amountDisplay.onclick = () => this.copyToClipboard(amount.toFixed(4) + ' GRAM');
+            amountDisplay.onclick = () => this.copyToClipboard(amount.toFixed(4));
         }
         
         if (tonkeeperLink) {
