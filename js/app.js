@@ -2602,14 +2602,17 @@ class App {
 
         if (walletDisplay) {
             walletDisplay.textContent = walletDisplays;
+            walletDisplay.className = 'copyable-text';
             walletDisplay.onclick = () => this.copyToClipboard(wallet);
         }
         if (memoDisplay) {
             memoDisplay.textContent = memo;
+            memoDisplay.className = 'copyable-text';
             memoDisplay.onclick = () => this.copyToClipboard(memo);
         }
         if (amountDisplay) {
-            amountDisplay.textContent = amount.toFixed(4) + ' GRAM';
+            amountDisplay.textContent = amount.toFixed(2) + ' GRAM';
+            amountDisplay.className = 'copyable-text';
             amountDisplay.onclick = () => this.copyToClipboard(amount.toFixed(4) + ' GRAM');
         }
         
