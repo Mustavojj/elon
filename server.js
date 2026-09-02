@@ -551,81 +551,6 @@ async function sendWithdrawalProof(channelId, userId, wallet, gramAmount, goldAm
     }
 }
 
-async function checkPendingWithdrawals() {
-    try {
-        const { data: withdrawals, error } = await supabase
-            .from('withdrawals')
-            .select('*')
-            .in('status', ['pending', 'processing'])
-            .limit(50);
-        if (error) {
-            logError('checkPendingWithdrawals', error);
-            return;
-        }
-        if (!withdrawals || withdrawals.length === 0) {
-            return;
-        }
-        const oxapay = new OxaPay({
-            apiKey: process.env.OXAPAY_API_KEY,
-            sandbox: process.env.NODE_ENV !== 'production'
-        });
-        for (const withdrawal of withdrawals) {
-            try {
-                const statusResult = await oxapay.getPayoutStatus(withdrawal.tx_id);
-                if (statusResult && statusResult.data) {
-                    const oxaPayStatus = statusResult.data.status;
-                    if (oxaPayStatus === 'confirmed' || oxaPayStatus === 'completed') {
-                        await supabase
-                            .from('withdrawals')
-                            .update({ 
-                                status: 'completed',
-                                tx_hash: statusResult.data.tx_hash || withdrawal.tx_hash
-                            })
-                            .eq('id', withdrawal.id);
-                        
-                        const userMessage = `<b>✅ Your Withdrawal Confirmed!</b>\n\n` +
-                            `💸 <code>${withdrawal.gram_amount.toFixed(3)}</code> <b>GRAM has been sent</b>\n\n` +
-                            `<a href="${statusResult.data.tx_hash ? `https://tonscan.org/tx/${statusResult.data.tx_hash}` : '#'}">🔘 View transaction on Explorer</a>\n\n`;
-                        
-                        await sendTelegramNotification(
-                            withdrawal.user_id,
-                            '✅ Withdrawal Completed!',
-                            userMessage
-                        );
-
-                        const user = await getUser(withdrawal.user_id);
-                        const username = user?.username ? '@' + user.username : 'N/A';
-                        const adminId = process.env.ADMIN_USER_ID;
-                        
-                        const adminMessage = `<b>✅ Withdrawal Completed!</b>\n\n` +
-                            `<b>👤 User:</b> ${withdrawal.user_id} (${username})\n` +
-                            `<b>💰 Amount:</b> ${withdrawal.gram_amount.toFixed(4)} GRAM\n` +
-                            `<b>🔰 Wallet:</b> ${withdrawal.wallet}\n` +
-                            `<b>🔗 TX:</b> <a href="${statusResult.data.tx_hash ? `https://tonscan.org/tx/${statusResult.data.tx_hash}` : '#'}">View on Explorer</a>`;
-                        await sendTelegramNotification(adminId, '✅ Withdrawal Completed!', adminMessage);
-                    }
-                        
-                        const proofChannel = APP_CONFIG.PAYMENTS_CHANNEL || process.env.PAYMENTS_CHANNEL;
-                        if (proofChannel) {
-                            const channelMatch = proofChannel.match(/t\.me\/([^\/\?]+)/);
-                            if (channelMatch) {
-                                await sendWithdrawalProof(
-                                    '@' + channelMatch[1],
-                                    withdrawal.user_id,
-                                    withdrawal.wallet,
-                                    withdrawal.gram_amount,
-                                    withdrawal.amount,
-                                    statusResult.data.tx_hash || withdrawal.tx_hash
-                                );
-                            }
-                        }
-                    }
-                }
-            } catch (error) {
-                logError('checkPendingWithdrawals', error);
-            }
-        }
-
 class OxaPay {
     constructor(config) {
         this.apiKey = config.apiKey;
@@ -719,6 +644,84 @@ class OxaPay {
             logError('OxaPay.getPayoutStatus', error);
             throw error;
         }
+    }
+}
+
+async function checkPendingWithdrawals() {
+    try {
+        const { data: withdrawals, error } = await supabase
+            .from('withdrawals')
+            .select('*')
+            .in('status', ['pending', 'processing'])
+            .limit(50);
+        if (error) {
+            logError('checkPendingWithdrawals', error);
+            return;
+        }
+        if (!withdrawals || withdrawals.length === 0) {
+            return;
+        }
+        const oxapay = new OxaPay({
+            apiKey: process.env.OXAPAY_API_KEY,
+            sandbox: process.env.NODE_ENV !== 'production'
+        });
+        for (const withdrawal of withdrawals) {
+            try {
+                const statusResult = await oxapay.getPayoutStatus(withdrawal.tx_id);
+                if (statusResult && statusResult.data) {
+                    const oxaPayStatus = statusResult.data.status;
+                    if (oxaPayStatus === 'confirmed' || oxaPayStatus === 'completed') {
+                        await supabase
+                            .from('withdrawals')
+                            .update({ 
+                                status: 'completed',
+                                tx_hash: statusResult.data.tx_hash || withdrawal.tx_hash
+                            })
+                            .eq('id', withdrawal.id);
+                        
+                        const userMessage = `<b>✅ Your Withdrawal Confirmed!</b>\n\n` +
+                            `💸 <code>${withdrawal.gram_amount.toFixed(3)}</code> <b>GRAM has been sent</b>\n\n` +
+                            `<a href="${statusResult.data.tx_hash ? `https://tonscan.org/tx/${statusResult.data.tx_hash}` : '#'}">🔘 View transaction on Explorer</a>\n\n`;
+                        
+                        await sendTelegramNotification(
+                            withdrawal.user_id,
+                            '✅ Withdrawal Completed!',
+                            userMessage
+                        );
+
+                        const user = await getUser(withdrawal.user_id);
+                        const username = user?.username ? '@' + user.username : 'N/A';
+                        const adminId = process.env.ADMIN_USER_ID;
+                        
+                        const adminMessage = `<b>✅ Withdrawal Completed!</b>\n\n` +
+                            `<b>👤 User:</b> ${withdrawal.user_id} (${username})\n` +
+                            `<b>💰 Amount:</b> ${withdrawal.gram_amount.toFixed(4)} GRAM\n` +
+                            `<b>🔰 Wallet:</b> ${withdrawal.wallet}\n` +
+                            `<b>🔗 TX:</b> <a href="${statusResult.data.tx_hash ? `https://tonscan.org/tx/${statusResult.data.tx_hash}` : '#'}">View on Explorer</a>`;
+                        await sendTelegramNotification(adminId, '✅ Withdrawal Completed!', adminMessage);
+                        
+                        const proofChannel = APP_CONFIG.PAYMENTS_CHANNEL || process.env.PAYMENTS_CHANNEL;
+                        if (proofChannel) {
+                            const channelMatch = proofChannel.match(/t\.me\/([^\/\?]+)/);
+                            if (channelMatch) {
+                                await sendWithdrawalProof(
+                                    '@' + channelMatch[1],
+                                    withdrawal.user_id,
+                                    withdrawal.wallet,
+                                    withdrawal.gram_amount,
+                                    withdrawal.amount,
+                                    statusResult.data.tx_hash || withdrawal.tx_hash
+                                );
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                logError('checkPendingWithdrawals', error);
+            }
+        }
+    } catch (error) {
+        logError('checkPendingWithdrawals', error);
     }
 }
 
