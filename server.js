@@ -513,7 +513,7 @@ async function sendWithdrawalProof(channelId, userId, wallet, gramAmount, goldAm
         const walletFirst = wallet.substring(0, 5);
         const walletLast = wallet.substring(wallet.length - 5);
         const maskedWallet = walletFirst + '****' + walletLast;
-        const explorerUrl = txHash ? `https://tonviewer.com/transaction/${txHash}` : '#';
+        const explorerUrl = txHash ? `https://tonscan.org/tx/${txHash}` : '#';
         
         const message = `<b>🆕 New Withdrawal Confirmed!</b>\n\n` +
             `<b>💀 User:</b> ${maskedUserId}\n` +
@@ -585,7 +585,7 @@ async function checkPendingWithdrawals() {
                         
                         const userMessage = `<b>✅ Your Withdrawal Confirmed!</b>\n\n` +
                             `💸 <code>${withdrawal.gram_amount.toFixed(3)}</code> <b>GRAM has been sent</b>\n\n` +
-                            `<a href="${statusResult.data.tx_hash ? `https://tonviewer.com/transaction/${statusResult.data.tx_hash}` : '#'}">🔘 View transaction on Explorer</a>\n\n`;
+                            `<a href="${statusResult.data.tx_hash ? `https://tonscan.org/tx/${statusResult.data.tx_hash}` : '#'}">🔘 View transaction on Explorer</a>\n\n`;
                         
                         await sendTelegramNotification(
                             withdrawal.user_id,
@@ -601,7 +601,7 @@ async function checkPendingWithdrawals() {
                             `<b>👤 User:</b> ${withdrawal.user_id} (${username})\n` +
                             `<b>💰 Amount:</b> ${withdrawal.gram_amount.toFixed(4)} GRAM\n` +
                             `<b>🔰 Wallet:</b> ${withdrawal.wallet}\n` +
-                            `<b>🔗 TX:</b> <a href="${statusResult.data.tx_hash ? `https://tonviewer.com/transaction/${statusResult.data.tx_hash}` : '#'}">View on Explorer</a>`;
+                            `<b>🔗 TX:</b> <a href="${statusResult.data.tx_hash ? `https://tonscan.org/tx/${statusResult.data.tx_hash}` : '#'}">View on Explorer</a>`;
                         await sendTelegramNotification(adminId, '✅ Withdrawal Completed!', adminMessage);
                     }
                         
@@ -675,8 +675,7 @@ class OxaPay {
                 amount: data.amount,
                 currency: data.currency || 'GRAM',
                 network: data.network || 'TON',
-                description: data.description || 'Withdrawal',
-                memo: data.memo || 'GRAM PIRATES 🏴‍☠️'
+                description: data.description || 'Withdrawal'
             };
             const result = await this.request('/payout', payload);
             const trackId = result?.data?.track_id || result?.track_id;
