@@ -175,7 +175,7 @@ body {
 
 .lang-menu {
     position: absolute;
-    top: 50px;
+    top: 55px;
     right: 10px;
     background: var(--bg-elevated);
     border-radius: var(--border-radius-sm);
@@ -184,6 +184,7 @@ body {
     z-index: 200;
     overflow: hidden;
     box-shadow: var(--glass-shadow);
+    min-width: 140px;
 }
 
 .lang-menu-content {
@@ -207,6 +208,10 @@ body {
 
 .lang-option:hover {
     background: rgba(255, 215, 0, 0.15);
+}
+
+.lang-option:active {
+    background: rgba(255, 215, 0, 0.25);
 }
 
 .header-balances {
@@ -698,12 +703,17 @@ body {
 
 .section-title {
     color: var(--primary-light);
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 700;
     margin: 20px 0 12px;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
+    background: rgba(255,215,0,0.04);
+    padding: 8px 12px;
+    border-radius: 40px;
+    border: 1px solid rgba(255,215,0,0.06);
 }
 
 .section-title i {
@@ -1142,7 +1152,7 @@ body {
 
 .task-info h4 {
     font-size: 0.85rem;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
 }
 
 .task-reward {
@@ -1150,10 +1160,24 @@ body {
     color: var(--primary-light);
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
+    flex-wrap: wrap;
 }
 
-.task-reward img {
+.reward-badge {
+    background: rgba(255, 215, 0, 0.08);
+    border-radius: 40px;
+    padding: 2px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--primary-light);
+    border: 1px solid rgba(255, 215, 0, 0.06);
+}
+
+.reward-badge img {
     width: 14px;
     height: 14px;
     border-radius: 50%;
@@ -1670,7 +1694,6 @@ body {
     font-size: 0.6rem;
     color: #888;
     margin-top: 8px;
-    background: rgba(255, 215, 0, 0.03);
     padding: 6px;
     border-radius: 8px;
     border-left: 3px solid var(--warning);
@@ -1821,6 +1844,30 @@ body {
 .history-status.pending { background: rgba(243, 156, 18, 0.12); color: #f39c12; }
 .history-status.completed { background: rgba(46, 204, 113, 0.12); color: #2ecc71; }
 .history-status.processing { background: rgba(52, 152, 219, 0.12); color: #3498db; }
+
+.history-explorer-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.6rem;
+    color: var(--primary-light);
+    background: rgba(255,215,0,0.08);
+    padding: 2px 10px;
+    border-radius: 20px;
+    text-decoration: none;
+    border: 1px solid rgba(255,215,0,0.06);
+    transition: all 0.2s;
+    margin-top: 2px;
+}
+
+.history-explorer-link i {
+    font-size: 0.5rem;
+}
+
+.history-explorer-link:active {
+    transform: scale(0.95);
+    background: rgba(255,215,0,0.15);
+}
 
 .notif {
     position: fixed;
@@ -2112,4 +2159,19 @@ body {
 
 .my-task-item .task-actions .action-btn:active {
     transform: scale(0.95);
+}
+
+.wallet-address-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 8px 14px;
+    border-radius: 40px;
+    border: 1px solid rgba(255, 215, 0, 0.05);
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-family: monospace;
+    color: var(--primary-light);
+    word-break: break-all;
 }
