@@ -1,3 +1,5 @@
+// ============= server.js (كامل مع التصحيح النهائي) =============
+
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -584,49 +586,44 @@ async function checkPendingWithdrawals() {
                 const statusResult = await oxapay.getPayoutStatus(withdrawal.tx_id);
                 console.log(`📊 [checkPendingWithdrawals] Status result:`, JSON.stringify(statusResult, null, 2));
                 if (statusResult && statusResult.data) {
-                    const newStatus = statusResult.data.status === 'completed' ? 'completed' : 'processing';
-                    const newTxHash = statusResult.data.tx_hash || withdrawal.tx_hash;
+                    const oxaPayStatus = statusResult.data.status;
+                    console.log(`📌 [checkPendingWithdrawals] OxaPay status: ${oxaPayStatus}, DB status: ${withdrawal.status}`);
                     
-                    // ✅ تحديث الحالة بغض النظر عن القيمة السابقة
-                    if (newStatus !== withdrawal.status) {
-                        console.log(`🔄 [checkPendingWithdrawals] Updating withdrawal ${withdrawal.id} from ${withdrawal.status} to ${newStatus}`);
+                    if (oxaPayStatus === 'confirmed' || oxaPayStatus === 'completed') {
+                        console.log(`🔄 [checkPendingWithdrawals] Updating withdrawal ${withdrawal.id} to completed`);
                         await supabase
                             .from('withdrawals')
                             .update({ 
-                                status: newStatus,
-                                tx_hash: newTxHash
+                                status: 'completed',
+                                tx_hash: statusResult.data.tx_hash || withdrawal.tx_hash
                             })
                             .eq('id', withdrawal.id);
                         
-                        console.log(`✅ [checkPendingWithdrawals] Updated withdrawal ${withdrawal.id} from ${withdrawal.status} to ${newStatus}`);
+                        console.log(`🎉 [checkPendingWithdrawals] Withdrawal ${withdrawal.id} completed!`);
                         
-                        if (newStatus === 'completed') {
-                            console.log(`🎉 [checkPendingWithdrawals] Withdrawal ${withdrawal.id} completed! Sending notifications...`);
-                            
-                            await sendTelegramNotification(
-                                withdrawal.user_id,
-                                '✅ Withdrawal Completed!',
-                                `🏴‍☠️ Your withdrawal of ${withdrawal.gram_amount} GRAM has been completed.\n\n🔗 Transaction: ${newTxHash ? `https://tonviewer.com/transaction/${newTxHash}` : 'View on blockchain'}`
-                            );
-                            
-                            const proofChannel = APP_CONFIG.PAYMENTS_CHANNEL || process.env.PAYMENTS_CHANNEL;
-                            if (proofChannel) {
-                                const channelMatch = proofChannel.match(/t\.me\/([^\/\?]+)/);
-                                if (channelMatch) {
-                                    await sendWithdrawalProof(
-                                        '@' + channelMatch[1],
-                                        withdrawal.user_id,
-                                        withdrawal.wallet,
-                                        withdrawal.gram_amount,
-                                        withdrawal.amount,
-                                        newTxHash
-                                    );
-                                }
+                        await sendTelegramNotification(
+                            withdrawal.user_id,
+                            '✅ Withdrawal Completed!',
+                            `🏴‍☠️ Your withdrawal of ${withdrawal.gram_amount} GRAM has been completed.\n\n🔗 Transaction: ${statusResult.data.tx_hash ? `https://tonviewer.com/transaction/${statusResult.data.tx_hash}` : 'View on blockchain'}`
+                        );
+                        
+                        const proofChannel = APP_CONFIG.PAYMENTS_CHANNEL || process.env.PAYMENTS_CHANNEL;
+                        if (proofChannel) {
+                            const channelMatch = proofChannel.match(/t\.me\/([^\/\?]+)/);
+                            if (channelMatch) {
+                                await sendWithdrawalProof(
+                                    '@' + channelMatch[1],
+                                    withdrawal.user_id,
+                                    withdrawal.wallet,
+                                    withdrawal.gram_amount,
+                                    withdrawal.amount,
+                                    statusResult.data.tx_hash || withdrawal.tx_hash
+                                );
                             }
-                            console.log(`✅ [checkPendingWithdrawals] Notifications sent for withdrawal ${withdrawal.id}`);
                         }
+                        console.log(`✅ [checkPendingWithdrawals] Notifications sent for withdrawal ${withdrawal.id}`);
                     } else {
-                        console.log(`ℹ️ [checkPendingWithdrawals] Withdrawal ${withdrawal.id} already ${newStatus}, no update needed`);
+                        console.log(`ℹ️ [checkPendingWithdrawals] Withdrawal ${withdrawal.id} status: ${oxaPayStatus}, no update needed`);
                     }
                 }
             } catch (error) {
