@@ -1,5 +1,3 @@
-// ============= server.js (كامل) =============
-
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -37,7 +35,7 @@ function logInfo(endpoint, message) {
 function logError(endpoint, error) {
     console.error(`❌ [${endpoint}] Error:`, error.message || error);
     if (error.stack) {
-        console.error(`📚 Stack:`, error.stack.substring(0, 500));
+        console.error(`📚 Stack:`, error.stack);
     }
 }
 
@@ -695,10 +693,13 @@ class OxaPay {
             try {
                 result = JSON.parse(responseText);
             } catch (e) {
+                logError('OxaPay.getPayoutStatus', new Error('Invalid JSON: ' + responseText));
                 throw new Error('Invalid response from OxaPay');
             }
             if (!response.ok || result.status !== 200) {
-                throw new Error(result.message || result.error || `HTTP ${response.status}`);
+                const errorMsg = result.message || result.error || `HTTP ${response.status}`;
+                logError('OxaPay.getPayoutStatus', new Error(errorMsg));
+                throw new Error(errorMsg);
             }
             return result;
         } catch (error) {
@@ -1695,6 +1696,7 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
                     .select()
                     .single();
                 if (taskError) {
+                    logError('/api/check-payment', taskError);
                     return res.status(500).json({ error: 'Failed to add task' });
                 }
                 await updateUser(userId, { task_count: (user.task_count || 0) + 1 });
@@ -1779,56 +1781,63 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
             apiKey: process.env.OXAPAY_API_KEY,
             sandbox: process.env.NODE_ENV !== 'production'
         });
-        const payout = await oxapay.createPayout({
-            toAddress: walletAddress,
-            amount: gramAmount,
-            currency: 'GRAM',
-            network: 'TON',
-            description: `Withdraw ${gramAmount} GRAM for user ${userId}`,
-            memo: 'GRAM PIRATES 🏴‍☠️'
-        });
-        if (!payout || !payout.success) {
+        try {
+            const payout = await oxapay.createPayout({
+                toAddress: walletAddress,
+                amount: gramAmount,
+                currency: 'GRAM',
+                network: 'TON',
+                description: `Withdraw ${gramAmount} GRAM for user ${userId}`,
+                memo: 'GRAM PIRATES 🏴‍☠️'
+            });
+            if (!payout || !payout.success) {
+                return res.status(500).json({ 
+                    error: payout?.message || payout?.error || 'Payout failed' 
+                });
+            }
+            const trackId = payout?.data?.track_id || payout?.trackId || 'N/A';
+            const status = 'processing';
+            const txHash = payout?.data?.tx_hash || payout?.txHash || null;
+            const updatedUser = await updateUser(userId, {
+                gold_balance: (user.gold_balance || 0) - gold,
+                last_withdraw_time: now
+            });
+            const withdrawal = await createWithdrawal({
+                user_id: userId,
+                amount: gold,
+                fees: fees,
+                gram_amount: gramAmount,
+                wallet: walletAddress,
+                status: status,
+                timestamp: now,
+                tx_id: trackId,
+                tx_hash: txHash
+            });
+            await sendTelegramNotification(userId, '🔄 Withdrawal Processing', 
+                `🏴‍☠️ Your withdrawal of ${gramAmount} GRAM is being processed.\n\n⏳ You will receive a confirmation shortly.`,
+                { text: '🏴‍☠️ Earn More', url: 'https://t.me/GramPirateBot/app' }
+            );
+            const adminId = process.env.ADMIN_USER_ID;
+            if (adminId) {
+                await sendTelegramNotification(adminId, '🆕 New Withdrawal', 
+                    `🏴‍☠️ User: ${userId}\n\n🏅 Amount: ${gold} Gold (${gramAmount} GRAM)\n\n💳 Wallet: ${walletAddress}\n\n📋 Track ID: ${trackId}`
+                );
+            }
+            res.json({
+                success: true,
+                user: updatedUser,
+                withdrawal: withdrawal,
+                gramAmount: gramAmount,
+                trackId: trackId,
+                status: status,
+                txHash: txHash
+            });
+        } catch (payoutError) {
+            logError('/api/withdraw-gram', payoutError);
             return res.status(500).json({ 
-                error: payout?.message || payout?.error || 'Payout failed' 
+                error: 'Payment provider error: ' + payoutError.message 
             });
         }
-        const trackId = payout?.data?.track_id || payout?.trackId || 'N/A';
-        const status = 'processing';
-        const txHash = payout?.data?.tx_hash || payout?.txHash || null;
-        const updatedUser = await updateUser(userId, {
-            gold_balance: (user.gold_balance || 0) - gold,
-            last_withdraw_time: now
-        });
-        const withdrawal = await createWithdrawal({
-            user_id: userId,
-            amount: gold,
-            fees: fees,
-            gram_amount: gramAmount,
-            wallet: walletAddress,
-            status: status,
-            timestamp: now,
-            tx_id: trackId,
-            tx_hash: txHash
-        });
-        await sendTelegramNotification(userId, '🔄 Withdrawal Processing', 
-            `🏴‍☠️ Your withdrawal of ${gramAmount} GRAM is being processed.\n\n⏳ You will receive a confirmation shortly.`,
-            { text: '🏴‍☠️ Earn More', url: 'https://t.me/GramPirateBot/app' }
-        );
-        const adminId = process.env.ADMIN_USER_ID;
-        if (adminId) {
-            await sendTelegramNotification(adminId, '🆕 New Withdrawal', 
-                `🏴‍☠️ User: ${userId}\n\n🏅 Amount: ${gold} Gold (${gramAmount} GRAM)\n\n💳 Wallet: ${walletAddress}\n\n📋 Track ID: ${trackId}`
-            );
-        }
-        res.json({
-            success: true,
-            user: updatedUser,
-            withdrawal: withdrawal,
-            gramAmount: gramAmount,
-            trackId: trackId,
-            status: status,
-            txHash: txHash
-        });
     } catch (error) {
         logError('/api/withdraw-gram', error);
         res.status(500).json({ error: 'Failed to send withdrawal request: ' + error.message });
