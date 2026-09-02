@@ -2590,7 +2590,7 @@ class App {
         const amount = (this.pendingTaskData.total * this.pendingTaskData.reward / 1000) * (this.config.PRICE_PER_100 || 0.001);
         const nanoAmount = Math.floor(amount * 1000000000);
         
-        const walletDisplay = wallet.length > 12 ? 
+        const walletDisplays = wallet.length > 12 ? 
         wallet.substring(0, 5) + '.....' + wallet.substring(wallet.length - 5) : 
         wallet;
 
@@ -2601,7 +2601,7 @@ class App {
         const statusEl = document.getElementById('payment-status');
 
         if (walletDisplay) {
-            walletDisplay.textContent = walletDisplay;
+            walletDisplay.textContent = walletDisplays;
             walletDisplay.onclick = () => this.copyToClipboard(wallet);
         }
         if (memoDisplay) {
