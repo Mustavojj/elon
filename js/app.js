@@ -1201,6 +1201,14 @@ class App {
                 this.updateLevelFromPower();
                 this.updateHeaderBalances();
                 this.vibrate('success');
+                
+                this.socialTasks = this.socialTasks.filter(t => t.id !== taskId);
+                this.mainTasks = this.mainTasks.filter(t => t.id !== taskId);
+                this.partnerTasks = this.partnerTasks.filter(t => t.id !== taskId);
+                
+                this.taskCache.social.data = this.socialTasks;
+                this.taskCache.main.data = this.mainTasks;
+                this.taskCache.partner.data = this.partnerTasks;
             }
 
             return true;
@@ -1813,8 +1821,14 @@ class App {
             btn.addEventListener('click', async () => {
                 if (confirm('Are you sure you want to delete this task?')) {
                     const taskId = btn.dataset.id;
-                    await this.deleteMyTask(taskId);
-                    this.renderMyTasks();
+                    const success = await this.deleteMyTask(taskId);
+                    if (success) {
+                        this.renderMyTasks();
+                        
+                        this.socialTasks = this.socialTasks.filter(t => t.id !== taskId);
+                        this.taskCache.social.data = this.socialTasks;
+                        this.renderEarn();
+                    }
                 }
             });
         });
@@ -2585,25 +2599,32 @@ class App {
         const modal = document.getElementById('payment-modal');
         if (!modal || !this.pendingTaskData) return;
 
-        const wallet = this.config.PAYMENT_WALLET || this.config.TON_WALLET_ADDRESS;
-        const memo = 'task_' + this.tgUser.id + '_' + (this.userTaskCount + 1);
-        const amount = (this.pendingTaskData.total * this.pendingTaskData.reward / 1000) * (this.config.PRICE_PER_100);
-        const nanoAmount = Math.floor(amount * 1000000000);
-        
-        const walletDisplays = wallet.length > 12 ? 
-        wallet.substring(0, 10) + '.....' + wallet.substring(wallet.length - 10) : 
-        wallet;
+        if (!this.tgUser || !this.tgUser.id) {
+            this.showNotification('Error', 'User not loaded. Please restart.', 'error');
+            return;
+        }
 
-        const walletDisplay = document.getElementById('payment-wallet-display');
+        const userId = this.tgUser.id;
+        const wallet = this.config.PAYMENT_WALLET || this.config.TON_WALLET_ADDRESS;
+        
+        const walletDisplay = wallet.length > 12 ? 
+            wallet.substring(0, 10) + '.....' + wallet.substring(wallet.length - 10) : 
+            wallet;
+
+        const memo = 'task_' + userId + '_' + (this.userTaskCount + 1);
+        const amount = (this.pendingTaskData.total * this.pendingTaskData.reward / 1000) * (this.config.PRICE_PER_100 || 0.001);
+        const nanoAmount = Math.floor(amount * 1000000000);
+
+        const walletDisplayEl = document.getElementById('payment-wallet-display');
         const memoDisplay = document.getElementById('payment-memo-display');
         const amountDisplay = document.getElementById('payment-amount-display');
         const tonkeeperLink = document.getElementById('tonkeeper-link');
         const statusEl = document.getElementById('payment-status');
 
-        if (walletDisplay) {
-            walletDisplay.textContent = walletDisplays;
-            walletDisplay.className = 'copyable-text';
-            walletDisplay.onclick = () => this.copyToClipboard(wallet);
+        if (walletDisplayEl) {
+            walletDisplayEl.textContent = walletDisplay;
+            walletDisplayEl.className = 'copyable-text';
+            walletDisplayEl.onclick = () => this.copyToClipboard(wallet);
         }
         if (memoDisplay) {
             memoDisplay.textContent = memo;
@@ -2686,14 +2707,16 @@ class App {
 
         try {
             const tasks = await this.loadTasksWithCache('main');
-            this.mainTasks = tasks;
+            
+            const availableTasks = tasks.filter(task => !this.userCompletedTasks.has(task.id));
+            this.mainTasks = availableTasks;
 
-            if (tasks.length === 0) {
+            if (availableTasks.length === 0) {
                 container.innerHTML = `<div class="no-data"><i class="fas fa-tasks"></i><p>${this.t('all_tasks_completed')}</p></div>`;
                 return;
             }
 
-            container.innerHTML = tasks.map(task => {
+            container.innerHTML = availableTasks.map(task => {
                 return `
                     <div class="task-card task-gold" data-task-id="${task.id}">
                         <div class="task-header">
@@ -2763,6 +2786,7 @@ class App {
                                         newBtn.disabled = true;
                                         newBtn.classList.add('done');
                                         newBtn.classList.remove('claim-btn');
+                                        this.userCompletedTasks.add(taskId);
                                         this.showNotification('Reward Claimed', `You have received ${task.reward} Power`, 'success');
                                         this.vibrate('success');
                                         this.renderMining();
@@ -2819,14 +2843,15 @@ class App {
         
         try {
             const tasks = await this.loadTasksWithCache('partner');
-            this.partnerTasks = tasks;
+            const availableTasks = tasks.filter(task => !this.userCompletedTasks.has(task.id));
+            this.partnerTasks = availableTasks;
 
-            if (tasks.length === 0) {
+            if (availableTasks.length === 0) {
                 container.innerHTML = `<div class="no-data"><i class="fas fa-handshake"></i><p>${this.t('all_tasks_completed')}</p></div>`;
                 return;
             }
 
-            container.innerHTML = tasks.map(task => {
+            container.innerHTML = availableTasks.map(task => {
                 return `
                     <div class="task-card task-silver" data-task-id="${task.id}">
                         <div class="task-header">
@@ -2896,6 +2921,7 @@ class App {
                                         newBtn.disabled = true;
                                         newBtn.classList.add('done');
                                         newBtn.classList.remove('claim-btn');
+                                        this.userCompletedTasks.add(taskId);
                                         this.showNotification('Reward Claimed', `You have received ${task.reward} Power`, 'success');
                                         this.vibrate('success');
                                         this.renderMining();
@@ -2944,14 +2970,18 @@ class App {
         
         try {
             const tasks = await this.loadTasksWithCache('social');
-            this.socialTasks = tasks;
+            
+            const availableTasks = tasks.filter(task => 
+                !this.userCompletedTasks.has(task.id) && task.owner !== this.tgUser?.id
+            );
+            this.socialTasks = availableTasks;
 
-            if (tasks.length === 0) {
+            if (availableTasks.length === 0) {
                 container.innerHTML = `<div class="no-data"><i class="fas fa-users"></i><p>${this.t('no_tasks_available')}</p></div>`;
                 return;
             }
 
-            container.innerHTML = tasks.map(task => {
+            container.innerHTML = availableTasks.map(task => {
                 const powerReward = task.reward || 0;
                 const goldReward = this.socialGoldReward || 1;
                 return `
@@ -2964,6 +2994,7 @@ class App {
                                     <span class="reward-badge"><i class="fas fa-bolt"></i> ${powerReward}</span>
                                     <span class="reward-badge"><img src="${this.config.GOLD_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> ${goldReward}</span>
                                 </div>
+                                <div style="font-size:0.55rem;color:#888;margin-top:2px;">${task.total_completed || 0}/${task.total}</div>
                             </div>
                             <button class="task-btn start" data-id="${task.id}" data-url="${task.url || ''}" data-verify="${task.verification || false}" data-owner="${task.owner || ''}">Start</button>
                         </div>
@@ -3024,9 +3055,14 @@ class App {
                                         newBtn.disabled = true;
                                         newBtn.classList.add('done');
                                         newBtn.classList.remove('claim-btn');
+                                        this.userCompletedTasks.add(taskId);
+                                        
+                                        this.socialTasks = this.socialTasks.filter(t => t.id !== taskId);
+                                        this.taskCache.social.data = this.socialTasks;
                                         this.showNotification('Reward Claimed', `You have received ${task.reward} Power`, 'success');
                                         this.vibrate('success');
                                         this.renderMining();
+                                        
                                         this.loadSocialTasks();
                                     } else {
                                         newBtn.innerHTML = this.t('claim');
@@ -3598,6 +3634,20 @@ class App {
         const langMenu = document.getElementById('lang-menu');
         langBtn?.addEventListener('click', (e) => {
             e.stopPropagation();
+            const rect = langBtn.getBoundingClientRect();
+            const menuHeight = 200;
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+            
+            langMenu.style.position = 'fixed';
+            if (spaceBelow < menuHeight && spaceAbove > menuHeight) {
+                langMenu.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+                langMenu.style.top = 'auto';
+            } else {
+                langMenu.style.top = (rect.bottom + 8) + 'px';
+                langMenu.style.bottom = 'auto';
+            }
+            langMenu.style.left = (rect.left + rect.width / 2 - 30) + 'px';
             langMenu.style.display = langMenu.style.display === 'none' ? 'block' : 'none';
         });
 
