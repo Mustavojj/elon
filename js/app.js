@@ -2665,18 +2665,6 @@ class App {
                 </button>
             </div>
 
-            <div class="ad-card gold-card">
-                <div class="ad-icon"><img src="https://i.ibb.co/5gFSFbKC/IMG-20260830-155843-883.jpg" alt="Monetag"></div>
-                <div class="ad-info">
-                    <h4>${this.t('watch_monetag')}</h4>
-                    <p><span class="bolt"><i class="fas fa-bolt"></i> ${this.adRewardPower} ${this.t('power')}</span></p>
-                    <p style="font-size:0.6rem;color:#666;">${monetagCooldown > 0 ? this.t('ad_cooldown_seconds', { s: Math.ceil(monetagCooldown / 1000) }) : this.t('ad_ready')}</p>
-                </div>
-                <button id="watch-monetag-btn" class="ad-btn gold-btn" ${!monetagAvailable ? 'disabled' : ''}>
-                    ${monetagAvailable ? this.t('watch') : Math.ceil(monetagCooldown / 1000) + 's'}
-                </button>
-            </div>
-
             <div class="section-title"><i class="fas fa-tasks"></i> ${this.t('quests_title')}</div>
 
             ${currentLevelQuest ? `
