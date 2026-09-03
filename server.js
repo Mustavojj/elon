@@ -767,6 +767,38 @@ app.post('/api/check-bot-admin', authenticate, async (req, res) => {
     }
 });
 
+
+app.post('/api/check-membership', authenticate, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const { channel } = req.body;
+        
+        if (!channel) {
+            return res.status(400).json({ error: 'Channel is required' });
+        }
+
+        if (!BOT_TOKEN) {
+            return res.json({ isMember: true, error: 'bot_not_configured' });
+        }
+
+        const isAdmin = await checkBotIsAdminInChannel(channel);
+        if (!isAdmin) {
+            return res.json({ isMember: true, error: 'bot_not_admin' });
+        }
+
+        const chatMember = await fetch(
+            `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=@${channel}&user_id=${userId}`
+        ).then(r => r.json());
+
+        const isMember = chatMember.ok && ['member', 'administrator', 'creator'].includes(chatMember.result?.status);
+        
+        res.json({ isMember });
+    } catch (error) {
+        logError('/api/check-membership', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.post('/api/auth', async (req, res) => {
     try {
         const { userId, deviceId, firstName, username, photoUrl } = req.body;
