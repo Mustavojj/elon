@@ -166,7 +166,7 @@ const APP_CONFIG = {
     MONETAG_AD_COOLDOWN_MINUTES: 3,
     AD_DAILY_LIMIT: 10,
     MIN_CLAIM_GOLD: 1,
-    PRICE_PER_100: 0.100,
+    PRICE_PER_100: 0.10,
     SOCIAL_GOLD_REWARD: 1,
     PAYMENTS_CHANNEL: "https://t.me/Pirates_Proof",
     QUESTS: {
@@ -1324,40 +1324,78 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
         }
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
+
         const { data: task, error: taskError } = await supabase
             .from('tasks')
-            .select('reward, total, category')
+            .select('reward, total, total_completed, category, owner, notified, name')
             .eq('id', taskId)
             .single();
+
         if (taskError || !task) {
             return res.status(404).json({ error: 'Task not found' });
         }
+
+        if (task.total_completed >= task.total) {
+            return res.status(400).json({ error: 'Task already completed' });
+        }
+
         const { data: completed } = await supabase
             .from('user_completed_tasks')
             .select('task_id')
             .eq('user_id', userId)
             .eq('task_id', taskId)
             .single();
+
         if (completed) {
-            return res.status(400).json({ error: 'Task already completed' });
+            return res.status(400).json({ error: 'Task already completed by you' });
         }
+
+        const newTotalCompleted = (task.total_completed || 0) + 1;
         await supabase
             .from('tasks')
-            .update({ total: (task.total || 0) + 1 })
+            .update({ total_completed: newTotalCompleted })
             .eq('id', taskId);
+
         await supabase
             .from('user_completed_tasks')
             .insert([{ user_id: userId, task_id: taskId, completed_at: getCurrentTime() }]);
+
         let totalCompleted = (user.total_tasks_completed || 0) + 1;
         const updatedUser = await updateUser(userId, {
             power_balance: (user.power_balance || 0) + task.reward,
             total_tasks_completed: totalCompleted
         });
+
+        if (task.category === 'social' && task.owner && task.owner !== userId) {
+            const { data: taskData } = await supabase
+                .from('tasks')
+                .select('total, total_completed, notified, name, reward')
+                .eq('id', taskId)
+                .single();
+
+            if (taskData && taskData.total_completed >= taskData.total && !taskData.notified) {
+                await supabase
+                    .from('tasks')
+                    .update({ notified: true })
+                    .eq('id', taskId);
+
+                const taskName = taskData.name || 'Social Task';
+                const rewardPower = taskData.reward || 0;
+                await sendTelegramNotification(
+                    task.owner,
+                    '✅ Social Task Completed!',
+                    `🏴‍☠️ Your social task "${taskName}" has been fully completed!\n\n📊 ${taskData.total_completed}/${taskData.total} completions\n🎁 Reward: ${rewardPower} Power`
+                );
+            }
+        }
+
         if (user.referred_by) {
             const referralEarning = task.reward * (APP_CONFIG.REFERRAL_TASKS_PERCENTAGE / 100);
             await addReferralCommission(user.referred_by, referralEarning, 'power');
         }
+
         await updateUserLevel(userId);
+
         res.json({
             success: true,
             user: updatedUser,
@@ -1629,21 +1667,31 @@ app.post('/api/delete-task', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { taskId } = req.body;
+        
         const { data: task, error: checkError } = await supabase
             .from('tasks')
             .select('owner')
             .eq('id', taskId)
             .single();
+        
         if (checkError || !task) {
             return res.status(404).json({ error: 'Task not found' });
         }
+        
         if (task.owner !== userId) {
             return res.status(403).json({ error: 'Not authorized' });
         }
+        
         await supabase
             .from('tasks')
-            .update({ status: 'inactive' })
+            .delete()
             .eq('id', taskId);
+        
+        await supabase
+            .from('user_completed_tasks')
+            .delete()
+            .eq('task_id', taskId);
+        
         res.json({ success: true });
     } catch (error) {
         logError('/api/delete-task', error);
@@ -1653,86 +1701,55 @@ app.post('/api/delete-task', authenticate, async (req, res) => {
 
 app.post('/api/check-payment', authenticate, async (req, res) => {
     try {
-        console.log('🔍 [check-payment] Starting payment check...');
-        
         const userId = req._userId;
-        console.log(`👤 [check-payment] User ID: ${userId}`);
-        
         const { memo, amount, taskData } = req.body;
-        console.log(`📝 [check-payment] Memo: ${memo}, Amount: ${amount}`);
-        console.log(`📦 [check-payment] TaskData:`, JSON.stringify(taskData, null, 2));
-        
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
-            console.log('❌ [check-payment] Device mismatch');
             return res.status(403).json({ error: 'Device mismatch' });
         }
-        console.log('✅ [check-payment] Device validated');
 
-        console.log('🔍 [check-payment] Fetching user from database...');
         const user = await getUser(userId);
         if (!user) {
-            console.log('❌ [check-payment] User not found in database');
             return res.status(404).json({ error: 'User not found' });
         }
-        console.log(`✅ [check-payment] User found: ${user.id}, username: ${user.username || 'N/A'}, task_count: ${user.task_count || 0}`);
 
         const address = APP_CONFIG.PAYMENT_WALLET || APP_CONFIG.TON_WALLET_ADDRESS;
         if (!address) {
-            console.log('❌ [check-payment] Payment wallet not configured');
             return res.status(500).json({ error: 'Payment wallet not configured' });
         }
-        console.log(`💳 [check-payment] Payment wallet: ${address.substring(0, 6)}...${address.substring(address.length - 6)}`);
 
-        console.log('🌐 [check-payment] Fetching transactions from TON Center...');
         const response = await fetch(`https://toncenter.com/api/v2/getTransactions?address=${address}&limit=50`);
         const data = await response.json();
         if (!data.ok) {
-            console.log('❌ [check-payment] TON Center API error:', data);
             return res.status(500).json({ error: 'Payment API error' });
         }
-        console.log(`✅ [check-payment] Received ${data.result?.length || 0} transactions`);
 
         let foundTx = null;
         if (data.result && data.result.length > 0) {
-            console.log(`🔍 [check-payment] Searching for memo: "${memo}"`);
             foundTx = data.result.find(tx => {
                 const msg = tx.in_msg?.message;
-                const match = msg && msg.includes(memo);
-                if (match) {
-                    console.log(`✅ [check-payment] Found matching transaction: ${tx.transaction_id?.hash}`);
-                }
-                return match;
+                return msg && msg.includes(memo);
             });
         }
 
         if (foundTx) {
-            console.log('💰 [check-payment] Transaction found, verifying amount...');
             const txAmount = parseFloat(foundTx.in_msg?.value) / 1000000000 || 0;
             const requiredAmount = (taskData.total * taskData.reward / 1000) * (APP_CONFIG.PRICE_PER_100 || 0.001);
-            console.log(`💵 [check-payment] Transaction amount: ${txAmount} GRAM, Required: ${requiredAmount} GRAM`);
-            
             if (txAmount >= requiredAmount * 0.95) {
-                console.log('✅ [check-payment] Amount verified, checking verification...');
                 let verification = taskData.verification || false;
                 if (verification && taskData.link) {
-                    console.log(`🔍 [check-payment] Verification required for: ${taskData.link}`);
                     const channelMatch = taskData.link.match(/t\.me\/([^\/\?]+)/);
                     if (channelMatch) {
-                        console.log(`🔍 [check-payment] Checking bot admin in channel: ${channelMatch[1]}`);
                         const isAdmin = await checkBotIsAdminInChannel(channelMatch[1]);
                         if (!isAdmin) {
-                            console.log('❌ [check-payment] Bot is not admin in channel');
                             return res.json({
                                 success: false,
                                 error: 'Bot is not admin in the channel. Please add @GramPirateBot as admin.'
                             });
                         }
-                        console.log('✅ [check-payment] Bot is admin in channel');
                     }
                 }
 
-                console.log('📝 [check-payment] Creating task in database...');
                 const taskId = crypto.randomUUID();
                 const taskToAdd = {
                     id: taskId,
@@ -1749,7 +1766,6 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
                     notified: false
                 };
 
-                console.log(`📤 [check-payment] Task data:`, JSON.stringify(taskToAdd, null, 2));
                 const { data: taskResult, error: taskError } = await supabase
                     .from('tasks')
                     .insert([taskToAdd])
@@ -1757,43 +1773,30 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
                     .single();
 
                 if (taskError) {
-                    console.log('❌ [check-payment] Failed to insert task:', taskError);
                     logError('/api/check-payment', taskError);
                     return res.status(500).json({ error: 'Failed to add task' });
                 }
-                console.log(`✅ [check-payment] Task created successfully: ${taskId}`);
 
-                console.log(`🔄 [check-payment] Updating user task_count from ${user.task_count || 0} to ${(user.task_count || 0) + 1}`);
-                const updatedUser = await updateUser(userId, { task_count: (user.task_count || 0) + 1 });
-                if (!updatedUser) {
-                    console.log('❌ [check-payment] Failed to update user task_count');
-                } else {
-                    console.log(`✅ [check-payment] User updated: task_count = ${updatedUser.task_count}`);
-                }
+                await updateUser(userId, { task_count: (user.task_count || 0) + 1 });
 
-                console.log('🎉 [check-payment] Payment verified successfully!');
                 return res.json({
                     success: true,
                     task: taskResult,
                     message: 'Payment verified and task added'
                 });
             } else {
-                console.log(`❌ [check-payment] Insufficient amount: ${txAmount} < ${requiredAmount}`);
                 return res.json({
                     success: false,
                     error: 'Insufficient payment amount'
                 });
             }
         } else {
-            console.log(`❌ [check-payment] No transaction found with memo: "${memo}"`);
             return res.json({
                 success: false,
                 error: 'Payment not found'
             });
         }
     } catch (error) {
-        console.log('💥 [check-payment] CATCH ERROR:', error.message);
-        console.log('📚 [check-payment] Error stack:', error.stack);
         logError('/api/check-payment', error);
         res.status(500).json({ error: error.message });
     }
