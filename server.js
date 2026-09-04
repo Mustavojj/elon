@@ -1834,6 +1834,79 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
     }
 });
 
+
+app.post('/api/setup-promotion', authenticate, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const { channel } = req.body;
+        const validDevice = await validateDevice(userId, req._deviceId);
+        if (!validDevice) {
+            return res.status(403).json({ error: 'Device mismatch' });
+        }
+
+        if (!channel || !channel.startsWith('https://t.me/')) {
+            return res.status(400).json({ error: 'Invalid channel link' });
+        }
+
+        const user = await getUser(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const channelMatch = channel.match(/t\.me\/([^\/\?]+)/);
+        if (!channelMatch) {
+            return res.status(400).json({ error: 'Invalid channel format' });
+        }
+
+        const channelUsername = channelMatch[1];
+
+        const isAdmin = await checkBotIsAdminInChannel(channelUsername);
+        if (!isAdmin) {
+            return res.status(400).json({ error: 'Bot is not admin in the channel. Please add @GramPirateBot as admin.' });
+        }
+
+        const promotionData = {
+            channel: channel,
+            link: channel,
+            status: 'pending',
+            submitted_at: getCurrentTime(),
+            username: channelUsername
+        };
+
+        const updatedUser = await updateUser(userId, { 
+            promotion: promotionData 
+        });
+
+        await notifyAdmin(
+            `<b>📢 New Promotion Request</b>\n\n` +
+            `<b>User:</b> ${user.first_name || userId} (${userId})\n` +
+            `<b>Channel:</b> ${channel}\n` +
+            `<b>Status:</b> Pending Review`
+        );
+
+        res.json({ success: true, promotion: promotionData });
+    } catch (error) {
+        logError('/api/setup-promotion', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/check-promotion', authenticate, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const user = await getUser(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const promotion = user.promotion || null;
+        res.json({ success: true, promotion });
+    } catch (error) {
+        logError('/api/check-promotion', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.post('/api/set-wallet', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
