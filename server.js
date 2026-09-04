@@ -1877,13 +1877,6 @@ app.post('/api/setup-promotion', authenticate, async (req, res) => {
             promotion: promotionData 
         });
 
-        await notifyAdmin(
-            `<b>📢 New Promotion Request</b>\n\n` +
-            `<b>User:</b> ${user.first_name || userId} (${userId})\n` +
-            `<b>Channel:</b> ${channel}\n` +
-            `<b>Status:</b> Pending Review`
-        );
-
         res.json({ success: true, promotion: promotionData });
     } catch (error) {
         logError('/api/setup-promotion', error);
