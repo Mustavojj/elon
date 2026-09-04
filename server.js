@@ -1415,8 +1415,8 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
                 const rewardPower = taskData.reward || 0;
                 await sendTelegramNotification(
                     task.owner,
-                    '✅ Social Task Completed!',
-                    `🏴‍☠️ Your social task "${taskName}" has been fully completed!\n\n📊 ${taskData.total_completed}/${taskData.total} completions\n🎁 Reward: ${rewardPower} Power`
+                    '✅ Task Completed!',
+                    `🏴‍☠️ Your task "${taskName}" has been completed!\n\n📊 Progress: ${taskData.total_completed}/${taskData.total} completions`
                 );
             }
         }
@@ -1830,6 +1830,38 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
         }
     } catch (error) {
         logError('/api/check-payment', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/set-wallet', authenticate, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const { wallet } = req.body;
+        const validDevice = await validateDevice(userId, req._deviceId);
+        if (!validDevice) {
+            return res.status(403).json({ error: 'Device mismatch' });
+        }
+
+        if (!wallet || !wallet.startsWith('UQ') || wallet.length < 20) {
+            return res.status(400).json({ error: 'Invalid wallet address. Must start with UQ and be at least 20 characters.' });
+        }
+
+        const { data: existingUser } = await supabase
+            .from('users')
+            .select('id')
+            .eq('wallet', wallet)
+            .neq('id', userId)
+            .single();
+
+        if (existingUser) {
+            return res.status(400).json({ error: 'Connot connect your wallet' });
+        }
+
+        const updatedUser = await updateUser(userId, { wallet: wallet });
+        res.json({ success: true, user: updatedUser });
+    } catch (error) {
+        logError('/api/set-wallet', error);
         res.status(500).json({ error: error.message });
     }
 });
