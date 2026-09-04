@@ -2170,7 +2170,7 @@ class App {
         if (!this.tgUser) return false;
 
         try {
-            const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "int-41677" });
+            const AdController = window.Adsgram.init({ blockId: this.config.REWARD_AD_BLOCK_ID });
             await AdController.show();
         } catch (e) {
             this.showNotification('No Ads', 'No ads available at the moment', 'warning');
