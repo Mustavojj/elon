@@ -134,8 +134,8 @@ async function checkBotIsAdminInChannel(channelUsername) {
 const APP_CONFIG = {
     APP_NAME: "GRAM PIRATES 🏴‍☠️",
     BOT_USERNAME: "GramPirateBot",
-    MINIMUM_WITHDRAW: 150,
-    WITHDRAWAL_FEES: 50,
+    MINIMUM_WITHDRAW: 200,
+    WITHDRAWAL_FEES: 80,
     REFERRAL_PERCENTAGE: 10,
     MINING_SESSION_HOURS: 12,
     POWER_PER_DAY_RATE: 0.005,
