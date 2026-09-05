@@ -812,6 +812,22 @@ app.post('/api/auth', async (req, res) => {
                 message: 'This device is already linked to another account' 
             });
         }
+
+        if (username) {
+            const { data: existingUser, error: checkError } = await supabase
+                .from('users')
+                .select('id, username')
+                .eq('username', username)
+                .neq('id', userId)
+                .single();
+
+            if (existingUser) {
+                return res.status(400).json({ 
+                    error: 'Cannot make your account' 
+                });
+            }
+        }
+        
         let user = await getUser(userId);
         if (!user) {
             const userData = {
