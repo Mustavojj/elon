@@ -1384,7 +1384,12 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
         }
 
         if (task.total_completed >= task.total) {
-            return res.status(400).json({ error: 'Task already completed' });
+        
+            await supabase
+                .from('tasks')
+                .update({ status: 'completed' })
+                .eq('id', taskId);
+            return res.status(400).json({ error: 'Task already limited' });
         }
 
         const { data: completed } = await supabase
