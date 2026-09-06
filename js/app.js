@@ -160,7 +160,7 @@ const translations = {
         exchange_rate_note: "Exchange Rate: 1 Power = 1 GOLD",
         bonus_note: "You will receive +10% bonus",
         wait_cooldown: "Wait {h}h before next withdrawal",
-        min_withdraw_gold_amount: "Minimum Withdrawal: 100 GOLD",
+        min_withdraw_gold_amount: "Minimum Withdrawal: 200 GOLD",
         max_withdraw_gold_amount: "Maximum withdrawal: 2000 Gold",
         claim_with_bonus: "CLAIM (+10%)",
         claim_default: "CLAIM",
