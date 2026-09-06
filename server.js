@@ -930,6 +930,7 @@ app.post('/api/verify-device', async (req, res) => {
         if (error || !verification) {
             return res.status(400).json({ error: 'Invalid code' });
         }
+        
         if (getCurrentTime() > verification.expires_at) {
             await supabase
                 .from('verification_codes')
@@ -1872,6 +1873,17 @@ app.post('/api/setup-promotion', authenticate, async (req, res) => {
         const user = await getUser(userId);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
+        }
+
+        const { data: existingChannel, error: checkError } = await supabase
+            .from('users')
+            .select('id')
+            .contains('promotion', { channel: channel })
+            .neq('id', userId)
+            .single();
+        
+        if (existingChannel) {
+            return res.status(400).json({ error: 'You cannot add this channel' });
         }
 
         const channelMatch = channel.match(/t\.me\/([^\/\?]+)/);
