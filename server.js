@@ -1730,37 +1730,43 @@ app.post('/api/delete-task', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { taskId } = req.body;
-        
+
         const { data: task, error: checkError } = await supabase
             .from('tasks')
-            .select('owner')
+            .select('owner, status')
             .eq('id', taskId)
             .single();
-        
+
         if (checkError || !task) {
             return res.status(404).json({ error: 'Task not found' });
         }
-        
+
         if (task.owner !== userId) {
             return res.status(403).json({ error: 'Not authorized' });
         }
-        
+
+        if (task.status !== 'completed') {
+            return res.status(400).json({ error: 'Task not completed yet' });
+        }
+
         await supabase
             .from('tasks')
             .delete()
             .eq('id', taskId);
-        
+
         await supabase
             .from('user_completed_tasks')
             .delete()
             .eq('task_id', taskId);
-        
+
         res.json({ success: true });
+
     } catch (error) {
         logError('/api/delete-task', error);
         res.status(500).json({ error: error.message });
     }
 });
+
 
 app.post('/api/check-payment', authenticate, async (req, res) => {
     try {
