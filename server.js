@@ -772,20 +772,20 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
     try {
         const update = req.body;
         
-        if (update.message && update.message.text) {
+         if (update.message && update.message.chat && update.message.chat.type === 'private') {
             const chatId = update.message.chat.id;
             const username = update.message.chat.username || '';
             const firstName = update.message.chat.first_name || 'User';
             const text = update.message.text;
             
             let referrerId = null;
-            if (text.startsWith('/start')) {
+            if (text && text.startsWith('/start')) {
                 const parts = text.split(' ');
                 if (parts.length > 1 && !isNaN(parts[1])) {
                     referrerId = parseInt(parts[1]);
                 }
-            }
-
+            } 
+             
             const appLink = referrerId 
                 ? `https://t.me/GramPirateBot/app?startapp=${referrerId}`
                 : `https://t.me/GramPirateBot/app`;
