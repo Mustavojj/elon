@@ -1380,10 +1380,12 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { taskId, isPartner, taskOwner } = req.body;
+        
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
             return res.status(403).json({ error: 'Device mismatch' });
         }
+        
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -1398,13 +1400,21 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
         }
 
         if (task.total_completed >= task.total) {
-        
+
             await supabase
                 .from('tasks')
-                .update({ status: 'completed' })
+                .update({ status: 'completed', notified: true })
                 .eq('id', taskId);
-            return res.status(400).json({ error: 'Task already limited' });
-        }
+            return res.status(400).json({ error: 'Task already limited!' });
+
+                const taskName = taskData.name || 'Social Task';
+            
+                await sendTelegramNotification(
+                    task.owner,
+                    '<b>✅ Task Completed!</b>',
+                    `<b>🏴‍☠️ Your task "${taskName}" has been completed!</b>`
+                );
+            }
 
         const { data: completed } = await supabase
             .from('user_completed_tasks')
@@ -1440,20 +1450,6 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
                 .eq('id', taskId)
                 .single();
 
-            if (taskData && taskData.total_completed >= taskData.total && !taskData.notified) {
-                await supabase
-                    .from('tasks')
-                    .update({ notified: true })
-                    .eq('id', taskId);
-
-                const taskName = taskData.name || 'Social Task';
-                const rewardPower = taskData.reward || 0;
-                await sendTelegramNotification(
-                    task.owner,
-                    '✅ Task Completed!',
-                    `🏴‍☠️ Your task "${taskName}" has been completed!\n\n📊 Progress: ${taskData.total_completed}/${taskData.total} completions`
-                );
-            }
         }
 
         if (user.referred_by) {
