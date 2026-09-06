@@ -768,6 +768,55 @@ app.post('/api/check-bot-admin', authenticate, async (req, res) => {
 });
 
 
+app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    try {
+        const update = req.body;
+        
+        if (update.message && update.message.text) {
+            const chatId = update.message.chat.id;
+            const username = update.message.chat.username || '';
+            const firstName = update.message.chat.first_name || 'User';
+            const text = update.message.text;
+            
+            let referrerId = null;
+            if (text.startsWith('/start')) {
+                const parts = text.split(' ');
+                if (parts.length > 1 && !isNaN(parts[1])) {
+                    referrerId = parseInt(parts[1]);
+                }
+            }
+
+            const appLink = referrerId 
+                ? `https://t.me/GramPirateBot/app?startapp=${referrerId}`
+                : `https://t.me/GramPirateBot/app`;
+
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: `<b>🏴‍☠️ Welcome to GRAM PIRATES!</b>\n\n` +
+                          `<b>💰 Start mining Gold and earn FREE GRAM!</b>\n` +
+                          `<b>👥 Invite friends and earn bonuses!</b>\n\n`,
+                    parse_mode: 'HTML',
+                    reply_markup: {
+                        inline_keyboard: [[
+                            { text: '🚀 Open App', url: appLink }
+                        ]]
+                    },
+                    disable_web_page_preview: true
+                })
+            });
+        }
+
+        res.sendStatus(200);
+    } catch (error) {
+        console.error('Webhook error:', error);
+        res.sendStatus(500);
+    }
+});
+
+
 app.post('/api/check-membership', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
