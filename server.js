@@ -916,10 +916,16 @@ app.post('/api/auth', async (req, res) => {
 
 app.post('/api/verify-device', async (req, res) => {
     try {
+        console.log('🔍 [verify-device] Starting verification...');
         const { userId, deviceId, code } = req.body;
+        console.log(`👤 [verify-device] User ID: ${userId}, Device ID: ${deviceId}, Code: ${code}`);
+        
         if (!validateUserId(userId) || !code) {
+            console.log('❌ [verify-device] Invalid request: userId or code missing');
             return res.status(400).json({ error: 'Invalid request' });
         }
+
+        console.log('🔍 [verify-device] Querying verification_codes table...');
         const { data: verification, error } = await supabase
             .from('verification_codes')
             .select('*')
@@ -927,22 +933,39 @@ app.post('/api/verify-device', async (req, res) => {
             .eq('code', code)
             .eq('used', false)
             .single();
-        if (error || !verification) {
+
+        if (error) {
+            console.log('❌ [verify-device] Database error:', error.message);
             return res.status(400).json({ error: 'Invalid code' });
         }
-        
-        if (getCurrentTime() > verification.expires_at) {
+
+        if (!verification) {
+            console.log('❌ [verify-device] No verification record found for user_id:', userId, 'code:', code);
+            return res.status(400).json({ error: 'Invalid code' });
+        }
+
+        console.log('✅ [verify-device] Verification record found:', verification);
+
+        const currentTime = getCurrentTime();
+        console.log(`⏰ [verify-device] Current time: ${currentTime}, Expires at: ${verification.expires_at}`);
+
+        if (currentTime > verification.expires_at) {
+            console.log('❌ [verify-device] Code expired');
             await supabase
                 .from('verification_codes')
                 .update({ used: true })
                 .eq('id', verification.id);
             return res.status(400).json({ error: 'Code expired' });
         }
+
+        console.log('✅ [verify-device] Code is valid, updating user device...');
         await updateUser(userId, { device_id: deviceId });
         await supabase
             .from('verification_codes')
             .update({ used: true })
             .eq('id', verification.id);
+
+        console.log('✅ [verify-device] Generating JWT token...');
         const token = generateJWT(userId, deviceId);
         res.cookie('token', token, {
             httpOnly: true,
@@ -950,13 +973,19 @@ app.post('/api/verify-device', async (req, res) => {
             sameSite: 'strict',
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
+
         const user = await getUser(userId);
+        console.log('✅ [verify-device] Verification completed successfully for user:', userId);
         res.json({ success: true, token, user });
     } catch (error) {
+        console.error('❌ [verify-device] Fatal error:', error.message);
         logError('/api/verify-device', error);
         res.status(500).json({ error: error.message });
     }
 });
+
+
+
 
 app.post('/api/resend-device-code', async (req, res) => {
     try {
