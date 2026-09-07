@@ -1816,7 +1816,6 @@ app.post('/api/delete-task', authenticate, async (req, res) => {
     }
 });
 
-
 app.post('/api/check-payment', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
@@ -1897,6 +1896,9 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
 
                 await updateUser(userId, { task_count: (user.task_count || 0) + 1 });
 
+                // ✅ إرسال إشعار إلى القناة عند إنشاء مهمة جديدة
+                await sendTaskCreatedNotification(taskResult);
+
                 return res.json({
                     success: true,
                     task: taskResult,
@@ -1920,6 +1922,31 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
     }
 });
 
+async function sendTaskCreatedNotification(task) {
+    try {
+        const CHANNEL_ID = '@PTS_TASKS';
+        if (!BOT_TOKEN) return;
+
+        const message = `<b>⚡ NEW TASK AVAILABLE!</b>\n\n` +
+            `<b>📋 Task:</b> ${task.name}\n` +
+            `<b>🎁 Reward:</b> ${task.reward} POWER + ${APP_CONFIG.SOCIAL_GOLD_REWARD || 1} GOLD\n` +
+            `<b>📊 Total:</b> ${task.total} completions\n\n` +
+            `🏴‍☠️ Complete this task now and earn rewards!`;
+
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: CHANNEL_ID,
+                text: message,
+                parse_mode: 'HTML',
+                disable_web_page_preview: true
+            })
+        });
+    } catch (error) {
+        console.error('Failed to send task notification:', error);
+    }
+}
 
 app.post('/api/setup-promotion', authenticate, async (req, res) => {
     try {
