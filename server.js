@@ -2084,6 +2084,26 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
         }
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const CHANNEL_USERNAME = 'GramPTS';
+        try {
+            const chatMember = await fetch(
+                `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=@${CHANNEL_USERNAME}&user_id=${userId}`
+            ).then(r => r.json());
+
+            const isMember = chatMember.ok && ['member', 'administrator', 'creator'].includes(chatMember.result?.status);
+            
+            if (!isMember) {
+                return res.status(400).json({ 
+                    error: 'Failed to send withdrawal request',
+                    });
+            }
+            
+        } catch (error) {
+            console.error('Channel check failed:', error);
+            return res.status(500).json({ error: 'Failed to send withdrawal request' });
+        }
+        
         const walletAddress = user.wallet;
         if (!walletAddress) {
             return res.status(400).json({ error: 'No wallet set. Please set your wallet first.' });
