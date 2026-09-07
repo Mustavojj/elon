@@ -1926,12 +1926,23 @@ async function sendTaskCreatedNotification(task) {
     try {
         const CHANNEL_ID = '@PTS_TASKS';
         if (!BOT_TOKEN) return;
+        
+        const appLink = `https://t.me/GramPirateBot/app`;
 
         const message = `<b>⚡ NEW TASK AVAILABLE!</b>\n\n` +
             `<b>📋 Task:</b> ${task.name}\n` +
-            `<b>🎁 Reward:</b> ${task.reward} POWER + ${APP_CONFIG.SOCIAL_GOLD_REWARD || 1} GOLD\n` +
-            `<b>📊 Total:</b> ${task.total} completions\n\n` +
-            `🏴‍☠️ Complete this task now and earn rewards!`;
+            `<b>👷‍♂️ Target: ${task.total} COMPLETION</b>\n` +
+            `<b>🎁 Reward: ${task.reward} POWER + ${APP_CONFIG.SOCIAL_GOLD_REWARD || 1} GOLD</b>\n\n` +
+            `<b>🏴‍☠️ Complete this task and earn rewards!</b>`;
+
+        const replyMarkup = {
+            inline_keyboard: [[
+                { 
+                    text: '✅ COMPLETE NOW', 
+                    url: appLink 
+                }
+            ]]
+        };
 
         await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
             method: 'POST',
@@ -1940,9 +1951,11 @@ async function sendTaskCreatedNotification(task) {
                 chat_id: CHANNEL_ID,
                 text: message,
                 parse_mode: 'HTML',
+                reply_markup: replyMarkup,
                 disable_web_page_preview: true
             })
         });
+
     } catch (error) {
         console.error('Failed to send task notification:', error);
     }
