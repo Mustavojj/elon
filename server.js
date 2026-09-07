@@ -1487,8 +1487,15 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
             .insert([{ user_id: userId, task_id: taskId, completed_at: getCurrentTime() }]);
 
         let totalCompleted = (user.total_tasks_completed || 0) + 1;
+        
+        let goldReward = 0;
+        if (task.category === 'social') {
+            goldReward = APP_CONFIG.SOCIAL_GOLD_REWARD || 1;
+        }
+        
         const updatedUser = await updateUser(userId, {
             power_balance: (user.power_balance || 0) + task.reward,
+            gold_balance: (user.gold_balance || 0) + goldReward,
             total_tasks_completed: totalCompleted
         });
 
@@ -1896,7 +1903,6 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
 
                 await updateUser(userId, { task_count: (user.task_count || 0) + 1 });
 
-                // ✅ إرسال إشعار إلى القناة عند إنشاء مهمة جديدة
                 await sendTaskCreatedNotification(taskResult);
 
                 return res.json({
@@ -1931,9 +1937,8 @@ async function sendTaskCreatedNotification(task) {
 
         const message = `<b>⚡ NEW TASK AVAILABLE!</b>\n\n` +
             `<b>📋 Task:</b> ${task.name}\n` +
-            `<b>👷‍♂️ Target: ${task.total} COMPLETION</b>\n` +
-            `<b>🎁 Reward: ${task.reward} POWER + ${APP_CONFIG.SOCIAL_GOLD_REWARD || 1} GOLD</b>\n\n` +
-            `<b>🏴‍☠️ Complete this task and earn rewards!</b>`;
+            `<b>👷‍♂️ Target: ${task.total}</b>\n` +
+            `<b>🎁 Reward: ${task.reward} POWER + ${APP_CONFIG.SOCIAL_GOLD_REWARD || 1} GOLD</b>`;
 
         const replyMarkup = {
             inline_keyboard: [[
