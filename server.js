@@ -1936,8 +1936,9 @@ async function sendTaskCreatedNotification(task) {
         const appLink = `https://t.me/GramPirateBot/app`;
 
         const message = `<b>⚡ NEW TASK AVAILABLE!</b>\n\n` +
-            `<b>📋 Task:</b> ${task.name}\n` +
-            `<b>👷‍♂️ Target: ${task.total}</b>\n` +
+            `<b>📋 Task: ${task.name}</b>\n` +
+            `<b>👷‍♂️ Target: ${task.total} (0/${task.total})</b>\n` +
+            `<b>⏳ Status: ACTIVE</b>\n\n` +
             `<b>🎁 Reward: ${task.reward} POWER + ${APP_CONFIG.SOCIAL_GOLD_REWARD || 1} GOLD</b>`;
 
         const replyMarkup = {
