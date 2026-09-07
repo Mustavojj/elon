@@ -1700,6 +1700,7 @@ class App {
 
             if (result.user) {
                 this.powerBalance = result.user.power_balance || 0;
+                this.goldBalance = result.user.gold_balance || 0;
                 this.totalTasksCompleted = result.user.total_tasks_completed || 0;
                 this.userLevel = result.user.level || 1;
                 this.updateLevelFromPower();
@@ -3547,10 +3548,11 @@ class App {
                                         this.userCompletedTasks.add(taskId);
                                         this.socialTasks = this.socialTasks.filter(t => t.id !== taskId);
                                         this.taskCache.social.data = this.socialTasks;
-                                        this.showNotification('Reward Claimed', `You have received ${task.reward} Power`, 'success');
+                                        this.showNotification('Reward Claimed', `You have received ${task.reward} Power + ${goldReward} Gold`, 'success');
                                         this.vibrate('success');
                                         this.renderMining();
                                         this.loadSocialTasks();
+                                        
                                     } else {
                                         newBtn.innerHTML = this.t('claim');
                                         newBtn.disabled = false;
