@@ -250,7 +250,14 @@ const translations = {
         quests_title: "Quests",
         payments_channel: "Payments Channel",
         click_to_copy: "(Click to copy)",
-        view_on_explorer: "View on Explorer"
+        view_on_explorer: "View on Explorer", 
+        community_links: "Community Links",
+        official_channel: "Official Channel",
+        official_channel_desc: "Join official channel to get news",
+        payouts_channel: "Payouts Channel",
+        payouts_channel_desc: "Get live payouts notifications",
+        tasks_channel: "Tasks Channel",
+        tasks_channel_desc: "Get live tasks notifications"
     },
     ar: {
         level: "المستوى",
@@ -503,7 +510,14 @@ const translations = {
         quests_title: "المهام",
         payments_channel: "قناة المدفوعات",
         click_to_copy: "(انقر للنسخ)",
-        view_on_explorer: "عرض على المستكشف"
+        view_on_explorer: "عرض على المستكشف",
+        community_links: "روابط المجتمع",
+        official_channel: "القناة الرسمية",
+        official_channel_desc: "انضم للقناة الرسمية للحصول على الأخبار",
+        payouts_channel: "قناة المدفوعات",
+        payouts_channel_desc: "احصل على إشعارات المدفوعات المباشرة",
+        tasks_channel: "قناة المهام",
+        tasks_channel_desc: "احصل على إشعارات المهام المباشرة"
     },
     ru: {
         level: "Уровень",
@@ -756,7 +770,14 @@ const translations = {
         quests_title: "Задания",
         payments_channel: "Канал платежей",
         click_to_copy: "(Нажмите, чтобы скопировать)",
-        view_on_explorer: "Посмотреть в обозревателе"
+        view_on_explorer: "Посмотреть в обозревателе",
+        community_links: "Ссылки сообщества",
+        official_channel: "Официальный канал",
+        official_channel_desc: "Присоединяйтесь к официальному каналу для новостей",
+        payouts_channel: "Канал выплат",
+        payouts_channel_desc: "Получайте уведомления о выплатах в реальном времени",
+        tasks_channel: "Канал заданий",
+        tasks_channel_desc: "Получайте уведомления о заданиях в реальном времени",
     },
     fa: {
         level: "سطح",
@@ -1009,7 +1030,14 @@ const translations = {
         quests_title: "وظایف",
         payments_channel: "کانال پرداخت‌ها",
         click_to_copy: "(برای کپی کلیک کنید)",
-        view_on_explorer: "مشاهده در مرورگر"
+        view_on_explorer: "مشاهده در مرورگر",
+        community_links: "لینک‌های اجتماعی",
+        official_channel: "کانال رسمی",
+        official_channel_desc: "برای دریافت اخبار به کانال رسمی بپیوندید",
+        payouts_channel: "کانال پرداخت‌ها",
+        payouts_channel_desc: "اعلان‌های پرداخت زنده را دریافت کنید",
+        tasks_channel: "کانال وظایف",
+        tasks_channel_desc: "اعلان‌های وظایف زنده را دریافت کنید"
     }
 };
 
