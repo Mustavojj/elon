@@ -4218,7 +4218,13 @@ class App {
                 if (this._teamLoaded) this.renderTeam();
                 if (this._walletLoaded) this.renderWallet();
                 this.updateHeaderBalances();
-                this.showNotification('Language', `Changed to ${opt.innerText}`, 'success');
+                const langNames = {
+                    en: 'English',
+                    ar: 'العربية',
+                    ru: 'Русский',
+                    fa: 'فارسی'
+                };
+                this.showNotification('Language Changed!', `Changed to ${langNames[this.lang] || this.lang} Language`, 'success');
                 this.vibrate('success');
             });
         });
