@@ -795,7 +795,7 @@ await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
         chat_id: chatId,
-        photo: 'https://i.ibb.co/d4dS8mjC/file-00000000ee208210bd185ae86647133a.png',
+        photo: 'https://i.ibb.co/BKCV4Mmc/IMG-20260912-212905-056.jpg',
         caption: 
             `<b>🏴‍☠️ Welcome to GRAM PIRATES!</b>\n\n` +
             `⛏️ Mine and earn <b>free GRAM!</b>\n\n` +
