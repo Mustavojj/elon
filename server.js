@@ -790,24 +790,36 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
                 ? `https://t.me/GramPirateBot/app?startapp=${referrerId}`
                 : `https://t.me/GramPirateBot/app`;
 
-            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: chatId,
-                    text: `<b>🏴‍☠️ Welcome to GRAM PIRATES!</b>\n\n` +
-                          `<b>💰 Start mining Gold and earn FREE GRAM!</b>\n` +
-                          `<b>👥 Invite friends and earn bonuses!</b>\n\n`,
-                    parse_mode: 'HTML',
-                    reply_markup: {
-                        inline_keyboard: [[
-                            { text: '🚀 Open App', url: appLink }
-                        ]]
-                    },
-                    disable_web_page_preview: true
-                })
-            });
+await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        chat_id: chatId,
+        photo: 'https://i.ibb.co/KzxwxXhv/IMG-20260830-155757-173.jpg',
+        caption: 
+            `<b>🏴‍☠️ Welcome to GRAM PIRATES!</b>\n\n` +
+            `⛏️ Mine and earn <b>free GRAM!</b>\n\n` +
+            `🎁 Claim <b>1000 power</b> welcome bonus\n` +
+            `📋 Complete tasks\n` +
+            `👷‍♂️ Invite friends\n` +
+            `🎟 Claim promo codes\n\n` +
+            `💰 Withdraw your funds <b>for free</b>\n` +
+            `⚡ Up to <b>60%</b> from referrals earnings\n` +
+            `⚡ Start your work to get <b>free GRAM!</b>`,
+        parse_mode: 'HTML',
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: '🏴‍☠️ Start App', url: appLink }],
+                [
+                    { text: '📋 TASKS', url: 'https://t.me/PTS_TASKS' },
+                    { text: '💸 PAYOUTS', url: 'https://t.me/Pirates_Proof' }
+                ],
+                [{ text: '📰 Official Channel', url: 'https://t.me/GramPTS' }]
+            ]
         }
+    })
+});
+         }
 
         res.sendStatus(200);
     } catch (error) {
