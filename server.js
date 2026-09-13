@@ -1466,8 +1466,7 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
                 .from('tasks')
                 .update({ status: 'completed', notified: true })
                 .eq('id', taskId);
-            return res.status(400).json({ error: 'Task already limited!' });
-
+            
                 const taskName = taskData.name || 'Social Task';
             
                 await sendTelegramNotification(
@@ -1476,6 +1475,7 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
                     `<b>🏴‍☠️ Your task "${taskName}" has been completed!</b>`
                 );
             }
+        return res.status(400).json({ error: 'Already Completed!' });
 
         const { data: completed } = await supabase
             .from('user_completed_tasks')
@@ -1485,7 +1485,7 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
             .single();
 
         if (completed) {
-            return res.status(400).json({ error: 'Task already completed by you' });
+            return res.status(400).json({ error: 'Task already completed!' });
         }
 
         const newTotalCompleted = (task.total_completed || 0) + 1;
