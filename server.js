@@ -145,7 +145,7 @@ const APP_CONFIG = {
     PAYMENT_WALLET: "UQDFm_g2Ibdung0gzQEPuKReUr7mE3xRb0SYqdwByAzy_vaf",
     INTERSTITIAL_AD_BLOCK_ID: "int-41677",
     REWARD_AD_BLOCK_ID: "41675",
-    BOT_LINK: "https://t.me/GramPirateBot/app?startapp=",
+    BOT_LINK: "https://t.me/GramPirateBot?start=",
     TASK_REWARD: 100,
     TASK_IMAGE: "https://i.ibb.co/d4dS8mjC/file-00000000ee208210bd185ae86647133a.png",
     GRAM_ICON: "https://i.ibb.co/Q3LyfHL6/file-00000000aec481f4a4599f4c3a9fee9a.png",
