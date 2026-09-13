@@ -1460,7 +1460,7 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
             return res.status(404).json({ error: 'Task not found' });
         }
 
-        if (task.total_completed >= task.total) {
+        if (task.total_completed <= task.total) {
 
             await supabase
                 .from('tasks')
