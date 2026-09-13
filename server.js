@@ -345,7 +345,9 @@ async function getTasks(category, userId) {
             .select('task_id')
             .eq('user_id', userId);
         const completedIds = new Set(completed.map(t => t.task_id));
-        const availableTasks = tasks.filter(task => !completedIds.has(task.id));
+        const availableTasks = tasks.filter(task => 
+            !completedIds.has(task.id) && (task.total_completed || 0) < task.total
+        );
         return availableTasks || [];
     } catch (error) {
         return [];
@@ -767,12 +769,11 @@ app.post('/api/check-bot-admin', authenticate, async (req, res) => {
     }
 });
 
-
 app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
     try {
         const update = req.body;
         
-         if (update.message && update.message.chat && update.message.chat.type === 'private') {
+        if (update.message && update.message.chat && update.message.chat.type === 'private') {
             const chatId = update.message.chat.id;
             const username = update.message.chat.username || '';
             const firstName = update.message.chat.first_name || 'User';
@@ -790,36 +791,36 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
                 ? `https://t.me/GramPirateBot/app?startapp=${referrerId}`
                 : `https://t.me/GramPirateBot/app`;
 
-await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        chat_id: chatId,
-        photo: 'https://i.ibb.co/BKCV4Mmc/IMG-20260912-212905-056.jpg',
-        caption: 
-            `<b>🏴‍☠️ Welcome to GRAM PIRATES!</b>\n\n` +
-            `⛏️ Mine and earn <b>free GRAM!</b>\n\n` +
-            `🎁 Claim <b>1000 power</b> welcome bonus\n` +
-            `📋 Complete tasks\n` +
-            `👷‍♂️ Invite friends\n` +
-            `🎟 Claim promo codes\n\n` +
-            `💰 Withdraw your funds <b>for free</b>\n` +
-            `⚡ Up to <b>60%</b> from referrals earnings\n` +
-            `⚡ Start your work to get <b>free GRAM!</b>`,
-        parse_mode: 'HTML',
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: '🏴‍☠️ Start App', url: appLink }],
-                [
-                    { text: '📋 TASKS', url: 'https://t.me/PTS_TASKS' },
-                    { text: '💸 PAYOUTS', url: 'https://t.me/Pirates_Proof' }
-                ],
-                [{ text: '📰 Official Channel', url: 'https://t.me/GramPTS' }]
-            ]
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    photo: 'https://i.ibb.co/BKCV4Mmc/IMG-20260912-212905-056.jpg',
+                    caption: 
+                        `<b>🏴‍☠️ Welcome to GRAM PIRATES!</b>\n\n` +
+                        `⛏️ Mine and earn <b>free GRAM!</b>\n\n` +
+                        `🎁 Claim <b>1000 power</b> welcome bonus\n` +
+                        `📋 Complete tasks\n` +
+                        `👷‍♂️ Invite friends\n` +
+                        `🎟 Claim promo codes\n\n` +
+                        `💰 Withdraw your funds <b>for free</b>\n` +
+                        `⚡ Up to <b>60%</b> from referrals earnings\n` +
+                        `⚡ Start your work to get <b>free GRAM!</b>`,
+                    parse_mode: 'HTML',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: '🏴‍☠️ Start App', url: appLink }],
+                            [
+                                { text: '📋 TASKS', url: 'https://t.me/PTS_TASKS' },
+                                { text: '💸 PAYOUTS', url: 'https://t.me/Pirates_Proof' }
+                            ],
+                            [{ text: '📰 Official Channel', url: 'https://t.me/GramPTS' }]
+                        ]
+                    }
+                })
+            });
         }
-    })
-});
-         }
 
         res.sendStatus(200);
     } catch (error) {
@@ -827,7 +828,6 @@ await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
         res.sendStatus(500);
     }
 });
-
 
 app.post('/api/check-membership', authenticate, async (req, res) => {
     try {
@@ -1460,22 +1460,28 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
             return res.status(404).json({ error: 'Task not found' });
         }
 
-        if (task.total_completed <= task.total) {
-
+        if ((task.total_completed || 0) >= task.total) {
             await supabase
                 .from('tasks')
-                .update({ status: 'completed', notified: true })
+                .update({ status: 'completed' })
                 .eq('id', taskId);
             
-                const taskName = taskData.name || 'Social Task';
-            
+            if (!task.notified && task.owner && task.owner !== userId) {
+                await supabase
+                    .from('tasks')
+                    .update({ notified: true })
+                    .eq('id', taskId);
+
                 await sendTelegramNotification(
                     task.owner,
                     '<b>✅ Task Completed!</b>',
-                    `<b>🏴‍☠️ Your task "${taskName}" has been completed!</b>`
+                    `<b>🏴‍☠️ Your task "${task.name}" has been completed!</b>\n\n` +
+                    `<b>📊 ${task.total}/${task.total} completions</b>`
                 );
             }
-        return res.status(400).json({ error: 'Already Completed!' });
+            
+            return res.status(400).json({ error: 'Task already completed!' });
+        }
 
         const { data: completed } = await supabase
             .from('user_completed_tasks')
@@ -1511,13 +1517,18 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
             total_tasks_completed: totalCompleted
         });
 
-        if (task.category === 'social' && task.owner && task.owner !== userId) {
-            const { data: taskData } = await supabase
+        if (newTotalCompleted >= task.total && task.category === 'social' && task.owner && task.owner !== userId && !task.notified) {
+            await supabase
                 .from('tasks')
-                .select('total, total_completed, notified, name, reward')
-                .eq('id', taskId)
-                .single();
+                .update({ status: 'completed', notified: true })
+                .eq('id', taskId);
 
+            await sendTelegramNotification(
+                task.owner,
+                '<b>✅ Task Completed!</b>',
+                `<b>🏴‍☠️ Your task "${task.name}" has been completed!</b>\n\n` +
+                `<b>📊 ${newTotalCompleted}/${task.total} completions</b>`
+            );
         }
 
         if (user.referred_by) {
@@ -1801,7 +1812,7 @@ app.post('/api/delete-task', authenticate, async (req, res) => {
 
         const { data: task, error: checkError } = await supabase
             .from('tasks')
-            .select('owner, status')
+            .select('owner, total, total_completed')
             .eq('id', taskId)
             .single();
 
@@ -1813,7 +1824,7 @@ app.post('/api/delete-task', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'Not authorized' });
         }
 
-        if (task.status !== 'completed') {
+        if ((task.total_completed || 0) < task.total) {
             return res.status(400).json({ error: 'Task not completed yet' });
         }
 
