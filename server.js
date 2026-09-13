@@ -333,8 +333,8 @@ async function getTasks(category, userId) {
     try {
         let query = supabase
             .from('tasks')
-            .select('*')
-            .eq('status', 'active');
+            .select('*');
+        
         if (category) {
             query = query.eq('category', category);
         }
