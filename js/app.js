@@ -3344,6 +3344,7 @@ class App {
                                         this.userCompletedTasks.add(taskId);
                                         this.showNotification('Reward Claimed', `You have received ${task.reward} Power`, 'success');
                                         this.vibrate('success');
+                                        this.isTaskRunning = false;this.disableAllTaskButtons(false);
                                         this.renderMining();
                                         this.loadMainTasks();
                                     } else {
@@ -3359,6 +3360,8 @@ class App {
                                     newBtn.disabled = false;
                                     newBtn.classList.remove('claim-btn');
                                     newBtn.classList.add('start');
+                                    this.isTaskRunning = false;
+                                    this.disableAllTaskButtons(false);
                                 }
                                 this.isTaskRunning = false;
                                 this.disableAllTaskButtons(false);
@@ -3479,6 +3482,8 @@ class App {
                                         this.userCompletedTasks.add(taskId);
                                         this.showNotification('Reward Claimed', `You have received ${task.reward} Power`, 'success');
                                         this.vibrate('success');
+                                        this.isTaskRunning = false;
+                                        this.disableAllTaskButtons(false);
                                         this.renderMining();
                                         this.loadPartnerTasks();
                                     } else {
@@ -3494,6 +3499,8 @@ class App {
                                     newBtn.disabled = false;
                                     newBtn.classList.remove('claim-btn');
                                     newBtn.classList.add('start');
+                                    this.isTaskRunning = false;
+                                    this.disableAllTaskButtons(false);
                                 }
                                 this.isTaskRunning = false;
                                 this.disableAllTaskButtons(false);
@@ -3614,6 +3621,8 @@ class App {
                                         this.taskCache.social.data = this.socialTasks;
                                         this.showNotification('Reward Claimed', `You have received ${task.reward} Power + ${goldReward} Gold`, 'success');
                                         this.vibrate('success');
+                                        this.isTaskRunning = false;
+                                        this.disableAllTaskButtons(false);
                                         this.renderMining();
                                         this.loadSocialTasks();
                                         
