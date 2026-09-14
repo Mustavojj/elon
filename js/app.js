@@ -3614,6 +3614,8 @@ class App {
                                     if (success) {
                                         newBtn.innerHTML = '✓ Done';
                                         newBtn.disabled = true;
+                                        this.isTaskRunning = false;
+                                        this.disableAllTaskButtons(false);
                                         newBtn.classList.add('done');
                                         newBtn.classList.remove('claim-btn');
                                         this.userCompletedTasks.add(taskId);
@@ -3621,9 +3623,6 @@ class App {
                                         this.taskCache.social.data = this.socialTasks;
                                         this.showNotification('Reward Claimed', `You have received ${task.reward} Power + ${goldReward} Gold`, 'success');
                                         this.vibrate('success');
-                                        this.isTaskRunning = false;
-                                        this.disableAllTaskButtons(false);
-                                        this.renderMining();
                                         this.loadSocialTasks();
                                         
                                     } else {
