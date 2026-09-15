@@ -3612,6 +3612,7 @@ class App {
                                 if (isMember) {
                                     const success = await this.completeTaskOnServer(taskId, false, task.owner || null);
                                     if (success) {
+                                        const goldReward = 1;
                                         newBtn.innerHTML = '✓ Done';
                                         newBtn.disabled = true;
                                         this.isTaskRunning = false;
