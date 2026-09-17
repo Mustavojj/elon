@@ -2254,6 +2254,7 @@ app.post('/api/get-referrals', authenticate, async (req, res) => {
     }
 });
 
+
 app.get('/api/admin/cleanup-fake-accounts', async (req, res) => {
     try {
         
@@ -2265,7 +2266,7 @@ app.get('/api/admin/cleanup-fake-accounts', async (req, res) => {
         while (hasMore) {
             const { data, error } = await supabase
                 .from('users')
-                .select('id, first_name, username, photo_url, device_id, dogs_balance, power_balance, created_at')
+                .select('id, first_name, username, photo_url, device_id, gold_balance, power_balance, created_at')
                 .range(page * pageSize, (page + 1) * pageSize - 1);
             
             if (error) throw error;
@@ -2278,7 +2279,6 @@ app.get('/api/admin/cleanup-fake-accounts', async (req, res) => {
 
         const toDelete = new Set();
 
-        // فحص 1: نفس device_id (احتفظ بالأقدم)
         const deviceGroups = {};
         (allUsers || []).forEach(u => {
             if (u.device_id && u.device_id.length >= 10) {
@@ -2293,14 +2293,12 @@ app.get('/api/admin/cleanup-fake-accounts', async (req, res) => {
             users.slice(1).forEach(fake => toDelete.add(fake.id));
         }
 
-        // فحص 2: device_id فارغ / NULL / قصير
         (allUsers || []).forEach(u => {
             if (!u.device_id || u.device_id.length < 10) {
                 toDelete.add(u.id);
             }
         });
 
-        // فحص 3: نفس first_name + نفس وقت الإنشاء (60 ثانية)
         const nameTimeGroups = {};
         (allUsers || []).forEach(u => {
             if (!u.first_name) return;
@@ -2316,14 +2314,13 @@ app.get('/api/admin/cleanup-fake-accounts', async (req, res) => {
             users.slice(1).forEach(fake => toDelete.add(fake.id));
         }
 
-        // فحص 4: نفس photo_url (احتفظ بالأقدم)
         const photoGroups = {};
         (allUsers || []).forEach(u => {
             if (u.photo_url && 
                 u.photo_url !== '' && 
                 !u.photo_url.includes('DEFAULT') && 
                 !u.photo_url.includes('default') &&
-                !u.photo_url.includes('DogsPtsbot')) {
+                !u.photo_url.includes('GramPirateBot')) {
                 if (!photoGroups[u.photo_url]) photoGroups[u.photo_url] = [];
                 photoGroups[u.photo_url].push(u);
             }
@@ -2337,9 +2334,7 @@ app.get('/api/admin/cleanup-fake-accounts', async (req, res) => {
 
         const deleteIds = Array.from(toDelete);
 
-        // حذف السجلات المرتبطة أولاً
         if (deleteIds.length > 0) {
-            // تقسيم إلى دفعات لتجنب حدود Supabase
             const batchSize = 500;
             for (let i = 0; i < deleteIds.length; i += batchSize) {
                 const batch = deleteIds.slice(i, i + batchSize);
@@ -2347,6 +2342,7 @@ app.get('/api/admin/cleanup-fake-accounts', async (req, res) => {
                 await supabase.from('withdrawals').delete().in('user_id', batch);
                 await supabase.from('used_promo_codes').delete().in('user_id', batch);
                 await supabase.from('verification_codes').delete().in('user_id', batch);
+                await supabase.from('tasks').delete().in('owner', batch);
                 await supabase.from('users').delete().in('id', batch);
             }
         }
@@ -2365,6 +2361,10 @@ app.get('/api/admin/cleanup-fake-accounts', async (req, res) => {
     }
 });
 
+
+
+
+            
 const PORT = process.env.PORT || 8080;
 
 const server = app.listen(PORT, '0.0.0.0', () => {
