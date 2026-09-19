@@ -1211,28 +1211,7 @@ app.post('/api/get-user', authenticate, async (req, res) => {
 });
 
 app.post('/api/update-user', authenticate, async (req, res) => {
-    try {
-        const userId = req._userId;
-        const { powerBalance, goldBalance, gramBalance, quests, miningActive, miningStartTime, miningEndTime, pendingGoldReward } = req.body;
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
-        const updates = {};
-        if (miningActive !== undefined) updates.mining_active = miningActive;
-        if (miningStartTime !== undefined) updates.mining_start_time = miningStartTime;
-        if (miningEndTime !== undefined) updates.mining_end_time = miningEndTime;
-        if (pendingGoldReward !== undefined) updates.pending_gold_reward = pendingGoldReward;
-        if (Object.keys(updates).length === 0) {
-            return res.json({ success: true });
-        }
-        const updatedUser = await updateUser(userId, updates);
-        await updateUserLevel(userId);
-        res.json({ success: true, user: updatedUser });
-    } catch (error) {
-        logError('/api/update-user', error);
-        res.status(500).json({ error: error.message });
-    }
+    return res.json({ success: true });
 });
 
 app.post('/api/start-mining', authenticate, async (req, res) => {
@@ -2129,6 +2108,12 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
+        const cooldownMs = 6 * 3600000;
+        if (user.last_withdraw_time && (now - user.last_withdraw_time) < cooldownMs) {
+            const remaining = Math.ceil((cooldownMs - (now - user.last_withdraw_time)) / 3600000);
+            return res.status(400).json({ error: `Wait ${remaining}h before next withdrawal` });
+        }
+
         const CHANNEL_USERNAME = 'GramPTS';
         try {
             const chatMember = await fetch(
@@ -2182,11 +2167,13 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
         }
         const gramAmount = netGold / 10000;
         const now = Date.now();
+        
         const cooldownMs = 6 * 3600000;
         if (user.last_withdraw_time && (now - user.last_withdraw_time) < cooldownMs) {
             const remaining = Math.ceil((cooldownMs - (now - user.last_withdraw_time)) / 3600000);
             return res.status(400).json({ error: `Wait ${remaining}h before next withdrawal` });
         }
+        
         const oxapay = new OxaPay({
             apiKey: process.env.OXAPAY_API_KEY,
             sandbox: process.env.NODE_ENV !== 'production'
