@@ -1832,6 +1832,10 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'Device mismatch' });
         }
 
+        if (!memo || memo.length < 5) {
+            return res.json({ success: false, error: 'Invalid memo' });
+        }
+
         const user = await getUser(userId);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
@@ -1887,6 +1891,16 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
                         }
                     }
                 }
+
+                const onChainMemo = foundTx.in_msg?.message || '';
+                
+                if (!onChainMemo || !onChainMemo.includes(memo)) {
+                    return res.json({ 
+                        success: false, 
+                        error: 'failed to create task.' 
+                    });
+                }
+   
                 
                 const { data: existingTask } = await supabase
                     .from('tasks')
