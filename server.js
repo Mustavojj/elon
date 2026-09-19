@@ -1470,8 +1470,7 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
                 await sendTelegramNotification(
                     task.owner,
                     '<b>✅ Task Completed!</b>',
-                    `<b>🏴‍☠️ Your task "${task.name}" has been completed!</b>\n\n` +
-                    `<b>📊 ${task.total}/${task.total} completions</b>`
+                    `<b>🏴‍☠️ Your task "${task.name}" has been completed!</b>`
                 );
             }
             
@@ -1521,8 +1520,7 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
             await sendTelegramNotification(
                 task.owner,
                 '<b>✅ Task Completed!</b>',
-                `<b>🏴‍☠️ Your task "${task.name}" has been completed!</b>\n\n` +
-                `<b>📊 ${newTotalCompleted}/${task.total} completions</b>`
+                `<b>🏴‍☠️ Your task "${task.name}" has been completed!</b>`
             );
         }
 
