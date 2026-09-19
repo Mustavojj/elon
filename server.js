@@ -1313,7 +1313,7 @@ app.post('/api/claim-mining', authenticate, async (req, res) => {
         if (rewardAmount <= 0) {
             return res.status(400).json({ error: 'No rewards to claim' });
         }
-        if (rewardAmount > 1000) {
+        if (rewardAmount > 2000) {
             return res.status(400).json({ error: 'Failed to claim reward' });
         }
         const maxReward = (user.power_balance / 1000) * 5 * 13;
@@ -1433,6 +1433,10 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
 
         if (taskError || !task) {
             return res.status(404).json({ error: 'Task not found' });
+        }
+
+        if (task.notified) {
+            return res.status(400).json({ error: 'Task already limited!' });
         }
 
         if ((task.total_completed || 0) >= task.total) {
