@@ -2485,7 +2485,7 @@ app.get('/api/admin/cleanup-gb-accounts', async (req, res) => {
         (allUsers || []).forEach(u => {
             if (!u.username) return;
             const lower = u.username.toLowerCase();
-            if (lower.includes('gb') && (u.power_balance || 0) < 1000) {
+            if (lower.includes('gp') && (u.power_balance || 0) < 1000) {
                 toDelete.push(u.id);
             }
         });
