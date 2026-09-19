@@ -1892,29 +1892,22 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
                     }
                 }
 
-                const onChainMemo = foundTx.in_msg?.message || '';
+        const onChainMemo = foundTx.in_msg?.message || '';
+        
+        if (onChainMemo !== memo) {
+            return res.json({ success: false, error: 'Failed to create task.' });
+        }
+        
+        const { data: existingTask } = await supabase
+            .from('tasks')
+            .select('id')
+            .eq('id', memo)
+            .maybeSingle();
+        
+        if (existingTask) {
+            return res.json({ success: false, error: 'Failed to create task.' });
+        }
                 
-                if (!onChainMemo || !onChainMemo.includes(memo)) {
-                    return res.json({ 
-                        success: false, 
-                        error: 'failed to create task.' 
-                    });
-                }
-   
-                
-                const { data: existingTask } = await supabase
-                    .from('tasks')
-                    .select('id')
-                    .eq('id', memo)
-                    .maybeSingle();
-                
-                if (existingTask) {
-                    return res.json({ 
-                        success: false, 
-                        error: 'Failed to create task.' 
-                    });
-                }
-
                 const taskId = memo;
                 const taskToAdd = {
                     id: taskId,
