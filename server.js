@@ -2333,7 +2333,7 @@ app.get('/api/admin/cleanup-same-photo', async (req, res) => {
         while (hasMore) {
             const { data, error } = await supabase
                 .from('users')
-                .select('id, first_name, photo_url, dogs_balance, power_balance, created_at')
+                .select('id, first_name, photo_url, gold_balance, power_balance, created_at')
                 .not('photo_url', 'is', null)
                 .range(page * pageSize, (page + 1) * pageSize - 1);
             
