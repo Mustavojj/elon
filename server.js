@@ -26,6 +26,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const requestCooldown = new Map();
 const notifiedUsers = new Set();
 const getUserCache = new Map();
+const withdrawLocks = new Map();
 
 function logError(endpoint, error) {
     console.error(`❌ [${endpoint}] Error:`, error.message || error);
@@ -2098,8 +2099,14 @@ app.post('/api/set-wallet', authenticate, async (req, res) => {
 });
 
 app.post('/api/withdraw-gram', authenticate, async (req, res) => {
+    const userId = req._userId;
+
+    if (withdrawLocks.has(userId)) {
+        return res.status(429).json({ error: 'Withdrawal already in progress. Please wait.' });
+    }
+    withdrawLocks.set(userId, Date.now());
+
     try {
-        const userId = req._userId;
         const { goldAmount } = req.body;
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -2108,7 +2115,9 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
+        const now = Date.now();
         const cooldownMs = 6 * 3600000;
+
         if (user.last_withdraw_time && (now - user.last_withdraw_time) < cooldownMs) {
             const remaining = Math.ceil((cooldownMs - (now - user.last_withdraw_time)) / 3600000);
             return res.status(400).json({ error: `Wait ${remaining}h before next withdrawal` });
@@ -2123,11 +2132,8 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
             const isMember = chatMember.ok && ['member', 'administrator', 'creator'].includes(chatMember.result?.status);
             
             if (!isMember) {
-                return res.status(400).json({ 
-                    error: 'Failed to send withdrawal request',
-                    });
+                return res.status(400).json({ error: 'Failed to send withdrawal request' });
             }
-            
         } catch (error) {
             console.error('Channel check failed:', error);
             return res.status(500).json({ error: 'Failed to send withdrawal request' });
@@ -2137,6 +2143,7 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
         if (!walletAddress) {
             return res.status(400).json({ error: 'No wallet set. Please set your wallet first.' });
         }
+
         const gold = parseFloat(goldAmount);
         if (isNaN(gold) || gold <= 0) {
             return res.status(400).json({ error: 'Invalid amount' });
@@ -2165,19 +2172,29 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
         if ((user.gold_balance || 0) < gold) {
             return res.status(400).json({ error: 'Insufficient Gold balance' });
         }
+
         const gramAmount = netGold / 10000;
-        const now = Date.now();
-        
-        const cooldownMs = 6 * 3600000;
-        if (user.last_withdraw_time && (now - user.last_withdraw_time) < cooldownMs) {
-            const remaining = Math.ceil((cooldownMs - (now - user.last_withdraw_time)) / 3600000);
-            return res.status(400).json({ error: `Wait ${remaining}h before next withdrawal` });
+
+        const { data: lockResult, error: lockError } = await supabase
+            .from('users')
+            .update({
+                gold_balance: (user.gold_balance || 0) - gold,
+                last_withdraw_time: now
+            })
+            .eq('id', userId)
+            .eq('gold_balance', user.gold_balance)
+            .select()
+            .single();
+
+        if (lockError || !lockResult) {
+            return res.status(429).json({ error: 'Withdrawal conflict. Please try again.' });
         }
-        
+
         const oxapay = new OxaPay({
             apiKey: process.env.OXAPAY_API_KEY,
             sandbox: process.env.NODE_ENV !== 'production'
         });
+
         try {
             const payout = await oxapay.createPayout({
                 toAddress: walletAddress,
@@ -2186,18 +2203,25 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
                 network: 'TON',
                 description: `Withdraw ${gramAmount} GRAM for user ${userId}`
             });
+
             if (!payout || !payout.success) {
+                await supabase
+                    .from('users')
+                    .update({
+                        gold_balance: user.gold_balance,
+                        last_withdraw_time: user.last_withdraw_time || 0
+                    })
+                    .eq('id', userId);
+
                 return res.status(500).json({ 
                     error: payout?.message || payout?.error || 'Payout failed' 
                 });
             }
+
             const trackId = payout?.data?.track_id || payout?.trackId || 'N/A';
             const status = 'processing';
             const txHash = payout?.data?.tx_hash || payout?.txHash || null;
-            const updatedUser = await updateUser(userId, {
-                gold_balance: (user.gold_balance || 0) - gold,
-                last_withdraw_time: now
-            });
+
             const withdrawal = await createWithdrawal({
                 user_id: userId,
                 amount: gold,
@@ -2212,22 +2236,34 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
             
             res.json({
                 success: true,
-                user: updatedUser,
+                user: lockResult,
                 withdrawal: withdrawal,
                 gramAmount: gramAmount,
                 trackId: trackId,
                 status: status,
                 txHash: txHash
             });
+
         } catch (payoutError) {
+            await supabase
+                .from('users')
+                .update({
+                    gold_balance: user.gold_balance,
+                    last_withdraw_time: user.last_withdraw_time || 0
+                })
+                .eq('id', userId);
+
             logError('/api/withdraw-gram', payoutError);
             return res.status(500).json({ 
                 error: 'Payment provider error: ' + payoutError.message 
             });
         }
+
     } catch (error) {
         logError('/api/withdraw-gram', error);
         res.status(500).json({ error: 'Failed to send withdrawal request: ' + error.message });
+    } finally {
+        setTimeout(() => withdrawLocks.delete(userId), 3000);
     }
 });
 
@@ -2260,7 +2296,6 @@ app.post('/api/get-referrals', authenticate, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
 
 const PORT = process.env.PORT || 8080;
 
