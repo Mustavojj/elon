@@ -1860,7 +1860,7 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
             return res.status(500).json({ error: 'Payment wallet not configured' });
         }
 
-        const response = await fetch(`https://toncenter.com/api/v2/getTransactions?address=${address}&limit=50`);
+        const response = await fetch(`https://toncenter.com/api/v2/getTransactions?address=${address}&limit=3`);
         const data = await response.json();
         if (!data.ok) {
             return res.status(500).json({ error: 'Payment API error' });
@@ -1905,8 +1905,21 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
                         }
                     }
                 }
+                
+                const { data: existingTask } = await supabase
+                    .from('tasks')
+                    .select('id')
+                    .eq('id', memo)
+                    .maybeSingle();
+                
+                if (existingTask) {
+                    return res.json({ 
+                        success: false, 
+                        error: 'Failed to create task.' 
+                    });
+                }
 
-                const taskId = crypto.randomUUID();
+                const taskId = memo;
                 const taskToAdd = {
                     id: taskId,
                     name: taskData.name,
