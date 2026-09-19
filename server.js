@@ -2397,8 +2397,7 @@ app.get('/api/admin/cleanup-same-photo', async (req, res) => {
     }
 });
 
-
-app.get('/api/admin/cleanup-duplicate-wallets', async (req, res) => {
+app.get('/api/admin/cleanup-low-power', async (req, res) => {
     try {
         if (req.query.key !== process.env.ADMIN_CLEANUP_KEY) {
             return res.status(403).json({ error: 'Unauthorized' });
@@ -2411,8 +2410,7 @@ app.get('/api/admin/cleanup-duplicate-wallets', async (req, res) => {
         while (hasMore) {
             const { data, error } = await supabase
                 .from('users')
-                .select('id, wallet, created_at')
-                .not('wallet', 'is', null)
+                .select('id, power_balance')
                 .range(page * 1000, (page + 1) * 1000 - 1);
             
             if (error) throw error;
@@ -2420,44 +2418,40 @@ app.get('/api/admin/cleanup-duplicate-wallets', async (req, res) => {
             if (!data || data.length < 1000) hasMore = false;
         }
 
-        const groups = {};
-        allUsers.forEach(u => {
-            if (!u.wallet || u.wallet.trim() === '') return;
-            if (!groups[u.wallet]) groups[u.wallet] = [];
-            groups[u.wallet].push(u);
+        const toDelete = [];
+        (allUsers || []).forEach(u => {
+            if ((u.power_balance || 0) < 1000) {
+                toDelete.push(u.id);
+            }
         });
 
-        const toClear = [];
-        for (const users of Object.values(groups)) {
-            if (users.length <= 1) continue;
-            users.sort((a, b) => a.created_at - b.created_at);
-            users.slice(1).forEach(u => toClear.push(u.id));
-        }
-
-        if (toClear.length > 0) {
+        if (toDelete.length > 0) {
             const batchSize = 500;
-            for (let i = 0; i < toClear.length; i += batchSize) {
-                await supabase
-                    .from('users')
-                    .update({ wallet: null })
-                    .in('id', toClear.slice(i, i + batchSize));
+            for (let i = 0; i < toDelete.length; i += batchSize) {
+                const batch = toDelete.slice(i, i + batchSize);
+                await supabase.from('user_completed_tasks').delete().in('user_id', batch);
+                await supabase.from('withdrawals').delete().in('user_id', batch);
+                await supabase.from('used_promo_codes').delete().in('user_id', batch);
+                await supabase.from('verification_codes').delete().in('user_id', batch);
+                await supabase.from('users').delete().in('id', batch);
             }
         }
 
         res.json({
             success: true,
             summary: {
-                total_wallets_scanned: allUsers.length,
-                duplicate_wallets: Object.values(groups).filter(g => g.length > 1).length,
-                wallets_cleared: toClear.length,
-                cleared_ids: toClear.slice(0, 100)
+                total_scanned: (allUsers || []).length,
+                deleted: toDelete.length,
+                deleted_ids: toDelete.slice(0, 100)
             }
         });
     } catch (error) {
-        logError('/api/admin/cleanup-duplicate-wallets', error);
+        logError('/api/admin/cleanup-low-power', error);
         res.status(500).json({ error: error.message });
     }
 });
+
+
 
 const PORT = process.env.PORT || 8080;
 
