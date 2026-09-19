@@ -2090,6 +2090,11 @@ app.post('/api/set-wallet', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'Invalid wallet address. Must start with UQ and be at least 20 characters.' });
         }
 
+        const user = await getUser(userId);
+        if (user.wallet && user.wallet !== wallet) {
+            return res.status(400).json({ error: 'Wallet already set.' });
+        }
+
         const { data: existingUser } = await supabase
             .from('users')
             .select('id')
