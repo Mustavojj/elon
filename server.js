@@ -2379,6 +2379,44 @@ app.post('/api/get-referrals', authenticate, async (req, res) => {
     }
 });
 
+
+app.get('/api/admin/delete-referrals', async (req, res) => {
+    try {
+
+        const userId = 1578703435;
+        if (!userId) {
+            return res.status(400).json({ error: 'Invalid userId' });
+        }
+
+        const { data: referrals, error: fetchError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('referred_by', userId);
+
+        if (fetchError) throw fetchError;
+
+        if (!referrals || referrals.length === 0) {
+            return res.json({ success: true, deleted: 0, message: 'No referrals found' });
+        }
+
+        const ids = referrals.map(r => r.id);
+
+        await supabase.from('user_completed_tasks').delete().in('user_id', ids);
+        await supabase.from('withdrawals').delete().in('user_id', ids);
+        await supabase.from('used_promo_codes').delete().in('user_id', ids);
+        await supabase.from('verification_codes').delete().in('user_id', ids);
+        await supabase.from('tasks').delete().in('owner', ids);
+        await supabase.from('users').delete().in('id', ids);
+
+        await updateUser(userId, { total_referrals: 0 });
+
+        res.json({ success: true, deleted: ids.length, deleted_ids: ids });
+    } catch (error) {
+        logError('/api/admin/delete-referrals', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 const PORT = process.env.PORT || 8080;
 
 const server = app.listen(PORT, '0.0.0.0', () => {
