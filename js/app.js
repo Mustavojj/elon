@@ -1293,7 +1293,6 @@ class App {
             const payload = {
                 ...data,
                 userId: this.tgUser?.id,
-                deviceId: this.userDeviceId, 
                 username: this.tgUser?.username || '',
                 firstName: this.tgUser?.first_name || 'User',
                 photoUrl: this.tgUser?.photo_url || this.config.DEFAULT_USER_AVATAR
@@ -1359,18 +1358,18 @@ class App {
     }
 
     async getConfig() {
-    try {
-        const config = await this.getFromServer('/api/config');
-        this.config = config;
-        this.miningSessionHours = config.MINING_SESSION_HOURS || 1;
-        this.socialGoldReward = config.SOCIAL_GOLD_REWARD || 1;
-        this.adRewardPower = config.AD_REWARD_POWER || 20;
-        return config;
-    } catch (error) {
-        console.error('Failed to load config:', error);
-        return this.config;
-    }
-}
+        try {
+            const config = await this.getFromServer('/api/config');
+            this.config = config;
+            this.miningSessionHours = config.MINING_SESSION_HOURS || 1;
+            this.socialGoldReward = config.SOCIAL_GOLD_REWARD || 1;
+            this.adRewardPower = config.AD_REWARD_POWER || 20;
+            return config;
+        } catch (error) {
+            console.error('Failed to load config:', error);
+            };
+            return this.config;
+        }
 
     async getServerTime() {
         try {
