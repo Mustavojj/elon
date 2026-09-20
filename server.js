@@ -973,7 +973,8 @@ app.post('/api/check-membership', authenticate, async (req, res) => {
 
 app.post('/api/auth', strictLimiter, async (req, res) => {
     try {
-        const { userId, username } = req.body;
+        const { userId, username, deviceId: clientDeviceId } = req.body;
+        
         if (!validateUserId(userId)) {
             return res.status(400).json({ error: 'Invalid user' });
         }
@@ -985,19 +986,22 @@ app.post('/api/auth', strictLimiter, async (req, res) => {
                 message: 'Please start the bot first to register'
             });
         }
- 
+
         if (user.state === 'ban') {
             return res.status(403).json({ error: 'Account banned' });
         }
-        
+
         if (username && user.username && username !== user.username) {
-            return res.status(403).json({ error: 'Access Denied' });
+            return res.status(403).json({ error: 'Invalid credentials' });
         }
-        
+
         let deviceId = user.device_id;
+
         if (!deviceId) {
             deviceId = crypto.randomBytes(32).toString('hex');
             await updateUser(userId, { device_id: deviceId });
+        } else if (clientDeviceId && clientDeviceId !== deviceId) {
+            return res.status(403).json({ error: 'device_mismatch' });
         }
 
         const token = generateJWT(userId, deviceId);
@@ -1014,6 +1018,7 @@ app.post('/api/auth', strictLimiter, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
 
 app.post('/api/verify-device', strictLimiter, async (req, res) => {
     try {
