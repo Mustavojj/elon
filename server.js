@@ -575,7 +575,7 @@ async function sendWithdrawalProof(channelId, userId, wallet, gramAmount, goldAm
                     }],
                     [{
                         text: '🏴‍☠️ GRAM PIRATES',
-                        url: 'https://t.me/GramPirateBot/app'
+                        url: 'https://t.me/GramPirateBot?start=start'
                     }]
                 ]
             }
@@ -981,11 +981,11 @@ app.post('/api/auth', strictLimiter, async (req, res) => {
         }
         
         if (username && user.username && username !== user.username) {
-            return res.status(403).json({ error: 'Invalid credentials' });
+            return res.status(403).json({ error: 'Access Denied' });
         }
         
         if (photoUrl && user.photo_url && photoUrl !== user.photo_url) {
-            return res.status(403).json({ error: 'Invalid credentials' });
+            return res.status(403).json({ error: 'Access Denied' });
         }
         
         let deviceId = user.device_id;
