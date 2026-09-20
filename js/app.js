@@ -1277,76 +1277,87 @@ class App {
     }
 
     async fetchFromServer(endpoint, data = {}) {
-        if (!this.checkCooldown(endpoint)) {
-            throw new Error('Cooldown');
-        }
-
-        try {
-            const headers = {
-                'Content-Type': 'application/json'
-            };
-
-            if (this.jwtToken) {
-                headers['Authorization'] = `Bearer ${this.jwtToken}`;
-            }
-
-            const payload = {
-                ...data,
-                userId: this.tgUser?.id,
-                username: this.tgUser?.username || '',
-                firstName: this.tgUser?.first_name || 'User',
-                photoUrl: this.tgUser?.photo_url || this.config.DEFAULT_USER_AVATAR
-            };
-
-            const response = await fetch(`${this.serverUrl}${endpoint}`, {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify(payload)
-            });
-
-            const result = await response.json();
-
-            if (result.error === 'Invalid token' || result.error === 'Token expired' || result.error === 'No token provided') {
-                const refreshed = await this.refreshToken();
-                if (refreshed) {
-                    return this.fetchFromServer(endpoint, data);
-                } else {
-                    this.isAuthenticated = false;
-                    this.showNotification('Error', 'Session expired. Please restart the app.', 'error');
-                    throw new Error('Auth required');
-                }
-            }
-
-            if (result.error === 'user_not_registered') {
-                this.showNotRegisteredPage();
-                throw new Error('Not registered');
-            }
-
-            if (result.error === 'Device mismatch' || result.error === 'device_already_used') {
-                this.showNotification('Error', result.message || 'Device verification failed', 'error');
-                throw new Error('Device error');
-            }
-
-            if (result.error === 'new_device') {
-                this.showDeviceVerificationModal();
-                throw new Error('New device');
-            }
-
-            if (result.error === 'Account banned') {
-                this.showBanModal();
-                throw new Error('Banned');
-            }
-
-            return result;
-        } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error' || error.message === 'Not registered') {
-                throw error;
-            }
-            console.error('Server fetch error:', error);
-            throw error;
-        }
+    if (!this.checkCooldown(endpoint)) {
+        throw new Error('Cooldown');
     }
 
+    try {
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+
+        if (this.jwtToken) {
+            headers['Authorization'] = `Bearer ${this.jwtToken}`;
+        }
+
+        const payload = {
+            ...data,
+            userId: this.tgUser?.id,
+            deviceId: this.userDeviceId,
+            username: this.tgUser?.username || '',
+            firstName: this.tgUser?.first_name || 'User',
+            photoUrl: this.tgUser?.photo_url || this.config.DEFAULT_USER_AVATAR
+        };
+
+        const response = await fetch(`${this.serverUrl}${endpoint}`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (result.error === 'Invalid token' || result.error === 'Token expired' || result.error === 'No token provided') {
+            const refreshed = await this.refreshToken();
+            if (refreshed) {
+                return this.fetchFromServer(endpoint, data);
+            } else {
+                this.isAuthenticated = false;
+                this.showNotification('Error', 'Session expired. Please restart the app.', 'error');
+                throw new Error('Auth required');
+            }
+        }
+
+        if (result.error === 'user_not_registered') {
+            this.showNotRegisteredPage();
+            throw new Error('Not registered');
+        }
+
+        if (result.error === 'device_mismatch') {
+            localStorage.removeItem('pirate_device_id');
+            localStorage.removeItem('pirate_jwt');
+            this.userDeviceId = null;
+            this.jwtToken = null;
+            this.isAuthenticated = false;
+            this.showNotification('Error', 'Device mismatch. Please restart the app.', 'error');
+            throw new Error('Device error');
+        }
+
+        if (result.error === 'Device mismatch' || result.error === 'device_already_used') {
+            this.showNotification('Error', result.message || 'Device verification failed', 'error');
+            throw new Error('Device error');
+        }
+
+        if (result.error === 'new_device') {
+            this.showDeviceVerificationModal();
+            throw new Error('New device');
+        }
+
+        if (result.error === 'Account banned') {
+            this.showBanModal();
+            throw new Error('Banned');
+        }
+
+        return result;
+    } catch (error) {
+        if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error' || error.message === 'Not registered') {
+            throw error;
+        }
+        console.error('Server fetch error:', error);
+        throw error;
+    }
+}
+    
     async getFromServer(endpoint) {
         try {
             const response = await fetch(`${this.serverUrl}${endpoint}`);
@@ -1386,69 +1397,111 @@ class App {
         return Date.now() + this.serverTimeOffset;
     }
 
-    async authenticate() {
-        try {
-            const savedToken = localStorage.getItem('pirate_jwt');
-            if (savedToken) {
-                this.jwtToken = savedToken;
-            }
-
-            const result = await this.fetchFromServer('/api/auth', {
-                userId: this.tgUser.id
-            });
-
-            if (result.error === 'user_not_registered') {
-                this.showNotRegisteredPage();
-                return false;
-            }
-
-            if (result.error === 'new_device') {
-                this.showDeviceVerificationModal();
-                return false;
-            }
-
-            if (result.token) {
-                this.jwtToken = result.token;
-                localStorage.setItem('pirate_jwt', result.token);
-                if (result.deviceId) {
-                    this.userDeviceId = result.deviceId;
-                    localStorage.setItem('pirate_device_id', result.deviceId);
-                }
-                this.isAuthenticated = true;
-                return true;
-            }
-
-            return false;
-        } catch (error) {
-            if (error.message === 'New device' || error.message === 'Not registered') {
-                return false;
-            }
-            console.error('Authentication failed:', error);
-            this.showNotification('Error', 'Authentication failed. Please restart the app.', 'error');
-            return false;
-        }
+    
+    async fetchFromServer(endpoint, data = {}) {
+    if (!this.checkCooldown(endpoint)) {
+        throw new Error('Cooldown');
     }
 
+    try {
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+
+        if (this.jwtToken) {
+            headers['Authorization'] = `Bearer ${this.jwtToken}`;
+        }
+
+        const payload = {
+            ...data,
+            userId: this.tgUser?.id,
+            deviceId: this.userDeviceId,
+            username: this.tgUser?.username || '',
+            firstName: this.tgUser?.first_name || 'User',
+            photoUrl: this.tgUser?.photo_url || this.config.DEFAULT_USER_AVATAR
+        };
+
+        const response = await fetch(`${this.serverUrl}${endpoint}`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (result.error === 'Invalid token' || result.error === 'Token expired' || result.error === 'No token provided') {
+            const refreshed = await this.refreshToken();
+            if (refreshed) {
+                return this.fetchFromServer(endpoint, data);
+            } else {
+                this.isAuthenticated = false;
+                this.showNotification('Error', 'Session expired. Please restart the app.', 'error');
+                throw new Error('Auth required');
+            }
+        }
+
+        if (result.error === 'user_not_registered') {
+            this.showNotRegisteredPage();
+            throw new Error('Not registered');
+        }
+
+        if (result.error === 'device_mismatch') {
+            localStorage.removeItem('pirate_device_id');
+            localStorage.removeItem('pirate_jwt');
+            this.userDeviceId = null;
+            this.jwtToken = null;
+            this.isAuthenticated = false;
+            this.showNotification('Error', 'Device mismatch. Please restart the app.', 'error');
+            throw new Error('Device error');
+        }
+
+        if (result.error === 'Device mismatch' || result.error === 'device_already_used') {
+            this.showNotification('Error', result.message || 'Device verification failed', 'error');
+            throw new Error('Device error');
+        }
+
+        if (result.error === 'new_device') {
+            this.showDeviceVerificationModal();
+            throw new Error('New device');
+        }
+
+        if (result.error === 'Account banned') {
+            this.showBanModal();
+            throw new Error('Banned');
+        }
+
+        return result;
+    } catch (error) {
+        if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error' || error.message === 'Not registered') {
+            throw error;
+        }
+        console.error('Server fetch error:', error);
+        throw error;
+    }
+}
+
+
+    
     async refreshToken() {
-        try {
-            const result = await this.fetchFromServer('/api/refresh', {});
-            if (result.token) {
-                this.jwtToken = result.token;
-                localStorage.setItem('pirate_jwt', result.token);
-                if (result.deviceId) {
-                    this.userDeviceId = result.deviceId;
-                    localStorage.setItem('pirate_device_id', result.deviceId);
-                }
-                this.isAuthenticated = true;
-                return true;
+    try {
+        const result = await this.fetchFromServer('/api/refresh', {});
+        if (result.token) {
+            this.jwtToken = result.token;
+            localStorage.setItem('pirate_jwt', result.token);
+            if (result.deviceId) {
+                this.userDeviceId = result.deviceId;
+                localStorage.setItem('pirate_device_id', result.deviceId);
             }
-            return false;
-        } catch (error) {
-            console.error('Token refresh failed:', error);
-            return false;
+            this.isAuthenticated = true;
+            return true;
         }
+        return false;
+    } catch (error) {
+        console.error('Token refresh failed:', error);
+        return false;
     }
-
+    }
+    
     async verifyDeviceCode(code) {
         try {
             const result = await this.fetchFromServer('/api/verify-device', {
