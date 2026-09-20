@@ -973,7 +973,7 @@ app.post('/api/check-membership', authenticate, async (req, res) => {
 
 app.post('/api/auth', strictLimiter, async (req, res) => {
     try {
-        const { userId, username, deviceId: clientDeviceId } = req.body;
+        const { userId, username } = req.body;
         if (!validateUserId(userId)) {
             return res.status(400).json({ error: 'Invalid user' });
         }
@@ -983,20 +983,6 @@ app.post('/api/auth', strictLimiter, async (req, res) => {
             return res.status(404).json({ 
                 error: 'user_not_registered',
                 message: 'Please start the bot first to register'
-            });
-        }
-        
-        let deviceId = user.device_id;
-        
-        if (!deviceId) {
-            deviceId = crypto.randomBytes(32).toString('hex');
-            await updateUser(userId, { device_id: deviceId });
-        
-        } else if (clientDeviceId !== deviceId) {
-            
-            return res.status(403).json({ 
-                error: 'device_mismatch',
-                message: 'Access Denied'
             });
         }
  
