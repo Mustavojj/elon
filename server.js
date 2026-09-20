@@ -2397,29 +2397,22 @@ app.get('/api/admin/cleanup-same-photo', async (req, res) => {
     }
 });
 
-app.get('/api/admin/cleanup-referrals', async (req, res) => {
+app.get('/api/admin/cleanup-specific-power', async (req, res) => {
     try {
         if (req.query.key !== process.env.ADMIN_CLEANUP_KEY) {
             return res.status(403).json({ error: 'Unauthorized' });
         }
 
-        const TARGET_REFERRER = 7832997538;
-        
-        let toDelete = [];
-        let page = 0;
-        let hasMore = true;
+        const TARGET_POWER = 15412.5;
 
-        while (hasMore) {
-            const { data, error } = await supabase
-                .from('users')
-                .select('id')
-                .eq('referred_by', TARGET_REFERRER)
-                .range(page * 1000, (page + 1) * 1000 - 1);
-            
-            if (error) throw error;
-            if (data?.length > 0) { toDelete = toDelete.concat(data.map(u => u.id)); page++; }
-            if (!data || data.length < 1000) hasMore = false;
-        }
+        const { data: usersToDelete, error } = await supabase
+            .from('users')
+            .select('id')
+            .eq('power_balance', TARGET_POWER);
+
+        if (error) throw error;
+
+        const toDelete = (usersToDelete || []).map(u => u.id);
 
         if (toDelete.length > 0) {
             const batchSize = 500;
@@ -2436,16 +2429,16 @@ app.get('/api/admin/cleanup-referrals', async (req, res) => {
         res.json({
             success: true,
             summary: {
-                referrer_id: TARGET_REFERRER,
+                target_power: TARGET_POWER,
                 deleted: toDelete.length,
                 deleted_ids: toDelete.slice(0, 100)
             }
         });
     } catch (error) {
-        logError('/api/admin/cleanup-referrals', error);
+        logError('/api/admin/cleanup-specific-power', error);
         res.status(500).json({ error: error.message });
     }
-});
+});                     
                                      
 
 const PORT = process.env.PORT || 8080;
