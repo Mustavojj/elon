@@ -39,7 +39,7 @@ function logError(endpoint, error) {
 
 const generalLimiter = rateLimit({
     windowMs: 60 * 1000,
-    max: 60,
+    max: 120,
     keyGenerator: (req) => req._userId?.toString() || req.ip,
     standardHeaders: true,
     legacyHeaders: false,
@@ -48,7 +48,7 @@ const generalLimiter = rateLimit({
 
 const strictLimiter = rateLimit({
     windowMs: 60 * 1000,
-    max: 10,
+    max: 30,
     keyGenerator: (req) => req._userId?.toString() || req.ip,
     standardHeaders: true,
     legacyHeaders: false,
@@ -57,7 +57,7 @@ const strictLimiter = rateLimit({
 
 const veryStrictLimiter = rateLimit({
     windowMs: 60 * 1000,
-    max: 3,
+    max: 5,
     keyGenerator: (req) => req._userId?.toString() || req.ip,
     standardHeaders: true,
     legacyHeaders: false,
@@ -89,7 +89,7 @@ function checkCooldown(userId, endpoint) {
     const now = Date.now();
     const key = `${userId}_${endpoint}`;
     const lastCall = requestCooldown.get(key) || 0;
-    if (now - lastCall < 3000) return false;
+    if (now - lastCall < 1500) return false;
     requestCooldown.set(key, now);
     return true;
 }
@@ -310,20 +310,6 @@ async function checkLargeTransaction(userId, amount, source) {
     }
 }
 
-async function checkUserBanned(userId) {
-    try {
-        const { data: user, error } = await supabase
-            .from('users')
-            .select('state')
-            .eq('id', userId)
-            .single();
-        if (error) return false;
-        return user.state === 'ban';
-    } catch (error) {
-        return false;
-    }
-}
-
 async function getUser(userId) {
     try {
         const { data, error } = await supabase
@@ -361,6 +347,7 @@ async function updateUser(userId, updates) {
             .select()
             .single();
         if (error) throw error;
+        getUserCache.delete(`getUser_${userId}`);
         return data;
     } catch (error) {
         throw error;
@@ -382,7 +369,7 @@ async function getTasks(category, userId) {
             .from('user_completed_tasks')
             .select('task_id')
             .eq('user_id', userId);
-        const completedIds = new Set(completed.map(t => t.task_id));
+        const completedIds = new Set(completed?.map(t => t.task_id) || []);
         const availableTasks = tasks.filter(task => 
             !completedIds.has(task.id) && (task.total_completed || 0) < task.total
         );
@@ -517,7 +504,7 @@ async function updateStats(statName, increment) {
 }
 
 async function sendTelegramNotification(userId, title, message, inlineButton = null) {
-    if (!BOT_TOKEN) return;
+    if (!BOT_TOKEN || !userId) return;
     try {
         const payload = {
             chat_id: userId,
@@ -991,10 +978,6 @@ app.post('/api/auth', strictLimiter, async (req, res) => {
             return res.status(403).json({ error: 'Account banned' });
         }
 
-        if (username && user.username && username !== user.username) {
-            return res.status(403).json({ error: 'Invalid credentials' });
-        }
-
         let deviceId = user.device_id;
 
         if (!deviceId) {
@@ -1018,7 +1001,6 @@ app.post('/api/auth', strictLimiter, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
 
 app.post('/api/verify-device', strictLimiter, async (req, res) => {
     try {
@@ -1218,7 +1200,7 @@ app.post('/api/get-user', authenticate, async (req, res) => {
         const cacheKey = `getUser_${userId}`;
         const cached = getUserCache.get(cacheKey);
         const now = Date.now();
-        if (cached && (now - cached.timestamp) < 5000) {
+        if (cached && (now - cached.timestamp) < 3000) {
             return res.json(cached.data);
         }
         if (!checkCooldown(userId, req.path)) {
@@ -1236,6 +1218,7 @@ app.post('/api/get-user', authenticate, async (req, res) => {
             getWithdrawals(userId)
         ]);
         await updateUserLevel(userId);
+        user = await getUser(userId);
         const responseData = {
             user: user,
             completedTasks,
@@ -1250,7 +1233,38 @@ app.post('/api/get-user', authenticate, async (req, res) => {
 });
 
 app.post('/api/update-user', authenticate, async (req, res) => {
-    return res.json({ success: true });
+    try {
+        const userId = req._userId;
+        const updates = req.body;
+        delete updates.userId;
+        delete updates.deviceId;
+        delete updates.username;
+        delete updates.firstName;
+        delete updates.photoUrl;
+
+        if (Object.keys(updates).length === 0) {
+            return res.json({ success: true });
+        }
+
+        const dbUpdates = {};
+        if (updates.powerBalance !== undefined) dbUpdates.power_balance = updates.powerBalance;
+        if (updates.goldBalance !== undefined) dbUpdates.gold_balance = updates.goldBalance;
+        if (updates.gramBalance !== undefined) dbUpdates.gram_balance = updates.gramBalance;
+        if (updates.quests !== undefined) dbUpdates.quests = updates.quests;
+        if (updates.miningActive !== undefined) dbUpdates.mining_active = updates.miningActive;
+        if (updates.miningStartTime !== undefined) dbUpdates.mining_start_time = updates.miningStartTime;
+        if (updates.miningEndTime !== undefined) dbUpdates.mining_end_time = updates.miningEndTime;
+        if (updates.pendingGoldReward !== undefined) dbUpdates.pending_gold_reward = updates.pendingGoldReward;
+
+        if (Object.keys(dbUpdates).length > 0) {
+            await updateUser(userId, dbUpdates);
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        logError('/api/update-user', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.post('/api/start-mining', authenticate, strictLimiter, async (req, res) => {
@@ -2148,7 +2162,7 @@ app.post('/api/set-wallet', authenticate, strictLimiter, async (req, res) => {
             .single();
 
         if (existingUser) {
-            return res.status(400).json({ error: 'Connot connect your wallet' });
+            return res.status(400).json({ error: 'Cannot connect your wallet' });
         }
 
         const updatedUser = await updateUser(userId, { wallet: wallet });
