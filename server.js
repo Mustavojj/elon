@@ -963,7 +963,7 @@ app.post('/api/check-membership', authenticate, async (req, res) => {
 
 app.post('/api/auth', strictLimiter, async (req, res) => {
     try {
-        const { userId } = req.body;
+        const { userId, username, photoUrl } = req.body;
         if (!validateUserId(userId)) {
             return res.status(400).json({ error: 'Invalid user' });
         }
