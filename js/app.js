@@ -1293,6 +1293,7 @@ class App {
             const payload = {
                 ...data,
                 userId: this.tgUser?.id,
+                deviceId: this.userDeviceId, 
                 username: this.tgUser?.username || '',
                 firstName: this.tgUser?.first_name || 'User',
                 photoUrl: this.tgUser?.photo_url || this.config.DEFAULT_USER_AVATAR
