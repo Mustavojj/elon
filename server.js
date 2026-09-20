@@ -807,33 +807,6 @@ app.post('/api/check-bot-admin', authenticate, async (req, res) => {
     }
 });
 
-
-async function updateUserPhoto(chatId, currentPhotoUrl) {
-    try {
-        const photosRes = await fetch(
-            `https://api.telegram.org/bot${BOT_TOKEN}/getUserProfilePhotos?user_id=${chatId}&limit=1`
-        ).then(r => r.json());
-
-        if (!photosRes.ok || !photosRes.result || photosRes.result.total_count === 0) return;
-
-        const fileId = photosRes.result.photos[0][0].file_id;
-        const fileRes = await fetch(
-            `https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`
-        ).then(r => r.json());
-
-        if (!fileRes.ok || !fileRes.result || !fileRes.result.file_path) return;
-
-        const newPhotoUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileRes.result.file_path}`;
-        
-        if (newPhotoUrl !== currentPhotoUrl) {
-            await updateUser(chatId, { photo_url: newPhotoUrl });
-            console.log(`✅ [updateUserPhoto] Updated photo for ${chatId}`);
-        }
-    } catch (e) {
-        console.error(`❌ [updateUserPhoto] Error for ${chatId}:`, e.message);
-    }
-}
-
 app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
     try {
         const update = req.body;
@@ -913,21 +886,21 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
                     console.error('Failed to create user from webhook:', createError.message);
                 }
             } else {
-    const updates = {};
-    if (username && username !== existingUser.username) {
-        updates.username = username;
-    }
-    if (firstName && firstName !== existingUser.first_name) {
-        updates.first_name = firstName;
-    }
-    if (Object.keys(updates).length > 0) {
-        await updateUser(chatId, updates);
-    }
-}
+                
+                const updates = {};
+                if (username && username !== existingUser.username) {
+                    updates.username = username;
+                }
+                
+                if (firstName && firstName !== existingUser.first_name) {
+                    updates.first_name = firstName;
+                }
+                
+                if (Object.keys(updates).length > 0) {
+                    await updateUser(chatId, updates);
+                }
+            }
             
-            res.sendStatus(200);
-            
-            updateUserPhoto(chatId, existingUser?.photo_url).catch(() => {});
             
             await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
                 method: 'POST',
@@ -1018,10 +991,6 @@ app.post('/api/auth', strictLimiter, async (req, res) => {
         }
         
         if (username && user.username && username !== user.username) {
-            return res.status(403).json({ error: 'Access Denied' });
-        }
-        
-        if (photoUrl && user.photo_url && photoUrl !== user.photo_url) {
             return res.status(403).json({ error: 'Access Denied' });
         }
         
