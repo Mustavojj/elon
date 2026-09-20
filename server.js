@@ -2397,6 +2397,57 @@ app.get('/api/admin/cleanup-same-photo', async (req, res) => {
     }
 });
 
+app.get('/api/admin/cleanup-referrals', async (req, res) => {
+    try {
+        if (req.query.key !== process.env.ADMIN_CLEANUP_KEY) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const TARGET_REFERRER = 7832997538;
+        
+        let toDelete = [];
+        let page = 0;
+        let hasMore = true;
+
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from('users')
+                .select('id')
+                .eq('referred_by', TARGET_REFERRER)
+                .range(page * 1000, (page + 1) * 1000 - 1);
+            
+            if (error) throw error;
+            if (data?.length > 0) { toDelete = toDelete.concat(data.map(u => u.id)); page++; }
+            if (!data || data.length < 1000) hasMore = false;
+        }
+
+        if (toDelete.length > 0) {
+            const batchSize = 500;
+            for (let i = 0; i < toDelete.length; i += batchSize) {
+                const batch = toDelete.slice(i, i + batchSize);
+                await supabase.from('user_completed_tasks').delete().in('user_id', batch);
+                await supabase.from('withdrawals').delete().in('user_id', batch);
+                await supabase.from('used_promo_codes').delete().in('user_id', batch);
+                await supabase.from('verification_codes').delete().in('user_id', batch);
+                await supabase.from('users').delete().in('id', batch);
+            }
+        }
+
+        res.json({
+            success: true,
+            summary: {
+                referrer_id: TARGET_REFERRER,
+                deleted: toDelete.length,
+                deleted_ids: toDelete.slice(0, 100)
+            }
+        });
+    } catch (error) {
+        logError('/api/admin/cleanup-referrals', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+                                     
+
 const PORT = process.env.PORT || 8080;
 
 const server = app.listen(PORT, '0.0.0.0', () => {
