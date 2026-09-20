@@ -896,32 +896,11 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
                 if (firstName && firstName !== existingUser.first_name) {
                     updates.first_name = firstName;
                 }
-                
-                try {
-                    const photosRes = await fetch(
-                        `https://api.telegram.org/bot${BOT_TOKEN}/getUserProfilePhotos?user_id=${chatId}&limit=1`
-                    ).then(r => r.json());
-                    
-                    if (photosRes.ok && photosRes.result.total_count > 0) {
-                        const fileId = photosRes.result.photos[0][0].file_id;
-                        const fileRes = await fetch(
-                            `https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`
-                        ).then(r => r.json());
-                        
-                        if (fileRes.ok && fileRes.result.file_path) {
-                            const newPhotoUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileRes.result.file_path}`;
-                            if (newPhotoUrl !== existingUser.photo_url) {
-                                updates.photo_url = newPhotoUrl;
-                            }
-                        }
-                    }
-                } catch (e) {
-                    console.error('Failed to fetch user photo:', e.message);
+
+                if (photoUrl && photoUrl !== existingUser.photo_url) {
+                    updates.photo_url = photoUrl;
                 }
                 
-                if (Object.keys(updates).length > 0) {
-                    await updateUser(chatId, updates);
-                }
             }
             
             await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
