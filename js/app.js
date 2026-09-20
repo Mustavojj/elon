@@ -1359,18 +1359,18 @@ class App {
     }
 
     async getConfig() {
-        try {
-            const config = await this.getFromServer('/api/config');
-            this.config = config;
-            this.miningSessionHours = config.MINING_SESSION_HOURS || 1;
-            this.socialGoldReward = config.SOCIAL_GOLD_REWARD || 1;
-            this.adRewardPower = config.AD_REWARD_POWER || 20;
-            return config;
-        } catch (error) {
-            console.error('Failed to load config:', error);
-            };
-            return this.config;
-        }
+    try {
+        const config = await this.getFromServer('/api/config');
+        this.config = config;
+        this.miningSessionHours = config.MINING_SESSION_HOURS || 1;
+        this.socialGoldReward = config.SOCIAL_GOLD_REWARD || 1;
+        this.adRewardPower = config.AD_REWARD_POWER || 20;
+        return config;
+    } catch (error) {
+        console.error('Failed to load config:', error);
+        return this.config;
+    }
+}
 
     async getServerTime() {
         try {
