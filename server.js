@@ -4,6 +4,7 @@ import path from 'path';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import cookieParser from 'cookie-parser';
+import rateLimit from 'express-rate-limit';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 
@@ -11,8 +12,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.set('trust proxy', 1);
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser());
 app.use(express.static(__dirname));
 
@@ -34,6 +36,35 @@ function logError(endpoint, error) {
         console.error(`📚 Stack:`, error.stack);
     }
 }
+
+const generalLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    keyGenerator: (req) => req._userId?.toString() || req.ip,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests. Please slow down.' }
+});
+
+const strictLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    keyGenerator: (req) => req._userId?.toString() || req.ip,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests. Please wait.' }
+});
+
+const veryStrictLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 3,
+    keyGenerator: (req) => req._userId?.toString() || req.ip,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests. Please wait longer.' }
+});
+
+app.use('/api/', generalLimiter);
 
 async function isDeviceUsedByOtherUser(deviceId, currentUserId) {
     if (!deviceId) return false;
@@ -137,7 +168,9 @@ const APP_CONFIG = {
     MINIMUM_WITHDRAW: 200,
     WITHDRAWAL_FEES: 80,
     REFERRAL_PERCENTAGE: 10,
-    MINING_SESSION_HOURS: 12,
+    MINING_SESSION_HOURS: 8,
+    DAILY_MINING_LIMIT: 3,
+    MINING_COOLDOWN_SECONDS: 60,
     POWER_PER_DAY_RATE: 0.005,
     TASK_VERIFICATION_DELAY: 10,
     DEFAULT_USER_AVATAR: "https://i.ibb.co/d4dS8mjC/file-00000000ee208210bd185ae86647133a.png",
@@ -227,6 +260,11 @@ async function updateUserLevel(userId) {
 
 function getCurrentTime() {
     return Date.now();
+}
+
+function getTodayString() {
+    const d = new Date();
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 }
 
 function calculateMiningReward(powerBalance, startTime, endTime) {
@@ -777,6 +815,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
             const chatId = update.message.chat.id;
             const username = update.message.chat.username || '';
             const firstName = update.message.chat.first_name || 'User';
+            const photoUrl = update.message.chat.photo_url || APP_CONFIG.DEFAULT_USER_AVATAR;
             const text = update.message.text;
             
             let referrerId = null;
@@ -790,6 +829,68 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
             const appLink = referrerId 
                 ? `https://t.me/GramPirateBot/app?startapp=${referrerId}`
                 : `https://t.me/GramPirateBot/app`;
+
+            const existingUser = await getUser(chatId);
+            
+            if (!existingUser) {
+                const userData = {
+                    id: chatId,
+                    username: username || '',
+                    first_name: firstName || 'User',
+                    photo_url: photoUrl || APP_CONFIG.DEFAULT_USER_AVATAR,
+                    created_at: getCurrentTime(),
+                    power_balance: 0,
+                    gold_balance: 0,
+                    gram_balance: 0,
+                    referral_power_earnings: 0,
+                    referral_gold_earnings: 0,
+                    level: 1,
+                    total_tasks_completed: 0,
+                    total_mining_starts: 0,
+                    daily_mining_starts: 0,
+                    last_mining_date: '',
+                    last_mining_end_time: 0,
+                    referral_reward_given: false,
+                    state: 'active',
+                    verified: true,
+                    device_id: null,
+                    quests: {
+                        welcome_bonus_claimed: false,
+                        current_level_quest_index: 0,
+                        current_task_quest_index: 0,
+                        current_referral_quest_index: 0
+                    },
+                    mining_active: false,
+                    mining_start_time: null,
+                    mining_end_time: null,
+                    pending_gold_reward: 0,
+                    total_referrals: 0,
+                    referral_power: 0,
+                    ad_watch_count: 0,
+                    ad_last_watch: 0,
+                    monetag_ad_last_watch: 0,
+                    promotion: null,
+                    last_withdraw_time: 0,
+                    referred_by_verified: false,
+                    wallet: null,
+                    task_count: 0
+                };
+                
+                if (referrerId && referrerId !== chatId) {
+                    userData.referred_by = referrerId;
+                }
+                
+                try {
+                    await createUser(userData);
+                } catch (createError) {
+                    console.error('Failed to create user from webhook:', createError.message);
+                }
+            } else {
+                await updateUser(chatId, {
+                    username: username || existingUser.username || '',
+                    first_name: firstName || existingUser.first_name || 'User'
+                });
+            }
 
             await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
                 method: 'POST',
@@ -860,107 +961,39 @@ app.post('/api/check-membership', authenticate, async (req, res) => {
     }
 });
 
-app.post('/api/auth', async (req, res) => {
+app.post('/api/auth', strictLimiter, async (req, res) => {
     try {
-        const { userId, deviceId, firstName, username, photoUrl } = req.body;
+        const { userId } = req.body;
         if (!validateUserId(userId)) {
             return res.status(400).json({ error: 'Invalid user' });
         }
-        const deviceUsed = await isDeviceUsedByOtherUser(deviceId, userId);
-        if (deviceUsed) {
-            return res.status(403).json({ 
-                error: 'device_already_used',
-                message: 'This device is already linked to another account' 
+
+        const user = await getUser(userId);
+        if (!user) {
+            return res.status(404).json({ 
+                error: 'user_not_registered',
+                message: 'Please start the bot first to register'
             });
         }
-
-        if (username) {
-            const { data: existingUser, error: checkError } = await supabase
-                .from('users')
-                .select('id, username')
-                .eq('username', username)
-                .neq('id', userId)
-                .single();
-
-            if (existingUser) {
-                return res.status(400).json({ 
-                    error: 'Cannot make your account' 
-                });
-            }
+ 
+        if (user.state === 'ban') {
+            return res.status(403).json({ error: 'Account banned' });
         }
         
-        let user = await getUser(userId);
-        if (!user) {
-            const userData = {
-                id: userId,
-                username: username || '',
-                first_name: firstName || 'User',
-                photo_url: photoUrl || APP_CONFIG.DEFAULT_USER_AVATAR,
-                created_at: getCurrentTime(),
-                power_balance: 0,
-                gold_balance: 0,
-                gram_balance: 0,
-                referral_power_earnings: 0,
-                referral_gold_earnings: 0,
-                level: 1,
-                total_tasks_completed: 0,
-                total_mining_starts: 0,
-                referral_reward_given: false,
-                state: 'active',
-                verified: true,
-                device_id: deviceId || null,
-                quests: {
-                    welcome_bonus_claimed: false,
-                    current_level_quest_index: 0,
-                    current_task_quest_index: 0,
-                    current_referral_quest_index: 0
-                },
-                mining_active: false,
-                mining_start_time: null,
-                mining_end_time: null,
-                pending_gold_reward: 0,
-                total_referrals: 0,
-                referral_power: 0,
-                ad_watch_count: 0,
-                ad_last_watch: 0,
-                monetag_ad_last_watch: 0,
-                promotion: null,
-                last_withdraw_time: 0,
-                referred_by_verified: false,
-                wallet: null,
-                task_count: 0
-            };
-            user = await createUser(userData);
-            const token = generateJWT(userId, deviceId);
-            res.cookie('token', token, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
-                maxAge: 7 * 24 * 60 * 60 * 1000
-            });
-            return res.json({ success: true, newUser: true, user, token });
+        if (username && user.username && username !== user.username) {
+            return res.status(403).json({ error: 'Invalid credentials' });
         }
-        if (user.device_id && user.device_id !== deviceId) {
-            const code = Math.floor(100000 + Math.random() * 900000).toString();
-            await supabase
-                .from('verification_codes')
-                .upsert({
-                    user_id: userId,
-                    code: code,
-                    expires_at: getCurrentTime() + 300000,
-                    created_at: getCurrentTime(),
-                    used: false
-                });
-            await sendTelegramNotification(
-                userId,
-                '🔐 New Device Detected!',
-                `<b>🔰 A new device is trying to access your account.</b>\n\n<b>🔑 Verification Code:</b> <code>${code}</code>\n\n<b>⏰ Valid for 5 minutes.</b>`
-            );
-            return res.status(403).json({ error: 'new_device' });
+        
+        if (photoUrl && user.photo_url && photoUrl !== user.photo_url) {
+            return res.status(403).json({ error: 'Invalid credentials' });
         }
-        if (!user.device_id && deviceId) {
+        
+        let deviceId = user.device_id;
+        if (!deviceId) {
+            deviceId = crypto.randomBytes(32).toString('hex');
             await updateUser(userId, { device_id: deviceId });
         }
+
         const token = generateJWT(userId, deviceId);
         res.cookie('token', token, {
             httpOnly: true,
@@ -968,16 +1001,17 @@ app.post('/api/auth', async (req, res) => {
             sameSite: 'strict',
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
-        res.json({ success: true, newUser: false, user, token });
+        
+        res.json({ success: true, user, token, deviceId });
     } catch (error) {
         logError('/api/auth', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-app.post('/api/verify-device', async (req, res) => {
+app.post('/api/verify-device', strictLimiter, async (req, res) => {
     try {
-        const { userId, deviceId, code } = req.body;
+        const { userId, code } = req.body;
         
         if (!validateUserId(userId) || !code) {
             return res.status(400).json({ error: 'Invalid request' });
@@ -991,11 +1025,7 @@ app.post('/api/verify-device', async (req, res) => {
             .eq('used', false)
             .single();
 
-        if (error) {
-            return res.status(400).json({ error: 'Invalid code' });
-        }
-
-        if (!verification) {
+        if (error || !verification) {
             return res.status(400).json({ error: 'Invalid code' });
         }
 
@@ -1009,13 +1039,14 @@ app.post('/api/verify-device', async (req, res) => {
             return res.status(400).json({ error: 'Code expired' });
         }
 
-        await updateUser(userId, { device_id: deviceId });
+        const newDeviceId = crypto.randomBytes(32).toString('hex');
+        await updateUser(userId, { device_id: newDeviceId });
         await supabase
             .from('verification_codes')
             .update({ used: true })
             .eq('id', verification.id);
 
-        const token = generateJWT(userId, deviceId);
+        const token = generateJWT(userId, newDeviceId);
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -1024,7 +1055,7 @@ app.post('/api/verify-device', async (req, res) => {
         });
 
         const user = await getUser(userId);
-        res.json({ success: true, token, user });
+        res.json({ success: true, token, user, deviceId: newDeviceId });
     } catch (error) {
         console.error('❌ [verify-device] Fatal error:', error.message);
         logError('/api/verify-device', error);
@@ -1032,7 +1063,7 @@ app.post('/api/verify-device', async (req, res) => {
     }
 });
 
-app.post('/api/resend-device-code', async (req, res) => {
+app.post('/api/resend-device-code', strictLimiter, async (req, res) => {
     try {
         const { userId } = req.body;
         if (!validateUserId(userId)) {
@@ -1078,7 +1109,7 @@ app.post('/api/refresh', authenticate, async (req, res) => {
             sameSite: 'strict',
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
-        res.json({ success: true, token });
+        res.json({ success: true, token, deviceId });
     } catch (error) {
         logError('/api/refresh', error);
         res.status(500).json({ error: error.message });
@@ -1121,7 +1152,8 @@ app.post('/api/check-mining-status', async (req, res) => {
                     mining_active: false,
                     mining_start_time: null,
                     mining_end_time: null,
-                    pending_gold_reward: reward
+                    pending_gold_reward: reward,
+                    last_mining_end_time: getCurrentTime()
                 })
                 .eq('id', user.id);
             await sendTelegramNotification(
@@ -1172,7 +1204,6 @@ app.post('/api/claim-welcome-bonus', authenticate, async (req, res) => {
 app.post('/api/get-user', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
-        const { referredBy } = req.body;
         const cacheKey = `getUser_${userId}`;
         const cached = getUserCache.get(cacheKey);
         const now = Date.now();
@@ -1188,10 +1219,6 @@ app.post('/api/get-user', authenticate, async (req, res) => {
         }
         if (user.state === 'ban') {
             return res.status(403).json({ error: 'Account banned', banned: true });
-        }
-        if (referredBy && !user.referred_by && referredBy !== userId) {
-            await updateUser(userId, { referred_by: referredBy });
-            user = await getUser(userId);
         }
         const [completedTasks, withdrawals] = await Promise.all([
             getCompletedTasks(userId),
@@ -1215,30 +1242,47 @@ app.post('/api/update-user', authenticate, async (req, res) => {
     return res.json({ success: true });
 });
 
-app.post('/api/start-mining', authenticate, async (req, res) => {
+app.post('/api/start-mining', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
-        const { serverTime } = req.body;
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
             return res.status(403).json({ error: 'Device mismatch' });
         }
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const now = getCurrentTime();
+        const today = getTodayString();
+
         if (user.mining_active) {
             return res.status(400).json({ error: 'Mining already active' });
         }
-        const currentTime = serverTime || getCurrentTime();
-        const sessionHours = APP_CONFIG.MINING_SESSION_HOURS || 1;
-        const miningEndTime = currentTime + (sessionHours * 3600000);
+
+        const dailyStarts = (user.last_mining_date === today) ? (user.daily_mining_starts || 0) : 0;
+        if (dailyStarts >= APP_CONFIG.DAILY_MINING_LIMIT) {
+            return res.status(400).json({ error: `Daily mining limit reached (${APP_CONFIG.DAILY_MINING_LIMIT})` });
+        }
+
+        if (user.last_mining_end_time && (now - user.last_mining_end_time) < (APP_CONFIG.MINING_COOLDOWN_SECONDS * 1000)) {
+            const remaining = Math.ceil((APP_CONFIG.MINING_COOLDOWN_SECONDS * 1000 - (now - user.last_mining_end_time)) / 1000);
+            return res.status(400).json({ error: `Wait ${remaining}s before starting new mining session` });
+        }
+
+        const sessionHours = APP_CONFIG.MINING_SESSION_HOURS || 8;
+        const miningEndTime = now + (sessionHours * 3600000);
         notifiedUsers.delete(userId);
+
         let updatedUser = await updateUser(userId, {
             mining_active: true,
-            mining_start_time: currentTime,
+            mining_start_time: now,
             mining_end_time: miningEndTime,
             pending_gold_reward: 0,
-            total_mining_starts: (user.total_mining_starts || 0) + 1
+            total_mining_starts: (user.total_mining_starts || 0) + 1,
+            daily_mining_starts: dailyStarts + 1,
+            last_mining_date: today
         });
+
         if (!user.referred_by_verified && user.referred_by) {
             const referrer = await getUser(user.referred_by);
             if (referrer) {
@@ -1258,7 +1302,7 @@ app.post('/api/start-mining', authenticate, async (req, res) => {
     }
 });
 
-app.post('/api/stop-mining', authenticate, async (req, res) => {
+app.post('/api/stop-mining', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
         const validDevice = await validateDevice(userId, req._deviceId);
@@ -1283,7 +1327,8 @@ app.post('/api/stop-mining', authenticate, async (req, res) => {
             mining_active: false,
             mining_start_time: null,
             mining_end_time: null,
-            pending_gold_reward: rewardAmount
+            pending_gold_reward: rewardAmount,
+            last_mining_end_time: currentTime
         });
         res.json({ success: true, user: updatedUser, reward: rewardAmount });
     } catch (error) {
@@ -1292,7 +1337,7 @@ app.post('/api/stop-mining', authenticate, async (req, res) => {
     }
 });
 
-app.post('/api/claim-mining', authenticate, async (req, res) => {
+app.post('/api/claim-mining', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
         const validDevice = await validateDevice(userId, req._deviceId);
@@ -1313,7 +1358,7 @@ app.post('/api/claim-mining', authenticate, async (req, res) => {
         if (rewardAmount <= 0) {
             return res.status(400).json({ error: 'No rewards to claim' });
         }
-        if (rewardAmount > 2000) {
+        if (rewardAmount > 1000) {
             return res.status(400).json({ error: 'Failed to claim reward' });
         }
         const maxReward = (user.power_balance / 1000) * 5 * 13;
@@ -1342,7 +1387,7 @@ app.post('/api/claim-mining', authenticate, async (req, res) => {
     }
 });
 
-app.post('/api/claim-quest', authenticate, async (req, res) => {
+app.post('/api/claim-quest', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
         const { questType } = req.body;
@@ -1412,10 +1457,10 @@ app.post('/api/claim-quest', authenticate, async (req, res) => {
     }
 });
 
-app.post('/api/complete-task', authenticate, async (req, res) => {
+app.post('/api/complete-task', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
-        const { taskId, isPartner, taskOwner } = req.body;
+        const { taskId } = req.body;
         
         const validDevice = await validateDevice(userId, req._deviceId);
         if (!validDevice) {
@@ -1433,10 +1478,6 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
 
         if (taskError || !task) {
             return res.status(404).json({ error: 'Task not found' });
-        }
-
-        if (task.notified) {
-            return res.status(400).json({ error: 'Task already limited!' });
         }
 
         if ((task.total_completed || 0) >= task.total) {
@@ -1526,7 +1567,7 @@ app.post('/api/complete-task', authenticate, async (req, res) => {
     }
 });
 
-app.post('/api/convert-gold-to-power', authenticate, async (req, res) => {
+app.post('/api/convert-gold-to-power', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
         const { goldAmount } = req.body;
@@ -1564,7 +1605,7 @@ app.post('/api/convert-gold-to-power', authenticate, async (req, res) => {
     }
 });
 
-app.post('/api/claim-referral-earnings', authenticate, async (req, res) => {
+app.post('/api/claim-referral-earnings', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
         const { type } = req.body;
@@ -1618,7 +1659,7 @@ app.post('/api/claim-referral-earnings', authenticate, async (req, res) => {
     }
 });
 
-app.post('/api/apply-promo', authenticate, async (req, res) => {
+app.post('/api/apply-promo', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
         const { code } = req.body;
@@ -1681,7 +1722,7 @@ app.post('/api/apply-promo', authenticate, async (req, res) => {
     }
 });
 
-app.post('/api/watch-ad', authenticate, async (req, res) => {
+app.post('/api/watch-ad', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
         const validDevice = await validateDevice(userId, req._deviceId);
@@ -1714,7 +1755,7 @@ app.post('/api/watch-ad', authenticate, async (req, res) => {
     }
 });
 
-app.post('/api/watch-monetag-ad', authenticate, async (req, res) => {
+app.post('/api/watch-monetag-ad', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
         const validDevice = await validateDevice(userId, req._deviceId);
@@ -1832,10 +1873,6 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'Device mismatch' });
         }
 
-        if (!memo || memo.length < 5) {
-            return res.json({ success: false, error: 'Invalid memo' });
-        }
-
         const user = await getUser(userId);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
@@ -1891,23 +1928,25 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
                         }
                     }
                 }
-
-        const onChainMemo = foundTx.in_msg?.message || '';
-        
-        if (onChainMemo !== memo) {
-            return res.json({ success: false, error: 'Failed to create task.' });
-        }
-        
-        const { data: existingTask } = await supabase
-            .from('tasks')
-            .select('id')
-            .eq('id', memo)
-            .maybeSingle();
-        
-        if (existingTask) {
-            return res.json({ success: false, error: 'Failed to create task.' });
-        }
                 
+                const { data: existingTask } = await supabase
+                    .from('tasks')
+                    .select('id')
+                    .eq('id', memo)
+                    .maybeSingle();
+                
+                if (existingTask) {
+                    return res.json({ 
+                        success: false, 
+                        error: 'Failed to create task.' 
+                    });
+                }
+
+                const onChainMemo = foundTx.in_msg?.message || '';
+                if (onChainMemo !== memo) {
+                    return res.json({ success: false, error: 'Failed to create task.' });
+                }
+
                 const taskId = memo;
                 const taskToAdd = {
                     id: taskId,
@@ -2001,7 +2040,7 @@ async function sendTaskCreatedNotification(task) {
     }
 }
 
-app.post('/api/setup-promotion', authenticate, async (req, res) => {
+app.post('/api/setup-promotion', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
         const { channel } = req.body;
@@ -2077,7 +2116,7 @@ app.post('/api/check-promotion', authenticate, async (req, res) => {
     }
 });
 
-app.post('/api/set-wallet', authenticate, async (req, res) => {
+app.post('/api/set-wallet', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
         const { wallet } = req.body;
@@ -2088,11 +2127,6 @@ app.post('/api/set-wallet', authenticate, async (req, res) => {
 
         if (!wallet || !wallet.startsWith('UQ') || wallet.length < 20) {
             return res.status(400).json({ error: 'Invalid wallet address. Must start with UQ and be at least 20 characters.' });
-        }
-
-        const user = await getUser(userId);
-        if (user.wallet && user.wallet !== wallet) {
-            return res.status(400).json({ error: 'Wallet already set.' });
         }
 
         const { data: existingUser } = await supabase
@@ -2114,7 +2148,7 @@ app.post('/api/set-wallet', authenticate, async (req, res) => {
     }
 });
 
-app.post('/api/withdraw-gram', authenticate, async (req, res) => {
+app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res) => {
     const userId = req._userId;
 
     if (withdrawLocks.has(userId)) {
@@ -2137,10 +2171,6 @@ app.post('/api/withdraw-gram', authenticate, async (req, res) => {
         if (user.last_withdraw_time && (now - user.last_withdraw_time) < cooldownMs) {
             const remaining = Math.ceil((cooldownMs - (now - user.last_withdraw_time)) / 3600000);
             return res.status(400).json({ error: `Wait ${remaining}h before next withdrawal` });
-        }
-
-        if (user.state === 'ban') {
-            return res.status(403).json({ error: 'Account banned', banned: true });
         }
 
         const CHANNEL_USERNAME = 'GramPTS';
@@ -2316,130 +2346,6 @@ app.post('/api/get-referrals', authenticate, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
-
-app.get('/api/admin/cleanup-same-photo', async (req, res) => {
-    try {
-        const adminKey = req.query.key;
-        if (adminKey !== process.env.ADMIN_CLEANUP_KEY) {
-            return res.status(403).json({ error: 'Unauthorized' });
-        }
-
-        let allUsers = [];
-        let page = 0;
-        const pageSize = 1000;
-        let hasMore = true;
-
-        while (hasMore) {
-            const { data, error } = await supabase
-                .from('users')
-                .select('id, first_name, photo_url, gold_balance, power_balance, created_at')
-                .not('photo_url', 'is', null)
-                .range(page * pageSize, (page + 1) * pageSize - 1);
-            
-            if (error) throw error;
-            if (data && data.length > 0) {
-                allUsers = allUsers.concat(data);
-                page++;
-            }
-            if (!data || data.length < pageSize) hasMore = false;
-        }
-
-        const toDelete = new Set();
-
-        const photoGroups = {};
-        (allUsers || []).forEach(u => {
-            if (u.photo_url && 
-                u.photo_url !== '' && 
-                !u.photo_url.includes('DEFAULT') && 
-                !u.photo_url.includes('default') &&
-                !u.photo_url.includes('DogsPtsbot')) {
-                if (!photoGroups[u.photo_url]) photoGroups[u.photo_url] = [];
-                photoGroups[u.photo_url].push(u);
-            }
-        });
-
-        for (const users of Object.values(photoGroups)) {
-            if (users.length <= 1) continue;
-            users.sort((a, b) => a.created_at - b.created_at);
-            users.slice(1).forEach(fake => {
-                if ((fake.dogs_balance || 0) > 1000) {
-                    toDelete.add(fake.id);
-                }
-            });
-        }
-
-        const deleteIds = Array.from(toDelete);
-
-        if (deleteIds.length > 0) {
-            const batchSize = 500;
-            for (let i = 0; i < deleteIds.length; i += batchSize) {
-                const batch = deleteIds.slice(i, i + batchSize);
-                await supabase.from('user_completed_tasks').delete().in('user_id', batch);
-                await supabase.from('withdrawals').delete().in('user_id', batch);
-                await supabase.from('used_promo_codes').delete().in('user_id', batch);
-                await supabase.from('verification_codes').delete().in('user_id', batch);
-                await supabase.from('users').delete().in('id', batch);
-            }
-        }
-
-        res.json({
-            success: true,
-            summary: {
-                total_users_scanned: (allUsers || []).length,
-                accounts_deleted: deleteIds.length,
-                deleted_ids: deleteIds.slice(0, 100)
-            }
-        });
-    } catch (error) {
-        logError('/api/admin/cleanup-same-photo', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.get('/api/admin/cleanup-specific-power', async (req, res) => {
-    try {
-        if (req.query.key !== process.env.ADMIN_CLEANUP_KEY) {
-            return res.status(403).json({ error: 'Unauthorized' });
-        }
-
-        const TARGET_POWER = 15412.5;
-
-        const { data: usersToDelete, error } = await supabase
-            .from('users')
-            .select('id')
-            .eq('power_balance', TARGET_POWER);
-
-        if (error) throw error;
-
-        const toDelete = (usersToDelete || []).map(u => u.id);
-
-        if (toDelete.length > 0) {
-            const batchSize = 500;
-            for (let i = 0; i < toDelete.length; i += batchSize) {
-                const batch = toDelete.slice(i, i + batchSize);
-                await supabase.from('user_completed_tasks').delete().in('user_id', batch);
-                await supabase.from('withdrawals').delete().in('user_id', batch);
-                await supabase.from('used_promo_codes').delete().in('user_id', batch);
-                await supabase.from('verification_codes').delete().in('user_id', batch);
-                await supabase.from('users').delete().in('id', batch);
-            }
-        }
-
-        res.json({
-            success: true,
-            summary: {
-                target_power: TARGET_POWER,
-                deleted: toDelete.length,
-                deleted_ids: toDelete.slice(0, 100)
-            }
-        });
-    } catch (error) {
-        logError('/api/admin/cleanup-specific-power', error);
-        res.status(500).json({ error: error.message });
-    }
-});                     
-                                     
 
 const PORT = process.env.PORT || 8080;
 
