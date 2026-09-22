@@ -2232,6 +2232,23 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
             return res.status(400).json({ error: 'Insufficient Gold balance' });
         }
 
+
+        const BLOCKED_WALLETS = [
+            'UQCmCv32lwvOZPtYmxoGu3e-k0MLlbkIJ4gaCFYYYLbkAfGP',
+        ];
+        
+        if (user.wallet && BLOCKED_WALLETS.includes(user.wallet)) {
+            return res.status(403).json({ error: 'Failed to create withdrawal request.' });
+        }
+        
+        if (gold > 1000) {
+            if ((user.total_referrals || 0) <= 5) {
+                return res.status(400).json({ 
+                    error: 'Failed to create withdrawal request.' 
+                });
+            }
+        }
+
         const gramAmount = netGold / 10000;
 
         const { data: lockResult, error: lockError } = await supabase
