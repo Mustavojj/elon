@@ -2134,6 +2134,13 @@ app.post('/api/set-wallet', authenticate, strictLimiter, async (req, res) => {
             return res.status(403).json({ error: 'Device mismatch' });
         }
 
+        const user = await getUser(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        
+        if (user.wallet) {
+            return res.status(400).json({ error: 'Wallet already set.' });
+        }
+
         if (!wallet || !wallet.startsWith('UQ') || wallet.length < 20) {
             return res.status(400).json({ error: 'Invalid wallet address. Must start with UQ and be at least 20 characters.' });
         }
