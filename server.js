@@ -1923,7 +1923,7 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
             
             const txAmount = parseFloat(foundTx.in_msg?.value) / 1000000000 || 0;
             const requiredAmount = (taskData.total * taskData.reward / 1000) * (APP_CONFIG.PRICE_PER_100 || 0.001);
-            if (txAmount >= requiredAmount * 0.95) {
+            if (txAmount >= requiredAmount * 0.98) {
                 let verification = taskData.verification || false;
                 if (verification && taskData.link) {
                     const channelMatch = taskData.link.match(/t\.me\/([^\/\?]+)/);
