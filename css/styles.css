@@ -2420,3 +2420,29 @@ body {
     font-size: 0.65rem;
     color: #888;
 }
+
+.form-input, 
+.input-wrapper .form-input,
+#promo-input, 
+#boost-amount,
+#withdraw-amount,
+#withdraw-wallet,
+#social-task-name,
+#social-task-link,
+#social-task-total-custom,
+#special-task-name,
+#special-task-link,
+#promo-code-input,
+#promo-reward-amount,
+#promo-max-uses,
+#promo-required-channel,
+#promotion-channel-input {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 12px 16px !important;
+    border-radius: 60px !important;
+    font-size: 0.85rem !important;
+    height: 44px !important;
+    display: block !important;
+}
