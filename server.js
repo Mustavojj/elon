@@ -33,19 +33,13 @@ const withdrawLocks = new Map();
 const taskCompletionLocks = new Map();
 const promoCodeLocks = new Map();
 
-function logError(endpoint, error) {
-    console.error(`❌ [${endpoint}] Error:`, error.message || error);
-    if (error.stack) {
-        console.error(`📚 Stack:`, error.stack);
-    }
-}
-
-function logInfo(endpoint, message, data = {}) {
-    console.log(`📌 [${endpoint}] ${message}`, JSON.stringify(data));
-}
-
-function logAuth(endpoint, message, data = {}) {
-    console.log(`🔐 [${endpoint}] ${message}`, JSON.stringify(data));
+function logFailure(endpoint, userId, ip, error, extra = {}) {
+    console.error(`❌ [${endpoint}] FAILED`, JSON.stringify({
+        userId: userId || 'unknown',
+        ip: ip || 'unknown',
+        error: error?.message || error,
+        ...extra
+    }));
 }
 
 const generalLimiter = rateLimit({
@@ -132,13 +126,13 @@ function validateTelegramInitData(initData, botToken) {
     try {
         const urlParams = new URLSearchParams(initData);
         const hash = urlParams.get('hash');
-        
+
         if (!hash) {
             return { valid: false, error: 'Missing hash' };
         }
 
         urlParams.delete('hash');
-        
+
         const dataCheckString = Array.from(urlParams.entries())
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([key, value]) => `${key}=${value}`)
@@ -176,27 +170,26 @@ function validateTelegramInitData(initData, botToken) {
             }
         }
 
-        return { 
-            valid: true, 
+        return {
+            valid: true,
             user,
             authDate,
             queryId: urlParams.get('query_id')
         };
 
     } catch (error) {
-        logError('validateTelegramInitData', error);
         return { valid: false, error: error.message };
     }
 }
 
 function generateJWT(userId, telegramId) {
     return jwt.sign(
-        { 
-            userId, 
+        {
+            userId,
             telegramId,
             iat: Math.floor(Date.now() / 1000)
-        }, 
-        JWT_SECRET, 
+        },
+        JWT_SECRET,
         { expiresIn: '7d' }
     );
 }
@@ -463,12 +456,36 @@ async function updateUser(userId, updates) {
     }
 }
 
+async function isMemoUsed(memo) {
+    try {
+        const { data } = await supabase
+            .from('confirmed_memos')
+            .select('memo')
+            .eq('memo', memo)
+            .maybeSingle();
+        return !!data;
+    } catch (error) {
+        return false;
+    }
+}
+
+async function recordMemo(memo, userId) {
+    try {
+        await supabase
+            .from('confirmed_memos')
+            .insert([{ memo, user_id: userId, used_at: getCurrentTime() }]);
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
 async function getTasks(category, userId) {
     try {
         let query = supabase
             .from('tasks')
             .select('*');
-        
+
         if (category) {
             query = query.eq('category', category);
         }
@@ -479,7 +496,7 @@ async function getTasks(category, userId) {
             .select('task_id')
             .eq('user_id', userId);
         const completedIds = new Set(completed?.map(t => t.task_id) || []);
-        const availableTasks = tasks.filter(task => 
+        const availableTasks = tasks.filter(task =>
             !completedIds.has(task.id) && (task.total_completed || 0) < task.total
         );
         return availableTasks || [];
@@ -494,22 +511,22 @@ async function getSpecialTasks(userId) {
             .from('special_tasks')
             .select('*')
             .eq('status', 'active');
-        
+
         if (error) throw error;
-        
+
         const { data: completed } = await supabase
             .from('user_completed_special_tasks')
             .select('task_id')
             .eq('user_id', userId);
-        
+
         const completedIds = new Set(completed?.map(t => t.task_id) || []);
-        
+
         const availableTasks = tasks.map(task => ({
             ...task,
             is_completed: completedIds.has(task.id),
             can_complete: !completedIds.has(task.id) && task.owner !== userId
         })).filter(task => task.owner !== userId);
-        
+
         return availableTasks || [];
     } catch (error) {
         return [];
@@ -523,7 +540,7 @@ async function getMySpecialTasks(userId) {
             .select('*')
             .eq('owner', userId)
             .order('created_at', { ascending: false });
-        
+
         if (error) throw error;
         return tasks || [];
     } catch (error) {
@@ -620,16 +637,16 @@ async function getActivePromoCodes(userId) {
             .select('*')
             .eq('status', 'active')
             .gt('max_uses', 0);
-        
+
         if (error) throw error;
-        
+
         const { data: used } = await supabase
             .from('used_promo_codes')
             .select('code')
             .eq('user_id', userId);
-        
+
         const usedCodes = new Set(used?.map(u => u.code) || []);
-        
+
         return (codes || [])
             .filter(c => !usedCodes.has(c.code) && (c.total_uses || 0) < c.max_uses && c.owner !== userId)
             .map(c => ({
@@ -734,9 +751,7 @@ async function sendTelegramNotification(userId, title, message, inlineButton = n
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-    } catch (error) {
-        logError('sendTelegramNotification', error);
-    }
+    } catch (error) {}
 }
 
 async function sendWithdrawalProof(channelId, userId, wallet, gramAmount, goldAmount, txHash) {
@@ -748,14 +763,14 @@ async function sendWithdrawalProof(channelId, userId, wallet, gramAmount, goldAm
         const walletLast = wallet.substring(wallet.length - 5);
         const maskedWallet = walletFirst + '****' + walletLast;
         const explorerUrl = txHash ? `https://tonscan.org/tx/${txHash}` : '#';
-        
+
         const message = `<b>🆕 New Withdrawal Confirmed!</b>\n\n` +
             `<b>💀 User:</b> ${maskedUserId}\n` +
             `<b>💰 Amount:</b> ${gramAmount.toFixed(5)} GRAM\n` +
             `<b>🔰 Wallet:</b> ${maskedWallet}\n` +
             `<b>⏳ Status:</b> Confirmed\n\n` +
             `<b>⛏️ MINE & EARN FREE GRAM</b>`;
-        
+
         const payload = {
             chat_id: channelId,
             text: message,
@@ -774,23 +789,21 @@ async function sendWithdrawalProof(channelId, userId, wallet, gramAmount, goldAm
                 ]
             }
         };
-        
+
         await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-    } catch (error) {
-        logError('sendWithdrawalProof', error);
-    }
+    } catch (error) {}
 }
 
 class OxaPay {
     constructor(config) {
         this.apiKey = config.apiKey;
         this.sandbox = config.sandbox || false;
-        this.baseUrl = this.sandbox 
-            ? 'https://sandbox.oxapay.com/v1' 
+        this.baseUrl = this.sandbox
+            ? 'https://sandbox.oxapay.com/v1'
             : 'https://api.oxapay.com/v1';
     }
 
@@ -818,7 +831,6 @@ class OxaPay {
             }
             return result;
         } catch (error) {
-            logError('OxaPay.request', error);
             throw error;
         }
     }
@@ -836,15 +848,14 @@ class OxaPay {
             const trackId = result?.data?.track_id || result?.track_id;
             const status = result?.data?.status || result?.status || 'processing';
             const txHash = result?.data?.tx_hash || result?.tx_hash || null;
-            return { 
-                ...result, 
+            return {
+                ...result,
                 trackId: trackId || 'N/A',
                 status: status,
                 txHash: txHash,
                 success: true
             };
         } catch (error) {
-            logError('OxaPay.createPayout', error);
             throw error;
         }
     }
@@ -865,17 +876,14 @@ class OxaPay {
             try {
                 result = JSON.parse(responseText);
             } catch (e) {
-                logError('OxaPay.getPayoutStatus', new Error('Invalid JSON: ' + responseText));
                 throw new Error('Invalid response from OxaPay');
             }
             if (!response.ok || result.status !== 200) {
                 const errorMsg = result.message || result.error || `HTTP ${response.status}`;
-                logError('OxaPay.getPayoutStatus', new Error(errorMsg));
                 throw new Error(errorMsg);
             }
             return result;
         } catch (error) {
-            logError('OxaPay.getPayoutStatus', error);
             throw error;
         }
     }
@@ -889,7 +897,6 @@ async function checkPendingWithdrawals() {
             .in('status', ['pending', 'processing'])
             .limit(50);
         if (error) {
-            logError('checkPendingWithdrawals', error);
             return;
         }
         if (!withdrawals || withdrawals.length === 0) {
@@ -907,16 +914,16 @@ async function checkPendingWithdrawals() {
                     if (oxaPayStatus === 'confirmed' || oxaPayStatus === 'completed') {
                         await supabase
                             .from('withdrawals')
-                            .update({ 
+                            .update({
                                 status: 'completed',
                                 tx_hash: statusResult.data.tx_hash || withdrawal.tx_hash
                             })
                             .eq('id', withdrawal.id);
-                        
+
                         const userMessage = `<b>✅ Your Withdrawal Confirmed!</b>\n\n` +
                             `💸 <code>${withdrawal.gram_amount.toFixed(3)}</code> <b>GRAM has been sent</b>\n\n` +
                             `<a href="${statusResult.data.tx_hash ? `https://tonscan.org/tx/${statusResult.data.tx_hash}` : '#'}">🔘 View transaction on Explorer</a>\n\n`;
-                        
+
                         await sendTelegramNotification(
                             withdrawal.user_id,
                             '✅ Withdrawal Completed!',
@@ -926,14 +933,14 @@ async function checkPendingWithdrawals() {
                         const user = await getUser(withdrawal.user_id);
                         const username = user?.username ? '@' + user.username : 'N/A';
                         const adminId = process.env.ADMIN_USER_ID;
-                        
+
                         const adminMessage = `<b>✅ Withdrawal Completed!</b>\n\n` +
                             `<b>👤 User:</b> ${withdrawal.user_id} (${username})\n` +
                             `<b>💰 Amount:</b> ${withdrawal.gram_amount.toFixed(4)} GRAM\n` +
                             `<b>🔰 Wallet:</b> ${withdrawal.wallet}\n` +
                             `<b>🔗 TX:</b> <a href="${statusResult.data.tx_hash ? `https://tonscan.org/tx/${statusResult.data.tx_hash}` : '#'}">View on Explorer</a>`;
                         await sendTelegramNotification(adminId, '✅ Withdrawal Completed!', adminMessage);
-                        
+
                         const proofChannel = APP_CONFIG.PAYMENTS_CHANNEL || process.env.PAYMENTS_CHANNEL;
                         if (proofChannel) {
                             const channelMatch = proofChannel.match(/t\.me\/([^\/\?]+)/);
@@ -950,13 +957,9 @@ async function checkPendingWithdrawals() {
                         }
                     }
                 }
-            } catch (error) {
-                logError('checkPendingWithdrawals', error);
-            }
+            } catch (error) {}
         }
-    } catch (error) {
-        logError('checkPendingWithdrawals', error);
-    }
+    } catch (error) {}
 }
 
 setInterval(async () => {
@@ -996,7 +999,7 @@ app.post('/api/check-bot-admin', authenticate, async (req, res) => {
         const isAdmin = await checkBotIsAdminInChannel(channel);
         res.json({ isAdmin });
     } catch (error) {
-        logError('/api/check-bot-admin', error);
+        logFailure('/api/check-bot-admin', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1004,34 +1007,34 @@ app.post('/api/check-bot-admin', authenticate, async (req, res) => {
 app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
     const secretToken = req.headers['x-telegram-bot-api-secret-token'];
     if (!WEBHOOK_SECRET || secretToken !== WEBHOOK_SECRET) {
-        console.warn('🚫 Unauthorized webhook from:', req.ip);
+        logFailure('/webhook', null, req.ip, new Error('Unauthorized webhook'));
         return res.sendStatus(403);
     }
 
     try {
         const update = req.body;
-        
+
         if (update.message && update.message.chat && update.message.chat.type === 'private') {
             const chatId = update.message.chat.id;
             const username = update.message.chat.username || '';
             const firstName = update.message.chat.first_name || 'User';
             const photoUrl = update.message.chat.photo_url || APP_CONFIG.DEFAULT_USER_AVATAR;
             const text = update.message.text;
-            
+
             let referrerId = null;
             if (text && text.startsWith('/start')) {
                 const parts = text.split(' ');
                 if (parts.length > 1 && !isNaN(parts[1])) {
                     referrerId = parseInt(parts[1]);
                 }
-            } 
-             
-            const appLink = referrerId 
+            }
+
+            const appLink = referrerId
                 ? `https://t.me/GramPirateBot/app?startapp=${referrerId}`
                 : `https://t.me/GramPirateBot/app`;
 
             const existingUser = await getUser(chatId);
-            
+
             if (!existingUser) {
                 const userData = {
                     id: chatId,
@@ -1079,40 +1082,40 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
                     last_task_completion_time: 0,
                     last_promo_time: 0
                 };
-                
+
                 if (referrerId && referrerId !== chatId) {
                     userData.referred_by = referrerId;
                 }
-                
+
                 try {
                     await createUser(userData);
                 } catch (createError) {
-                    console.error('Failed to create user from webhook:', createError.message);
+                    logFailure('/webhook', chatId, req.ip, createError);
                 }
             } else {
-                
+
                 const updates = {};
                 if (username && username !== existingUser.username) {
                     updates.username = username;
                 }
-                
+
                 if (firstName && firstName !== existingUser.first_name) {
                     updates.first_name = firstName;
                 }
-                
+
                 if (Object.keys(updates).length > 0) {
                     await updateUser(chatId, updates);
                 }
             }
-            
-            
+
+
             await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     chat_id: chatId,
                     photo: 'https://i.ibb.co/BKCV4Mmc/IMG-20260912-212905-056.jpg',
-                    caption: 
+                    caption:
                         `<b>🏴‍☠️ Welcome to GRAM PIRATES!</b>\n\n` +
                         `⛏️ Mine and earn <b>free GRAM!</b>\n\n` +
                         `🎁 Claim <b>1000 power</b> welcome bonus\n` +
@@ -1139,7 +1142,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
 
         res.sendStatus(200);
     } catch (error) {
-        console.error('Webhook error:', error);
+        logFailure('/webhook', null, req.ip, error);
         res.sendStatus(500);
     }
 });
@@ -1148,7 +1151,7 @@ app.post('/api/check-membership', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { channel } = req.body;
-        
+
         if (!channel) {
             return res.status(400).json({ error: 'Channel is required' });
         }
@@ -1163,10 +1166,10 @@ app.post('/api/check-membership', authenticate, async (req, res) => {
         }
 
         const isMember = await checkUserInChannel(userId, channel);
-        
+
         res.json({ isMember });
     } catch (error) {
-        logError('/api/check-membership', error);
+        logFailure('/api/check-membership', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1174,50 +1177,33 @@ app.post('/api/check-membership', authenticate, async (req, res) => {
 app.post('/api/auth', strictLimiter, async (req, res) => {
     try {
         const { initData, userId, username, firstName, photoUrl } = req.body;
-        
-        logAuth('/api/auth', 'Authentication attempt', { 
-            hasInitData: !!initData, 
-            userId 
-        });
 
         if (!initData) {
-            logAuth('/api/auth', 'Missing initData', { userId });
+            logFailure('/api/auth', userId, req.ip, new Error('Missing initData'));
             return res.status(400).json({ error: 'Missing initData' });
         }
 
         const validation = validateTelegramInitData(initData, BOT_TOKEN);
-        
+
         if (!validation.valid) {
-            logAuth('/api/auth', 'Invalid initData', { 
-                error: validation.error,
-                userId 
-            });
+            logFailure('/api/auth', userId, req.ip, new Error('Invalid initData: ' + validation.error));
             return res.status(403).json({ error: 'Invalid Telegram data: ' + validation.error });
         }
 
         const telegramUser = validation.user;
         if (!telegramUser || !telegramUser.id) {
-            logAuth('/api/auth', 'No user in initData', {});
+            logFailure('/api/auth', userId, req.ip, new Error('No user in initData'));
             return res.status(403).json({ error: 'No user data in initData' });
         }
 
         if (userId && telegramUser.id !== userId) {
-            logAuth('/api/auth', 'User ID mismatch', { 
-                initDataUserId: telegramUser.id,
-                requestUserId: userId 
-            });
+            logFailure('/api/auth', userId, req.ip, new Error('User ID mismatch'));
             return res.status(403).json({ error: 'User ID mismatch' });
         }
 
-        logAuth('/api/auth', 'Telegram data validated', { 
-            telegramId: telegramUser.id,
-            username: telegramUser.username 
-        });
-
         let user = await getUser(telegramUser.id);
-        
+
         if (!user) {
-            logInfo('/api/auth', 'User not found, creating...', { userId: telegramUser.id });
             const userData = {
                 id: telegramUser.id,
                 username: telegramUser.username || '',
@@ -1263,20 +1249,17 @@ app.post('/api/auth', strictLimiter, async (req, res) => {
                 last_task_completion_time: 0,
                 last_promo_time: 0
             };
-            
+
             try {
                 user = await createUser(userData);
-                logInfo('/api/auth', 'User created successfully', { userId: telegramUser.id });
             } catch (createError) {
-                logError('/api/auth', createError);
+                logFailure('/api/auth', telegramUser.id, req.ip, createError);
                 user = await getUser(telegramUser.id);
                 if (!user) {
                     return res.status(500).json({ error: 'Failed to create user' });
                 }
             }
         } else {
-            logInfo('/api/auth', 'User found', { userId: telegramUser.id });
-            
             const updates = {};
             if (telegramUser.username && telegramUser.username !== user.username) {
                 updates.username = telegramUser.username;
@@ -1287,39 +1270,34 @@ app.post('/api/auth', strictLimiter, async (req, res) => {
             if (photoUrl && photoUrl !== user.photo_url) {
                 updates.photo_url = photoUrl;
             }
-            
+
             if (Object.keys(updates).length > 0) {
                 user = await updateUser(telegramUser.id, updates);
             }
         }
 
         if (user.state === 'ban') {
-            logAuth('/api/auth', 'Banned user attempted login', { userId: telegramUser.id });
+            logFailure('/api/auth', telegramUser.id, req.ip, new Error('Account banned'));
             return res.status(403).json({ error: 'Account banned' });
         }
 
         const token = generateJWT(user.id, user.id);
-        
+
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
-        
-        logAuth('/api/auth', 'Authentication successful', { 
-            userId: user.id,
-            tokenGenerated: true 
-        });
-        
-        res.json({ 
-            success: true, 
-            user, 
+
+        res.json({
+            success: true,
+            user,
             token,
             authenticated: true
         });
     } catch (error) {
-        logError('/api/auth', error);
+        logFailure('/api/auth', req.body?.userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1343,7 +1321,7 @@ app.post('/api/refresh', authenticate, async (req, res) => {
         });
         res.json({ success: true, token });
     } catch (error) {
-        logError('/api/refresh', error);
+        logFailure('/api/refresh', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1353,7 +1331,7 @@ app.post('/api/logout', authenticate, async (req, res) => {
         res.clearCookie('token');
         res.json({ success: true });
     } catch (error) {
-        logError('/api/logout', error);
+        logFailure('/api/logout', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1400,7 +1378,7 @@ app.post('/api/check-mining-status', async (req, res) => {
         }
         res.json({ success: true, notified });
     } catch (error) {
-        logError('/api/check-mining-status', error);
+        logFailure('/api/check-mining-status', null, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1428,7 +1406,7 @@ app.post('/api/claim-welcome-bonus', authenticate, async (req, res) => {
             reward: reward
         });
     } catch (error) {
-        logError('/api/claim-welcome-bonus', error);
+        logFailure('/api/claim-welcome-bonus', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1468,7 +1446,7 @@ app.post('/api/get-user', authenticate, async (req, res) => {
         getUserCache.set(cacheKey, { data: responseData, timestamp: now });
         res.json(responseData);
     } catch (error) {
-        logError('/api/get-user', error);
+        logFailure('/api/get-user', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1486,7 +1464,7 @@ app.post('/api/update-photo', authenticate, async (req, res) => {
         await updateUser(req._userId, { photo_url: photoUrl });
         res.json({ success: true });
     } catch (error) {
-        logError('/api/update-photo', error);
+        logFailure('/api/update-photo', req._userId, req.ip, error);
         res.json({ success: false });
     }
 });
@@ -1542,7 +1520,7 @@ app.post('/api/start-mining', authenticate, strictLimiter, async (req, res) => {
         await updateUserLevel(userId);
         res.json({ success: true, user: updatedUser });
     } catch (error) {
-        logError('/api/start-mining', error);
+        logFailure('/api/start-mining', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1573,7 +1551,7 @@ app.post('/api/stop-mining', authenticate, strictLimiter, async (req, res) => {
         });
         res.json({ success: true, user: updatedUser, reward: rewardAmount });
     } catch (error) {
-        logError('/api/stop-mining', error);
+        logFailure('/api/stop-mining', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1619,7 +1597,7 @@ app.post('/api/claim-mining', authenticate, strictLimiter, async (req, res) => {
         await updateUserLevel(userId);
         res.json({ success: true, user: updatedUser, claimed: rewardAmount });
     } catch (error) {
-        logError('/api/claim-mining', error);
+        logFailure('/api/claim-mining', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1685,7 +1663,7 @@ app.post('/api/claim-quest', authenticate, strictLimiter, async (req, res) => {
             questIndex: newIndex
         });
     } catch (error) {
-        logError('/api/claim-quest', error);
+        logFailure('/api/claim-quest', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1694,11 +1672,11 @@ app.post('/api/complete-task', authenticate, strictLimiter, async (req, res) => 
     try {
         const userId = req._userId;
         const { taskId } = req.body;
-        
+
         const cooldownCheck = checkTaskCompletionCooldown(userId);
         if (!cooldownCheck.allowed) {
-            return res.status(429).json({ 
-                error: `Please wait ${cooldownCheck.remaining} seconds before completing another task` 
+            return res.status(429).json({
+                error: `Please wait ${cooldownCheck.remaining} seconds before completing another task`
             });
         }
 
@@ -1730,7 +1708,7 @@ app.post('/api/complete-task', authenticate, strictLimiter, async (req, res) => 
                 .from('tasks')
                 .update({ status: 'completed' })
                 .eq('id', taskId);
-            
+
             if (!task.notified && task.owner && task.owner !== userId) {
                 await supabase
                     .from('tasks')
@@ -1743,7 +1721,7 @@ app.post('/api/complete-task', authenticate, strictLimiter, async (req, res) => 
                     `<b>🏴‍☠️ Your task "${task.name}" has been completed!</b>`
                 );
             }
-            
+
             return res.status(400).json({ error: 'Task already completed!' });
         }
 
@@ -1771,12 +1749,12 @@ app.post('/api/complete-task', authenticate, strictLimiter, async (req, res) => 
             .insert([{ user_id: userId, task_id: taskId, completed_at: getCurrentTime() }]);
 
         let totalCompleted = (user.total_tasks_completed || 0) + 1;
-        
+
         let goldReward = 0;
         if (task.category === 'social') {
             goldReward = APP_CONFIG.SOCIAL_GOLD_REWARD || 1;
         }
-        
+
         const updatedUser = await updateUser(userId, {
             power_balance: (user.power_balance || 0) + task.reward,
             gold_balance: (user.gold_balance || 0) + goldReward,
@@ -1810,7 +1788,7 @@ app.post('/api/complete-task', authenticate, strictLimiter, async (req, res) => 
             reward: task.reward
         });
     } catch (error) {
-        logError('/api/complete-task', error);
+        logFailure('/api/complete-task', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1820,11 +1798,11 @@ app.post('/api/special-tasks', authenticate, async (req, res) => {
         const userId = req._userId;
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
-        
+
         const tasks = await getSpecialTasks(userId);
         res.json({ tasks });
     } catch (error) {
-        logError('/api/special-tasks', error);
+        logFailure('/api/special-tasks', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1835,7 +1813,7 @@ app.post('/api/my-special-tasks', authenticate, async (req, res) => {
         const tasks = await getMySpecialTasks(userId);
         res.json({ tasks });
     } catch (error) {
-        logError('/api/my-special-tasks', error);
+        logFailure('/api/my-special-tasks', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1844,11 +1822,11 @@ app.post('/api/complete-special-task', authenticate, strictLimiter, async (req, 
     try {
         const userId = req._userId;
         const { taskId } = req.body;
-        
+
         const cooldownCheck = checkTaskCompletionCooldown(userId);
         if (!cooldownCheck.allowed) {
-            return res.status(429).json({ 
-                error: `Please wait ${cooldownCheck.remaining} seconds before completing another task` 
+            return res.status(429).json({
+                error: `Please wait ${cooldownCheck.remaining} seconds before completing another task`
             });
         }
 
@@ -1902,9 +1880,9 @@ app.post('/api/complete-special-task', authenticate, strictLimiter, async (req, 
 
         const rewardPower = task.reward_power || APP_CONFIG.SPECIAL_TASK_REWARD_POWER || 50;
         const rewardGold = task.reward_gold || APP_CONFIG.SPECIAL_TASK_REWARD_GOLD || 5;
-        
+
         let totalCompleted = (user.total_tasks_completed || 0) + 1;
-        
+
         const updatedUser = await updateUser(userId, {
             power_balance: (user.power_balance || 0) + rewardPower,
             gold_balance: (user.gold_balance || 0) + rewardGold,
@@ -1935,7 +1913,7 @@ app.post('/api/complete-special-task', authenticate, strictLimiter, async (req, 
             rewardGold: rewardGold
         });
     } catch (error) {
-        logError('/api/complete-special-task', error);
+        logFailure('/api/complete-special-task', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1944,6 +1922,10 @@ async function verifyAndAddSpecialTask(userId, taskData, memo) {
     const address = APP_CONFIG.PAYMENT_WALLET || APP_CONFIG.TON_WALLET_ADDRESS;
     if (!address) {
         return { success: false, error: 'Payment wallet not configured' };
+    }
+
+    if (await isMemoUsed(memo)) {
+        return { success: false, error: 'Transaction already used' };
     }
 
     const response = await fetch(`https://toncenter.com/api/v2/getTransactions?address=${address}&limit=5`);
@@ -1971,7 +1953,7 @@ async function verifyAndAddSpecialTask(userId, taskData, memo) {
 
     const txAmount = parseFloat(foundTx.in_msg?.value) / 1000000000 || 0;
     const requiredAmount = APP_CONFIG.SPECIAL_TASK_PRICE || 10;
-    
+
     if (txAmount < requiredAmount * 0.98) {
         return { success: false, error: 'Insufficient payment amount' };
     }
@@ -1981,7 +1963,7 @@ async function verifyAndAddSpecialTask(userId, taskData, memo) {
         .select('id')
         .eq('id', memo)
         .maybeSingle();
-    
+
     if (existingTask) {
         return { success: false, error: 'Task already exists' };
     }
@@ -2022,15 +2004,15 @@ async function verifyAndAddSpecialTask(userId, taskData, memo) {
         .single();
 
     if (taskError) {
-        logError('verifyAndAddSpecialTask', taskError);
         return { success: false, error: 'Failed to add task' };
     }
 
     const user = await getUser(userId);
-    await updateUser(userId, { 
-        special_tasks_count: (user.special_tasks_count || 0) + 1 
+    await updateUser(userId, {
+        special_tasks_count: (user.special_tasks_count || 0) + 1
     });
 
+    await recordMemo(memo, userId);
     await sendSpecialTaskCreatedNotification(taskResult);
 
     return {
@@ -2052,12 +2034,20 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
 
         if (taskType === 'special') {
             const result = await verifyAndAddSpecialTask(userId, taskData, memo);
+            if (!result.success) {
+                logFailure('/api/check-payment', userId, req.ip, new Error(result.error), { taskType: 'special', memo });
+            }
             return res.json(result);
         }
 
         const address = APP_CONFIG.PAYMENT_WALLET || APP_CONFIG.TON_WALLET_ADDRESS;
         if (!address) {
             return res.status(500).json({ error: 'Payment wallet not configured' });
+        }
+
+        if (await isMemoUsed(memo)) {
+            logFailure('/api/check-payment', userId, req.ip, new Error('Memo already used'), { memo });
+            return res.json({ success: false, error: 'Transaction already used' });
         }
 
         const response = await fetch(`https://toncenter.com/api/v2/getTransactions?address=${address}&limit=3`);
@@ -2084,7 +2074,7 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
 
             const rewardNum = parseInt(taskData.reward);
             const totalNum = parseInt(taskData.total);
-            
+
             if (rewardNum > 100) {
                 return res.json({ success: false, error: 'Failed to create task.' });
             }
@@ -2094,7 +2084,7 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
             if (rewardNum * totalNum > 50000) {
                 return res.json({ success: false, error: 'Failed to create task.' });
             }
-            
+
             const requiredAmount = (taskData.total * taskData.reward / 1000) * (APP_CONFIG.PRICE_PER_100 || 0.001);
             if (txAmount >= requiredAmount * 0.98) {
                 let verification = taskData.verification || false;
@@ -2110,17 +2100,17 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
                         }
                     }
                 }
-                
+
                 const { data: existingTask } = await supabase
                     .from('tasks')
                     .select('id')
                     .eq('id', memo)
                     .maybeSingle();
-                
+
                 if (existingTask) {
-                    return res.json({ 
-                        success: false, 
-                        error: 'Failed to create task.' 
+                    return res.json({
+                        success: false,
+                        error: 'Failed to create task.'
                     });
                 }
 
@@ -2146,12 +2136,12 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
                     .single();
 
                 if (taskError) {
-                    logError('/api/check-payment', taskError);
+                    logFailure('/api/check-payment', userId, req.ip, taskError, { memo });
                     return res.status(500).json({ error: 'Failed to add task' });
                 }
 
                 await updateUser(userId, { task_count: (user.task_count || 0) + 1 });
-
+                await recordMemo(memo, userId);
                 await sendTaskCreatedNotification(taskResult);
 
                 return res.json({
@@ -2172,7 +2162,7 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
             });
         }
     } catch (error) {
-        logError('/api/check-payment', error);
+        logFailure('/api/check-payment', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2181,7 +2171,7 @@ async function sendTaskCreatedNotification(task) {
     try {
         const CHANNEL_ID = APP_CONFIG.TASKS_CHANNEL;
         if (!BOT_TOKEN || !CHANNEL_ID) return;
-        
+
         const appLink = `https://t.me/GramPirateBot/app`;
 
         const message = `<b>⚡ NEW TASK AVAILABLE!</b>\n\n` +
@@ -2192,9 +2182,9 @@ async function sendTaskCreatedNotification(task) {
 
         const replyMarkup = {
             inline_keyboard: [[
-                { 
-                    text: '✅ COMPLETE NOW', 
-                    url: appLink 
+                {
+                    text: '✅ COMPLETE NOW',
+                    url: appLink
                 }
             ]]
         };
@@ -2211,16 +2201,14 @@ async function sendTaskCreatedNotification(task) {
             })
         });
 
-    } catch (error) {
-        console.error('Failed to send task notification:', error);
-    }
+    } catch (error) {}
 }
 
 async function sendSpecialTaskCreatedNotification(task) {
     try {
         const CHANNEL_ID = APP_CONFIG.TASKS_CHANNEL;
         if (!BOT_TOKEN || !CHANNEL_ID) return;
-        
+
         const appLink = `https://t.me/GramPirateBot/app`;
 
         const message = `<b>⭐ NEW SPECIAL TASK!</b>\n\n` +
@@ -2231,9 +2219,9 @@ async function sendSpecialTaskCreatedNotification(task) {
 
         const replyMarkup = {
             inline_keyboard: [[
-                { 
-                    text: '⭐ COMPLETE NOW', 
-                    url: appLink 
+                {
+                    text: '⭐ COMPLETE NOW',
+                    url: appLink
                 }
             ]]
         };
@@ -2250,20 +2238,18 @@ async function sendSpecialTaskCreatedNotification(task) {
             })
         });
 
-    } catch (error) {
-        console.error('Failed to send special task notification:', error);
-    }
+    } catch (error) {}
 }
 
 async function sendPromoCodeCreatedNotification(promo) {
     try {
         const CHANNEL_ID = APP_CONFIG.PROMO_CODES_CHANNEL_USERNAME;
         if (!BOT_TOKEN || !CHANNEL_ID) return;
-        
+
         const appLink = `https://t.me/GramPirateBot/app`;
 
-        const rewardDisplay = promo.reward_type === 'power' 
-            ? `${promo.reward_amount} POWER` 
+        const rewardDisplay = promo.reward_type === 'power'
+            ? `${promo.reward_amount} POWER`
             : `${promo.reward_amount} GOLD`;
 
         const message = `<b>🎟 NEW PROMO CODE!</b>\n\n` +
@@ -2274,9 +2260,9 @@ async function sendPromoCodeCreatedNotification(promo) {
 
         const replyMarkup = {
             inline_keyboard: [[
-                { 
-                    text: '🎟 CLAIM NOW', 
-                    url: appLink 
+                {
+                    text: '🎟 CLAIM NOW',
+                    url: appLink
                 }
             ]]
         };
@@ -2293,9 +2279,7 @@ async function sendPromoCodeCreatedNotification(promo) {
             })
         });
 
-    } catch (error) {
-        console.error('Failed to send promo code notification:', error);
-    }
+    } catch (error) {}
 }
 
 app.post('/api/create-special-task', authenticate, strictLimiter, async (req, res) => {
@@ -2316,10 +2300,13 @@ app.post('/api/create-special-task', authenticate, strictLimiter, async (req, re
         }
 
         const result = await verifyAndAddSpecialTask(userId, { name, link, verification }, memo);
+        if (!result.success) {
+            logFailure('/api/create-special-task', userId, req.ip, new Error(result.error), { memo });
+        }
         res.json(result);
 
     } catch (error) {
-        logError('/api/create-special-task', error);
+        logFailure('/api/create-special-task', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2356,7 +2343,7 @@ app.post('/api/delete-special-task', authenticate, async (req, res) => {
         res.json({ success: true });
 
     } catch (error) {
-        logError('/api/delete-special-task', error);
+        logFailure('/api/delete-special-task', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2367,7 +2354,7 @@ app.post('/api/promo-codes', authenticate, async (req, res) => {
         const codes = await getActivePromoCodes(userId);
         res.json({ codes });
     } catch (error) {
-        logError('/api/promo-codes', error);
+        logFailure('/api/promo-codes', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2378,7 +2365,7 @@ app.post('/api/my-promo-codes', authenticate, async (req, res) => {
         const codes = await getMyPromoCodes(userId);
         res.json({ codes });
     } catch (error) {
-        logError('/api/my-promo-codes', error);
+        logFailure('/api/my-promo-codes', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2392,7 +2379,7 @@ app.post('/api/generate-promo-code', authenticate, strictLimiter, async (req, re
         }
         res.json({ code });
     } catch (error) {
-        logError('/api/generate-promo-code', error);
+        logFailure('/api/generate-promo-code', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2400,14 +2387,14 @@ app.post('/api/generate-promo-code', authenticate, strictLimiter, async (req, re
 app.post('/api/create-promo-code', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
-        const { 
-            code, 
-            rewardType, 
-            rewardAmount, 
-            maxUses, 
-            requiredChannel, 
+        const {
+            code,
+            rewardType,
+            rewardAmount,
+            maxUses,
+            requiredChannel,
             notifyChannel,
-            memo 
+            memo
         } = req.body;
 
         if (!code || code.length < 5 || code.length > 20) {
@@ -2425,8 +2412,8 @@ app.post('/api/create-promo-code', authenticate, strictLimiter, async (req, res)
 
         const uses = parseInt(maxUses);
         if (isNaN(uses) || uses < APP_CONFIG.PROMO_CODE_MIN_TOTAL || uses > APP_CONFIG.PROMO_CODE_MAX_TOTAL) {
-            return res.status(400).json({ 
-                error: `Max uses must be between ${APP_CONFIG.PROMO_CODE_MIN_TOTAL}-${APP_CONFIG.PROMO_CODE_MAX_TOTAL}` 
+            return res.status(400).json({
+                error: `Max uses must be between ${APP_CONFIG.PROMO_CODE_MIN_TOTAL}-${APP_CONFIG.PROMO_CODE_MAX_TOTAL}`
             });
         }
 
@@ -2442,25 +2429,30 @@ app.post('/api/create-promo-code', authenticate, strictLimiter, async (req, res)
             return res.status(400).json({ error: 'Code already exists' });
         }
 
+        if (await isMemoUsed(memo)) {
+            logFailure('/api/create-promo-code', userId, req.ip, new Error('Memo already used'), { memo });
+            return res.status(400).json({ error: 'Transaction already used' });
+        }
+
         if (requiredChannel) {
             const isAdmin = await checkBotIsAdminInChannel(requiredChannel);
             if (!isAdmin) {
-                return res.status(400).json({ 
-                    error: 'Bot is not admin in the required channel' 
+                return res.status(400).json({
+                    error: 'Bot is not admin in the required channel'
                 });
             }
         }
 
         const totalReward = amount * uses;
-        const pricePer1000 = rewardType === 'power' 
-            ? APP_CONFIG.PROMO_CODE_POWER_PRICE_PER_1000 
+        const pricePer1000 = rewardType === 'power'
+            ? APP_CONFIG.PROMO_CODE_POWER_PRICE_PER_1000
             : APP_CONFIG.PROMO_CODE_GOLD_PRICE_PER_1000;
         const expectedPrice = (totalReward / 1000) * pricePer1000;
 
         const address = APP_CONFIG.PAYMENT_WALLET || APP_CONFIG.TON_WALLET_ADDRESS;
         const response = await fetch(`https://toncenter.com/api/v2/getTransactions?address=${address}&limit=5`);
         const data = await response.json();
-        
+
         if (!data.ok) {
             return res.status(500).json({ error: 'Payment API error' });
         }
@@ -2474,11 +2466,13 @@ app.post('/api/create-promo-code', authenticate, strictLimiter, async (req, res)
         }
 
         if (!foundTx) {
+            logFailure('/api/create-promo-code', userId, req.ip, new Error('Payment not found'), { memo });
             return res.status(400).json({ error: 'Payment not found' });
         }
 
         const txAmount = parseFloat(foundTx.in_msg?.value) / 1000000000 || 0;
         if (txAmount < expectedPrice * 0.98) {
+            logFailure('/api/create-promo-code', userId, req.ip, new Error('Insufficient payment'), { memo, txAmount, expectedPrice });
             return res.status(400).json({ error: 'Insufficient payment amount' });
         }
 
@@ -2503,13 +2497,15 @@ app.post('/api/create-promo-code', authenticate, strictLimiter, async (req, res)
             .single();
 
         if (promoError) {
-            logError('/api/create-promo-code', promoError);
+            logFailure('/api/create-promo-code', userId, req.ip, promoError, { memo });
             return res.status(500).json({ error: 'Failed to create promo code' });
         }
 
-        await updateUser(userId, { 
-            promo_codes_created: (user.promo_codes_created || 0) + 1 
+        await updateUser(userId, {
+            promo_codes_created: (user.promo_codes_created || 0) + 1
         });
+
+        await recordMemo(memo, userId);
 
         if (notifyChannel) {
             await sendPromoCodeCreatedNotification(promoResult);
@@ -2522,7 +2518,7 @@ app.post('/api/create-promo-code', authenticate, strictLimiter, async (req, res)
         });
 
     } catch (error) {
-        logError('/api/create-promo-code', error);
+        logFailure('/api/create-promo-code', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2534,8 +2530,8 @@ app.post('/api/claim-promo-code', authenticate, strictLimiter, async (req, res) 
 
         const promoCheck = checkPromoCooldown(userId);
         if (!promoCheck.allowed) {
-            return res.status(429).json({ 
-                error: `Please wait ${promoCheck.remaining} seconds before using another promo code` 
+            return res.status(429).json({
+                error: `Please wait ${promoCheck.remaining} seconds before using another promo code`
             });
         }
 
@@ -2569,9 +2565,9 @@ app.post('/api/claim-promo-code', authenticate, strictLimiter, async (req, res) 
         if (promo.required_channel) {
             const isMember = await checkUserInChannel(userId, promo.required_channel);
             if (!isMember) {
-                return res.status(400).json({ 
+                return res.status(400).json({
                     error: 'Join the required channel first',
-                    requiredChannel: promo.required_channel 
+                    requiredChannel: promo.required_channel
                 });
             }
         }
@@ -2609,7 +2605,7 @@ app.post('/api/claim-promo-code', authenticate, strictLimiter, async (req, res) 
         });
 
     } catch (error) {
-        logError('/api/claim-promo-code', error);
+        logFailure('/api/claim-promo-code', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2641,7 +2637,7 @@ app.post('/api/delete-promo-code', authenticate, async (req, res) => {
         res.json({ success: true });
 
     } catch (error) {
-        logError('/api/delete-promo-code', error);
+        logFailure('/api/delete-promo-code', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2675,7 +2671,7 @@ app.post('/api/convert-gold-to-power', authenticate, strictLimiter, async (req, 
             total: totalPower
         });
     } catch (error) {
-        logError('/api/convert-gold-to-power', error);
+        logFailure('/api/convert-gold-to-power', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2725,7 +2721,7 @@ app.post('/api/claim-referral-earnings', authenticate, strictLimiter, async (req
             bonusApplied: hasPromotionBonus
         });
     } catch (error) {
-        logError('/api/claim-referral-earnings', error);
+        logFailure('/api/claim-referral-earnings', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2734,11 +2730,11 @@ app.post('/api/apply-promo', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
         const { code } = req.body;
-        
+
         const cooldownCheck = checkPromoCooldown(userId);
         if (!cooldownCheck.allowed) {
-            return res.status(429).json({ 
-                error: `Please wait ${cooldownCheck.remaining} seconds before using another promo code` 
+            return res.status(429).json({
+                error: `Please wait ${cooldownCheck.remaining} seconds before using another promo code`
             });
         }
 
@@ -2760,19 +2756,19 @@ app.post('/api/apply-promo', authenticate, strictLimiter, async (req, res) => {
         if (promo.max_uses && (promo.total_uses || 0) >= promo.max_uses) {
             return res.status(400).json({ error: 'Promo code expired' });
         }
-        
+
         if (promo.required_channel) {
             const isMember = await checkUserInChannel(userId, promo.required_channel);
             if (!isMember) {
-                return res.status(400).json({ 
+                return res.status(400).json({
                     error: 'Join the required channel first',
-                    requiredChannel: promo.required_channel 
+                    requiredChannel: promo.required_channel
                 });
             }
         }
-        
+
         setPromoCooldown(userId);
-        
+
         await usePromoCode(userId, code);
         await incrementPromoUses(code);
         let updates = {};
@@ -2808,7 +2804,7 @@ app.post('/api/apply-promo', authenticate, strictLimiter, async (req, res) => {
             reward: rewardMessage
         });
     } catch (error) {
-        logError('/api/apply-promo', error);
+        logFailure('/api/apply-promo', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2837,7 +2833,7 @@ app.post('/api/watch-ad', authenticate, strictLimiter, async (req, res) => {
             reward: reward
         });
     } catch (error) {
-        logError('/api/watch-ad', error);
+        logFailure('/api/watch-ad', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2865,7 +2861,7 @@ app.post('/api/watch-monetag-ad', authenticate, strictLimiter, async (req, res) 
             reward: reward
         });
     } catch (error) {
-        logError('/api/watch-monetag-ad', error);
+        logFailure('/api/watch-monetag-ad', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2880,7 +2876,7 @@ app.post('/api/tasks/:category', authenticate, async (req, res) => {
         const tasks = await getTasks(category, userId);
         res.json({ tasks });
     } catch (error) {
-        logError('/api/tasks', error);
+        logFailure('/api/tasks', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2897,7 +2893,7 @@ app.post('/api/my-tasks', authenticate, async (req, res) => {
         if (error) throw error;
         res.json({ tasks: tasks || [] });
     } catch (error) {
-        logError('/api/my-tasks', error);
+        logFailure('/api/my-tasks', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2938,7 +2934,7 @@ app.post('/api/delete-task', authenticate, async (req, res) => {
         res.json({ success: true });
 
     } catch (error) {
-        logError('/api/delete-task', error);
+        logFailure('/api/delete-task', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2963,7 +2959,7 @@ app.post('/api/setup-promotion', authenticate, strictLimiter, async (req, res) =
             .contains('promotion', { channel: channel })
             .neq('id', userId)
             .single();
-        
+
         if (existingChannel) {
             return res.status(400).json({ error: 'You cannot add this channel' });
         }
@@ -2988,13 +2984,13 @@ app.post('/api/setup-promotion', authenticate, strictLimiter, async (req, res) =
             username: channelUsername
         };
 
-        const updatedUser = await updateUser(userId, { 
-            promotion: promotionData 
+        const updatedUser = await updateUser(userId, {
+            promotion: promotionData
         });
 
         res.json({ success: true, promotion: promotionData });
     } catch (error) {
-        logError('/api/setup-promotion', error);
+        logFailure('/api/setup-promotion', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -3010,7 +3006,7 @@ app.post('/api/check-promotion', authenticate, async (req, res) => {
         const promotion = user.promotion || null;
         res.json({ success: true, promotion });
     } catch (error) {
-        logError('/api/check-promotion', error);
+        logFailure('/api/check-promotion', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -3019,6 +3015,7 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
     const userId = req._userId;
 
     if (withdrawLocks.has(userId)) {
+        logFailure('/api/withdraw-gram', userId, req.ip, new Error('Withdrawal already in progress'));
         return res.status(429).json({ error: 'Withdrawal already in progress. Please wait.' });
     }
     withdrawLocks.set(userId, Date.now());
@@ -3026,13 +3023,17 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
     try {
         const { goldAmount, walletAddress } = req.body;
         const user = await getUser(userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user) {
+            logFailure('/api/withdraw-gram', userId, req.ip, new Error('User not found'));
+            return res.status(404).json({ error: 'User not found' });
+        }
 
         const now = Date.now();
         const cooldownMs = 6 * 3600000;
 
         if (user.last_withdraw_time && (now - user.last_withdraw_time) < cooldownMs) {
             const remaining = Math.ceil((cooldownMs - (now - user.last_withdraw_time)) / 3600000);
+            logFailure('/api/withdraw-gram', userId, req.ip, new Error(`Cooldown: ${remaining}h`));
             return res.status(400).json({ error: `Wait ${remaining}h before next withdrawal` });
         }
 
@@ -3040,58 +3041,70 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
         try {
             const isMember = await checkUserInChannel(userId, CHANNEL_USERNAME);
             if (!isMember) {
+                logFailure('/api/withdraw-gram', userId, req.ip, new Error('Not member of required channel'));
                 return res.status(400).json({ error: 'Failed to send withdrawal request' });
             }
         } catch (error) {
-            console.error('Channel check failed:', error);
+            logFailure('/api/withdraw-gram', userId, req.ip, error, { stage: 'channel-check' });
             return res.status(500).json({ error: 'Failed to send withdrawal request' });
         }
-        
+
         if (!walletAddress || !walletAddress.startsWith('UQ') || walletAddress.length < 20) {
+            logFailure('/api/withdraw-gram', userId, req.ip, new Error('Invalid wallet address'), { wallet: walletAddress?.substring(0, 10) });
             return res.status(400).json({ error: 'Invalid wallet address. Must start with UQ and be at least 20 characters.' });
         }
 
         const gold = parseFloat(goldAmount);
         if (isNaN(gold) || gold <= 0) {
+            logFailure('/api/withdraw-gram', userId, req.ip, new Error('Invalid amount'), { goldAmount });
             return res.status(400).json({ error: 'Invalid amount' });
         }
         const fees = APP_CONFIG.WITHDRAWAL_FEES || 50;
         const netGold = gold - fees;
         if (netGold <= 0) {
+            logFailure('/api/withdraw-gram', userId, req.ip, new Error('Amount less than fees'), { gold, fees });
             return res.status(400).json({ error: `Amount must be greater than fees (${fees} Gold)` });
         }
         if (gold < APP_CONFIG.MINIMUM_WITHDRAW) {
+            logFailure('/api/withdraw-gram', userId, req.ip, new Error('Below minimum'), { gold });
             return res.status(400).json({ error: `Minimum withdrawal: ${APP_CONFIG.MINIMUM_WITHDRAW} Gold` });
         }
         if (gold > APP_CONFIG.MAXIMUM_WITHDRAW) {
+            logFailure('/api/withdraw-gram', userId, req.ip, new Error('Above maximum'), { gold });
             return res.status(400).json({ error: `Maximum withdrawal: ${APP_CONFIG.MAXIMUM_WITHDRAW} Gold` });
         }
         if ((user.power_balance || 0) < 2001) {
+            logFailure('/api/withdraw-gram', userId, req.ip, new Error('Power too low'), { power: user.power_balance });
             return res.status(400).json({ error: 'Failed to create withdrawal request.' });
         }
         const accountAge = (Date.now() - user.created_at) / 86400000;
         if (accountAge < 2) {
+            logFailure('/api/withdraw-gram', userId, req.ip, new Error('Account too new'), { accountAge });
             return res.status(400).json({ error: 'Failed to create withdrawal request.' });
         }
         if ((user.total_mining_starts || 0) < 3) {
+            logFailure('/api/withdraw-gram', userId, req.ip, new Error('Not enough mining'), { mining: user.total_mining_starts });
             return res.status(400).json({ error: 'Failed to create withdrawal request.' });
         }
         if ((user.gold_balance || 0) < gold) {
+            logFailure('/api/withdraw-gram', userId, req.ip, new Error('Insufficient balance'), { balance: user.gold_balance, requested: gold });
             return res.status(400).json({ error: 'Insufficient Gold balance' });
         }
 
         const BLOCKED_WALLETS = [
             'UQCmCv32lwvOZPtYmxoGu3e-k0MLlbkIJ4gaCFYYYLbkAfGP',
         ];
-        
+
         if (BLOCKED_WALLETS.includes(walletAddress)) {
+            logFailure('/api/withdraw-gram', userId, req.ip, new Error('Blocked wallet'), { wallet: walletAddress });
             return res.status(403).json({ error: 'Failed to create withdrawal request.' });
         }
-        
+
         if (gold > 1000) {
             if ((user.total_referrals || 0) <= 5) {
-                return res.status(400).json({ 
-                    error: 'Failed to create withdrawal request.' 
+                logFailure('/api/withdraw-gram', userId, req.ip, new Error('Not enough referrals'), { referrals: user.total_referrals });
+                return res.status(400).json({
+                    error: 'Failed to create withdrawal request.'
                 });
             }
         }
@@ -3110,6 +3123,7 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
             .single();
 
         if (lockError || !lockResult) {
+            logFailure('/api/withdraw-gram', userId, req.ip, lockError || new Error('Lock conflict'));
             return res.status(429).json({ error: 'Withdrawal conflict. Please try again.' });
         }
 
@@ -3136,8 +3150,9 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
                     })
                     .eq('id', userId);
 
-                return res.status(500).json({ 
-                    error: payout?.message || payout?.error || 'Payout failed' 
+                logFailure('/api/withdraw-gram', userId, req.ip, new Error(payout?.message || 'Payout failed'));
+                return res.status(500).json({
+                    error: payout?.message || payout?.error || 'Payout failed'
                 });
             }
 
@@ -3156,7 +3171,7 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
                 tx_id: trackId,
                 tx_hash: txHash
             });
-            
+
             res.json({
                 success: true,
                 user: lockResult,
@@ -3176,14 +3191,14 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
                 })
                 .eq('id', userId);
 
-            logError('/api/withdraw-gram', payoutError);
-            return res.status(500).json({ 
-                error: 'Payment provider error: ' + payoutError.message 
+            logFailure('/api/withdraw-gram', userId, req.ip, payoutError, { stage: 'payout' });
+            return res.status(500).json({
+                error: 'Payment provider error: ' + payoutError.message
             });
         }
 
     } catch (error) {
-        logError('/api/withdraw-gram', error);
+        logFailure('/api/withdraw-gram', userId, req.ip, error);
         res.status(500).json({ error: 'Failed to send withdrawal request: ' + error.message });
     } finally {
         setTimeout(() => withdrawLocks.delete(userId), 3000);
@@ -3196,7 +3211,7 @@ app.post('/api/get-withdrawals', authenticate, async (req, res) => {
         const withdrawals = await getWithdrawals(userId);
         res.json({ withdrawals });
     } catch (error) {
-        logError('/api/get-withdrawals', error);
+        logFailure('/api/get-withdrawals', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -3207,7 +3222,7 @@ app.post('/api/get-referrals', authenticate, async (req, res) => {
         const referrals = await getReferrals(userId);
         res.json({ referrals });
     } catch (error) {
-        logError('/api/get-referrals', error);
+        logFailure('/api/get-referrals', req._userId, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -3215,6 +3230,7 @@ app.post('/api/get-referrals', authenticate, async (req, res) => {
 app.get('/api/admin/cleanup-duplicate-wallets', async (req, res) => {
     try {
         if (req.query.key !== process.env.ADMIN_CLEANUP_KEY) {
+            logFailure('/api/admin/cleanup-duplicate-wallets', null, req.ip, new Error('Unauthorized'));
             return res.status(403).json({ error: 'Unauthorized' });
         }
 
@@ -3228,7 +3244,7 @@ app.get('/api/admin/cleanup-duplicate-wallets', async (req, res) => {
                 .select('id, wallet, created_at')
                 .not('wallet', 'is', null)
                 .range(page * 1000, (page + 1) * 1000 - 1);
-            
+
             if (error) throw error;
             if (data?.length > 0) { allUsers = allUsers.concat(data); page++; }
             if (!data || data.length < 1000) hasMore = false;
@@ -3243,7 +3259,7 @@ app.get('/api/admin/cleanup-duplicate-wallets', async (req, res) => {
 
         const toClear = [];
         const keepers = [];
-        
+
         for (const [wallet, users] of Object.entries(groups)) {
             if (users.length <= 1) continue;
             users.sort((a, b) => a.created_at - b.created_at);
@@ -3273,7 +3289,7 @@ app.get('/api/admin/cleanup-duplicate-wallets', async (req, res) => {
             }
         });
     } catch (error) {
-        logError('/api/admin/cleanup-duplicate-wallets', error);
+        logFailure('/api/admin/cleanup-duplicate-wallets', null, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -3282,12 +3298,6 @@ const PORT = process.env.PORT || 8080;
 
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🏴‍☠️ GRAM PIRATES server running on port ${PORT}`);
-    console.log(`🔐 Authentication: Telegram initData validation enabled`);
-    console.log(`🛡️  Webhook: Secret token protection enabled`);
-    console.log(`📋 Special Tasks: Enabled`);
-    console.log(`🎟️  Promo Codes System: Enabled`);
-    console.log(`⏱️  Task cooldown: ${APP_CONFIG.TASK_COMPLETION_COOLDOWN_SECONDS}s`);
-    console.log(`⏱️  Promo cooldown: ${APP_CONFIG.PROMO_CODE_COOLDOWN_SECONDS}s`);
 });
 
 server.on('error', (error) => {
