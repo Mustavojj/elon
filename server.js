@@ -245,6 +245,18 @@ async function checkBotIsAdminInChannel(channelUsername) {
     }
 }
 
+async function checkUserInChannel(userId, channelUsername) {
+    if (!BOT_TOKEN || !channelUsername) return true;
+    try {
+        const chatMember = await fetch(
+            `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=@${channelUsername}&user_id=${userId}`
+        ).then(r => r.json());
+        return chatMember.ok && ['member', 'administrator', 'creator'].includes(chatMember.result?.status);
+    } catch (error) {
+        return false;
+    }
+}
+
 const APP_CONFIG = {
     APP_NAME: "GRAM PIRATES 🏴‍☠️",
     BOT_USERNAME: "GramPirateBot",
@@ -290,6 +302,14 @@ const APP_CONFIG = {
     SPECIAL_TASK_REWARD_GOLD: 5,
     TASK_COMPLETION_COOLDOWN_SECONDS: 10,
     PROMO_CODE_COOLDOWN_SECONDS: 5,
+    PROMO_CODE_POWER_PRICE_PER_1000: 0.05,
+    PROMO_CODE_GOLD_PRICE_PER_1000: 0.10,
+    PROMO_CODE_MIN_TOTAL: 50,
+    PROMO_CODE_MAX_TOTAL: 5000,
+    PROMO_CODES_CHANNEL: "https://t.me/GramPTS_Codes",
+    PROMO_CODES_CHANNEL_USERNAME: "GramPTS_Codes",
+    NOTIFICATIONS_CHANNEL: "@GramPTS_Notifications",
+    TASKS_CHANNEL: "@PTS_TASKS",
     PAYMENTS_CHANNEL: "https://t.me/Pirates_Proof",
     QUESTS: {
         welcome_bonus: { reward: 1000, type: "power" },
@@ -484,9 +504,11 @@ async function getSpecialTasks(userId) {
         
         const completedIds = new Set(completed?.map(t => t.task_id) || []);
         
-        const availableTasks = tasks.filter(task => 
-            !completedIds.has(task.id) && task.owner !== userId
-        );
+        const availableTasks = tasks.map(task => ({
+            ...task,
+            is_completed: completedIds.has(task.id),
+            can_complete: !completedIds.has(task.id) && task.owner !== userId
+        })).filter(task => task.owner !== userId);
         
         return availableTasks || [];
     } catch (error) {
@@ -577,11 +599,53 @@ async function getPromoCode(code) {
     }
 }
 
+async function getMyPromoCodes(userId) {
+    try {
+        const { data, error } = await supabase
+            .from('promo_codes')
+            .select('*')
+            .eq('owner', userId)
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        return [];
+    }
+}
+
+async function getActivePromoCodes(userId) {
+    try {
+        const { data: codes, error } = await supabase
+            .from('promo_codes')
+            .select('*')
+            .eq('status', 'active')
+            .gt('max_uses', 0);
+        
+        if (error) throw error;
+        
+        const { data: used } = await supabase
+            .from('used_promo_codes')
+            .select('code')
+            .eq('user_id', userId);
+        
+        const usedCodes = new Set(used?.map(u => u.code) || []);
+        
+        return (codes || [])
+            .filter(c => !usedCodes.has(c.code) && (c.total_uses || 0) < c.max_uses && c.owner !== userId)
+            .map(c => ({
+                ...c,
+                is_used: false
+            }));
+    } catch (error) {
+        return [];
+    }
+}
+
 async function usePromoCode(userId, code) {
     try {
         const { data, error } = await supabase
             .from('used_promo_codes')
-            .insert([{ user_id: userId, code }])
+            .insert([{ user_id: userId, code, used_at: getCurrentTime() }])
             .select()
             .single();
         if (error) throw error;
@@ -938,14 +1002,14 @@ app.post('/api/check-bot-admin', authenticate, async (req, res) => {
 });
 
 app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    const secretToken = req.headers['x-telegram-bot-api-secret-token'];
+    if (!WEBHOOK_SECRET || secretToken !== WEBHOOK_SECRET) {
+        console.warn('🚫 Unauthorized webhook from:', req.ip);
+        return res.sendStatus(403);
+    }
+
     try {
         const update = req.body;
-
-        const secretToken = req.headers['x-telegram-bot-api-secret-token'];
-        if (!WEBHOOK_SECRET || secretToken !== WEBHOOK_SECRET) {
-            console.warn('🚫 Unauthorized webhook from:', req.ip);
-            return res.sendStatus(403);
-        }
         
         if (update.message && update.message.chat && update.message.chat.type === 'private') {
             const chatId = update.message.chat.id;
@@ -1011,6 +1075,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
                     wallet: null,
                     task_count: 0,
                     special_tasks_count: 0,
+                    promo_codes_created: 0,
                     last_task_completion_time: 0,
                     last_promo_time: 0
                 };
@@ -1097,11 +1162,7 @@ app.post('/api/check-membership', authenticate, async (req, res) => {
             return res.json({ isMember: true, error: 'bot_not_admin' });
         }
 
-        const chatMember = await fetch(
-            `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=@${channel}&user_id=${userId}`
-        ).then(r => r.json());
-
-        const isMember = chatMember.ok && ['member', 'administrator', 'creator'].includes(chatMember.result?.status);
+        const isMember = await checkUserInChannel(userId, channel);
         
         res.json({ isMember });
     } catch (error) {
@@ -1198,6 +1259,7 @@ app.post('/api/auth', strictLimiter, async (req, res) => {
                 wallet: null,
                 task_count: 0,
                 special_tasks_count: 0,
+                promo_codes_created: 0,
                 last_task_completion_time: 0,
                 last_promo_time: 0
             };
@@ -1645,12 +1707,22 @@ app.post('/api/complete-task', authenticate, strictLimiter, async (req, res) => 
 
         const { data: task, error: taskError } = await supabase
             .from('tasks')
-            .select('reward, total, total_completed, category, owner, notified, name')
+            .select('reward, total, total_completed, category, owner, notified, name, verification, url')
             .eq('id', taskId)
             .single();
 
         if (taskError || !task) {
             return res.status(404).json({ error: 'Task not found' });
+        }
+
+        if (task.verification && task.url) {
+            const chatId = task.url.match(/t\.me\/([^\/\?]+)/)?.[1];
+            if (chatId) {
+                const isMember = await checkUserInChannel(userId, chatId);
+                if (!isMember) {
+                    return res.status(400).json({ error: 'Join the channel first' });
+                }
+            }
         }
 
         if ((task.total_completed || 0) >= task.total) {
@@ -1793,6 +1865,16 @@ app.post('/api/complete-special-task', authenticate, strictLimiter, async (req, 
             return res.status(404).json({ error: 'Task not found' });
         }
 
+        if (task.verification && task.url) {
+            const chatId = task.url.match(/t\.me\/([^\/\?]+)/)?.[1];
+            if (chatId) {
+                const isMember = await checkUserInChannel(userId, chatId);
+                if (!isMember) {
+                    return res.status(400).json({ error: 'Join the channel first' });
+                }
+            }
+        }
+
         const { data: completed } = await supabase
             .from('user_completed_special_tasks')
             .select('task_id')
@@ -1800,7 +1882,7 @@ app.post('/api/complete-special-task', authenticate, strictLimiter, async (req, 
             .eq('task_id', taskId)
             .single();
 
-        if (completed) {
+        if (completed && task.once_per_user !== false) {
             return res.status(400).json({ error: 'Task already completed!' });
         }
 
@@ -1812,12 +1894,14 @@ app.post('/api/complete-special-task', authenticate, strictLimiter, async (req, 
             .update({ total_completed: newTotalCompleted })
             .eq('id', taskId);
 
-        await supabase
-            .from('user_completed_special_tasks')
-            .insert([{ user_id: userId, task_id: taskId, completed_at: getCurrentTime() }]);
+        if (!completed) {
+            await supabase
+                .from('user_completed_special_tasks')
+                .insert([{ user_id: userId, task_id: taskId, completed_at: getCurrentTime() }]);
+        }
 
-        const rewardPower = APP_CONFIG.SPECIAL_TASK_REWARD_POWER || 50;
-        const rewardGold = APP_CONFIG.SPECIAL_TASK_REWARD_GOLD || 5;
+        const rewardPower = task.reward_power || APP_CONFIG.SPECIAL_TASK_REWARD_POWER || 50;
+        const rewardGold = task.reward_gold || APP_CONFIG.SPECIAL_TASK_REWARD_GOLD || 5;
         
         let totalCompleted = (user.total_tasks_completed || 0) + 1;
         
@@ -1856,89 +1940,255 @@ app.post('/api/complete-special-task', authenticate, strictLimiter, async (req, 
     }
 });
 
-app.post('/api/create-special-task', authenticate, strictLimiter, async (req, res) => {
-    try {
-        const userId = req._userId;
-        const { name, link, verification } = req.body;
+async function verifyAndAddSpecialTask(userId, taskData, memo) {
+    const address = APP_CONFIG.PAYMENT_WALLET || APP_CONFIG.TON_WALLET_ADDRESS;
+    if (!address) {
+        return { success: false, error: 'Payment wallet not configured' };
+    }
 
-        if (!name || name.length < 5 || name.length > 20) {
-            return res.status(400).json({ error: 'Name must be between 5-20 characters' });
-        }
+    const response = await fetch(`https://toncenter.com/api/v2/getTransactions?address=${address}&limit=5`);
+    const data = await response.json();
+    if (!data.ok) {
+        return { success: false, error: 'Payment API error' };
+    }
 
-        if (!link || !link.startsWith('https://')) {
-            return res.status(400).json({ error: 'Please enter a valid link starting with https://' });
-        }
+    let foundTx = null;
+    if (data.result && data.result.length > 0) {
+        foundTx = data.result.find(tx => {
+            const msg = tx.in_msg?.message;
+            return msg && msg.includes(memo);
+        });
+    }
 
-        const user = await getUser(userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!foundTx) {
+        return { success: false, error: 'Payment not found' };
+    }
 
-        if (verification && link.includes('t.me/')) {
-            const channelMatch = link.match(/t\.me\/([^\/\?]+)/);
-            if (channelMatch) {
-                const isAdmin = await checkBotIsAdminInChannel(channelMatch[1]);
-                if (!isAdmin) {
-                    return res.status(400).json({ 
-                        error: 'Bot is not admin in the channel. Please add @GramPirateBot as admin.' 
-                    });
-                }
+    const onChainMemo = foundTx.in_msg?.message || '';
+    if (onChainMemo !== memo) {
+        return { success: false, error: 'Invalid payment memo' };
+    }
+
+    const txAmount = parseFloat(foundTx.in_msg?.value) / 1000000000 || 0;
+    const requiredAmount = APP_CONFIG.SPECIAL_TASK_PRICE || 10;
+    
+    if (txAmount < requiredAmount * 0.98) {
+        return { success: false, error: 'Insufficient payment amount' };
+    }
+
+    const { data: existingTask } = await supabase
+        .from('special_tasks')
+        .select('id')
+        .eq('id', memo)
+        .maybeSingle();
+    
+    if (existingTask) {
+        return { success: false, error: 'Task already exists' };
+    }
+
+    let verification = taskData.verification || false;
+    if (verification && taskData.link) {
+        const channelMatch = taskData.link.match(/t\.me\/([^\/\?]+)/);
+        if (channelMatch) {
+            const isAdmin = await checkBotIsAdminInChannel(channelMatch[1]);
+            if (!isAdmin) {
+                return {
+                    success: false,
+                    error: 'Bot is not admin in the channel. Please add @GramPirateBot as admin.'
+                };
             }
         }
+    }
 
-        const taskId = 'special_' + userId + '_' + Date.now();
+    const taskToAdd = {
+        id: memo,
+        name: taskData.name,
+        url: taskData.link,
+        reward_power: APP_CONFIG.SPECIAL_TASK_REWARD_POWER || 50,
+        reward_gold: APP_CONFIG.SPECIAL_TASK_REWARD_GOLD || 5,
+        verification: verification,
+        owner: userId,
+        total_completed: 0,
+        status: 'active',
+        once_per_user: true,
+        created_at: getCurrentTime(),
+        notified: false
+    };
 
-        const taskData = {
-            id: taskId,
-            name: name,
-            url: link,
-            reward_power: APP_CONFIG.SPECIAL_TASK_REWARD_POWER || 50,
-            reward_gold: APP_CONFIG.SPECIAL_TASK_REWARD_GOLD || 5,
-            verification: verification || false,
-            owner: userId,
-            total_completed: 0,
-            status: 'active',
-            created_at: getCurrentTime(),
-            notified: false
-        };
+    const { data: taskResult, error: taskError } = await supabase
+        .from('special_tasks')
+        .insert([taskToAdd])
+        .select()
+        .single();
 
-        const { data: task, error: taskError } = await supabase
-            .from('special_tasks')
-            .insert([taskData])
-            .select()
-            .single();
+    if (taskError) {
+        logError('verifyAndAddSpecialTask', taskError);
+        return { success: false, error: 'Failed to add task' };
+    }
 
-        if (taskError) {
-            logError('/api/create-special-task', taskError);
-            return res.status(500).json({ error: 'Failed to create task' });
+    const user = await getUser(userId);
+    await updateUser(userId, { 
+        special_tasks_count: (user.special_tasks_count || 0) + 1 
+    });
+
+    await sendSpecialTaskCreatedNotification(taskResult);
+
+    return {
+        success: true,
+        task: taskResult,
+        message: 'Payment verified and special task added'
+    };
+}
+
+app.post('/api/check-payment', authenticate, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const { memo, amount, taskData, taskType } = req.body;
+
+        const user = await getUser(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
         }
 
-        await updateUser(userId, { 
-            special_tasks_count: (user.special_tasks_count || 0) + 1 
-        });
+        if (taskType === 'special') {
+            const result = await verifyAndAddSpecialTask(userId, taskData, memo);
+            return res.json(result);
+        }
 
-        await sendSpecialTaskCreatedNotification(task);
+        const address = APP_CONFIG.PAYMENT_WALLET || APP_CONFIG.TON_WALLET_ADDRESS;
+        if (!address) {
+            return res.status(500).json({ error: 'Payment wallet not configured' });
+        }
 
-        res.json({
-            success: true,
-            task: task
-        });
+        const response = await fetch(`https://toncenter.com/api/v2/getTransactions?address=${address}&limit=3`);
+        const data = await response.json();
+        if (!data.ok) {
+            return res.status(500).json({ error: 'Payment API error' });
+        }
+
+        let foundTx = null;
+        if (data.result && data.result.length > 0) {
+            foundTx = data.result.find(tx => {
+                const msg = tx.in_msg?.message;
+                return msg && msg.includes(memo);
+            });
+        }
+
+        if (foundTx) {
+            const onChainMemo = foundTx.in_msg?.message || '';
+            if (onChainMemo !== memo) {
+                return res.json({ success: false, error: 'Failed to create task.' });
+            }
+
+            const txAmount = parseFloat(foundTx.in_msg?.value) / 1000000000 || 0;
+
+            const rewardNum = parseInt(taskData.reward);
+            const totalNum = parseInt(taskData.total);
+            
+            if (rewardNum > 100) {
+                return res.json({ success: false, error: 'Failed to create task.' });
+            }
+            if (totalNum < 100 || totalNum > 5000) {
+                return res.json({ success: false, error: 'Failed to create task.' });
+            }
+            if (rewardNum * totalNum > 50000) {
+                return res.json({ success: false, error: 'Failed to create task.' });
+            }
+            
+            const requiredAmount = (taskData.total * taskData.reward / 1000) * (APP_CONFIG.PRICE_PER_100 || 0.001);
+            if (txAmount >= requiredAmount * 0.98) {
+                let verification = taskData.verification || false;
+                if (verification && taskData.link) {
+                    const channelMatch = taskData.link.match(/t\.me\/([^\/\?]+)/);
+                    if (channelMatch) {
+                        const isAdmin = await checkBotIsAdminInChannel(channelMatch[1]);
+                        if (!isAdmin) {
+                            return res.json({
+                                success: false,
+                                error: 'Bot is not admin in the channel. Please add @GramPirateBot as admin.'
+                            });
+                        }
+                    }
+                }
+                
+                const { data: existingTask } = await supabase
+                    .from('tasks')
+                    .select('id')
+                    .eq('id', memo)
+                    .maybeSingle();
+                
+                if (existingTask) {
+                    return res.json({ 
+                        success: false, 
+                        error: 'Failed to create task.' 
+                    });
+                }
+
+                const taskToAdd = {
+                    id: memo,
+                    name: taskData.name,
+                    url: taskData.link,
+                    category: 'social',
+                    reward: taskData.reward,
+                    total: taskData.total,
+                    verification: verification,
+                    owner: userId,
+                    status: 'active',
+                    created_at: getCurrentTime(),
+                    total_completed: 0,
+                    notified: false
+                };
+
+                const { data: taskResult, error: taskError } = await supabase
+                    .from('tasks')
+                    .insert([taskToAdd])
+                    .select()
+                    .single();
+
+                if (taskError) {
+                    logError('/api/check-payment', taskError);
+                    return res.status(500).json({ error: 'Failed to add task' });
+                }
+
+                await updateUser(userId, { task_count: (user.task_count || 0) + 1 });
+
+                await sendTaskCreatedNotification(taskResult);
+
+                return res.json({
+                    success: true,
+                    task: taskResult,
+                    message: 'Payment verified and task added'
+                });
+            } else {
+                return res.json({
+                    success: false,
+                    error: 'Insufficient payment amount'
+                });
+            }
+        } else {
+            return res.json({
+                success: false,
+                error: 'Payment not found'
+            });
+        }
     } catch (error) {
-        logError('/api/create-special-task', error);
+        logError('/api/check-payment', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-async function sendSpecialTaskCreatedNotification(task) {
+async function sendTaskCreatedNotification(task) {
     try {
-        const CHANNEL_ID = '@PTS_TASKS';
-        if (!BOT_TOKEN) return;
+        const CHANNEL_ID = APP_CONFIG.TASKS_CHANNEL;
+        if (!BOT_TOKEN || !CHANNEL_ID) return;
         
         const appLink = `https://t.me/GramPirateBot/app`;
 
-        const message = `<b>⚡ NEW SPECIAL TASK!</b>\n\n` +
+        const message = `<b>⚡ NEW TASK AVAILABLE!</b>\n\n` +
             `<b>📋 Task: ${task.name}</b>\n` +
-            `<b>👷‍♂️ Total Completed: ${task.total_completed || 0}</b>\n` +
-            `<b>⏳ Status: UNLIMITED</b>\n\n` +
-            `<b>🎁 Reward: ${task.reward_power} POWER + ${task.reward_gold} GOLD</b>`;
+            `<b>👷‍♂️ Target: ${task.total} (0/${task.total})</b>\n` +
+            `<b>⏳ Status: ACTIVE</b>\n\n` +
+            `<b>🎁 Reward: ${task.reward} POWER + ${APP_CONFIG.SOCIAL_GOLD_REWARD || 1} GOLD</b>`;
 
         const replyMarkup = {
             inline_keyboard: [[
@@ -1962,9 +2212,117 @@ async function sendSpecialTaskCreatedNotification(task) {
         });
 
     } catch (error) {
+        console.error('Failed to send task notification:', error);
+    }
+}
+
+async function sendSpecialTaskCreatedNotification(task) {
+    try {
+        const CHANNEL_ID = APP_CONFIG.TASKS_CHANNEL;
+        if (!BOT_TOKEN || !CHANNEL_ID) return;
+        
+        const appLink = `https://t.me/GramPirateBot/app`;
+
+        const message = `<b>⭐ NEW SPECIAL TASK!</b>\n\n` +
+            `<b>📋 Task: ${task.name}</b>\n` +
+            `<b>⏳ Status: UNLIMITED</b>\n` +
+            `<b>👥 Total Completed: ${task.total_completed || 0}</b>\n\n` +
+            `<b>🎁 Reward: ${task.reward_power} POWER + ${task.reward_gold} GOLD</b>`;
+
+        const replyMarkup = {
+            inline_keyboard: [[
+                { 
+                    text: '⭐ COMPLETE NOW', 
+                    url: appLink 
+                }
+            ]]
+        };
+
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: CHANNEL_ID,
+                text: message,
+                parse_mode: 'HTML',
+                reply_markup: replyMarkup,
+                disable_web_page_preview: true
+            })
+        });
+
+    } catch (error) {
         console.error('Failed to send special task notification:', error);
     }
 }
+
+async function sendPromoCodeCreatedNotification(promo) {
+    try {
+        const CHANNEL_ID = APP_CONFIG.PROMO_CODES_CHANNEL_USERNAME;
+        if (!BOT_TOKEN || !CHANNEL_ID) return;
+        
+        const appLink = `https://t.me/GramPirateBot/app`;
+
+        const rewardDisplay = promo.reward_type === 'power' 
+            ? `${promo.reward_amount} POWER` 
+            : `${promo.reward_amount} GOLD`;
+
+        const message = `<b>🎟 NEW PROMO CODE!</b>\n\n` +
+            `<b>🎁 Reward: ${rewardDisplay}</b>\n` +
+            `<b>👥 Max Uses: ${promo.max_uses}</b>\n` +
+            (promo.required_channel ? `<b>📢 Required: @${promo.required_channel}</b>\n` : '') +
+            `<b>⏳ Status: ACTIVE</b>`;
+
+        const replyMarkup = {
+            inline_keyboard: [[
+                { 
+                    text: '🎟 CLAIM NOW', 
+                    url: appLink 
+                }
+            ]]
+        };
+
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: '@' + CHANNEL_ID,
+                text: message,
+                parse_mode: 'HTML',
+                reply_markup: replyMarkup,
+                disable_web_page_preview: true
+            })
+        });
+
+    } catch (error) {
+        console.error('Failed to send promo code notification:', error);
+    }
+}
+
+app.post('/api/create-special-task', authenticate, strictLimiter, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const { name, link, verification, memo } = req.body;
+
+        if (!name || name.length < 5 || name.length > 20) {
+            return res.status(400).json({ error: 'Name must be between 5-20 characters' });
+        }
+
+        if (!link || !link.startsWith('https://')) {
+            return res.status(400).json({ error: 'Please enter a valid link starting with https://' });
+        }
+
+        if (!memo) {
+            return res.status(400).json({ error: 'Missing payment memo' });
+        }
+
+        const result = await verifyAndAddSpecialTask(userId, { name, link, verification }, memo);
+        res.json(result);
+
+    } catch (error) {
+        logError('/api/create-special-task', error);
+        res.status(500).json({ error: error.message });
+    }
+});
 
 app.post('/api/delete-special-task', authenticate, async (req, res) => {
     try {
@@ -1999,6 +2357,291 @@ app.post('/api/delete-special-task', authenticate, async (req, res) => {
 
     } catch (error) {
         logError('/api/delete-special-task', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/promo-codes', authenticate, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const codes = await getActivePromoCodes(userId);
+        res.json({ codes });
+    } catch (error) {
+        logError('/api/promo-codes', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/my-promo-codes', authenticate, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const codes = await getMyPromoCodes(userId);
+        res.json({ codes });
+    } catch (error) {
+        logError('/api/my-promo-codes', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/generate-promo-code', authenticate, strictLimiter, async (req, res) => {
+    try {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let code = 'PIRATE';
+        for (let i = 0; i < 8; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        res.json({ code });
+    } catch (error) {
+        logError('/api/generate-promo-code', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/create-promo-code', authenticate, strictLimiter, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const { 
+            code, 
+            rewardType, 
+            rewardAmount, 
+            maxUses, 
+            requiredChannel, 
+            notifyChannel,
+            memo 
+        } = req.body;
+
+        if (!code || code.length < 5 || code.length > 20) {
+            return res.status(400).json({ error: 'Code must be between 5-20 characters' });
+        }
+
+        if (!['power', 'gold'].includes(rewardType)) {
+            return res.status(400).json({ error: 'Invalid reward type' });
+        }
+
+        const amount = parseInt(rewardAmount);
+        if (isNaN(amount) || amount < 1 || amount > 1000000) {
+            return res.status(400).json({ error: 'Invalid reward amount' });
+        }
+
+        const uses = parseInt(maxUses);
+        if (isNaN(uses) || uses < APP_CONFIG.PROMO_CODE_MIN_TOTAL || uses > APP_CONFIG.PROMO_CODE_MAX_TOTAL) {
+            return res.status(400).json({ 
+                error: `Max uses must be between ${APP_CONFIG.PROMO_CODE_MIN_TOTAL}-${APP_CONFIG.PROMO_CODE_MAX_TOTAL}` 
+            });
+        }
+
+        if (!memo) {
+            return res.status(400).json({ error: 'Missing payment memo' });
+        }
+
+        const user = await getUser(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const existingCode = await getPromoCode(code);
+        if (existingCode) {
+            return res.status(400).json({ error: 'Code already exists' });
+        }
+
+        if (requiredChannel) {
+            const isAdmin = await checkBotIsAdminInChannel(requiredChannel);
+            if (!isAdmin) {
+                return res.status(400).json({ 
+                    error: 'Bot is not admin in the required channel' 
+                });
+            }
+        }
+
+        const totalReward = amount * uses;
+        const pricePer1000 = rewardType === 'power' 
+            ? APP_CONFIG.PROMO_CODE_POWER_PRICE_PER_1000 
+            : APP_CONFIG.PROMO_CODE_GOLD_PRICE_PER_1000;
+        const expectedPrice = (totalReward / 1000) * pricePer1000;
+
+        const address = APP_CONFIG.PAYMENT_WALLET || APP_CONFIG.TON_WALLET_ADDRESS;
+        const response = await fetch(`https://toncenter.com/api/v2/getTransactions?address=${address}&limit=5`);
+        const data = await response.json();
+        
+        if (!data.ok) {
+            return res.status(500).json({ error: 'Payment API error' });
+        }
+
+        let foundTx = null;
+        if (data.result && data.result.length > 0) {
+            foundTx = data.result.find(tx => {
+                const msg = tx.in_msg?.message;
+                return msg && msg.includes(memo);
+            });
+        }
+
+        if (!foundTx) {
+            return res.status(400).json({ error: 'Payment not found' });
+        }
+
+        const txAmount = parseFloat(foundTx.in_msg?.value) / 1000000000 || 0;
+        if (txAmount < expectedPrice * 0.98) {
+            return res.status(400).json({ error: 'Insufficient payment amount' });
+        }
+
+        const promoData = {
+            code: code.toUpperCase(),
+            reward_type: rewardType,
+            reward_amount: amount,
+            max_uses: uses,
+            total_uses: 0,
+            required_channel: requiredChannel || null,
+            notify_channel: notifyChannel || false,
+            owner: userId,
+            status: 'active',
+            created_at: getCurrentTime(),
+            notified: false
+        };
+
+        const { data: promoResult, error: promoError } = await supabase
+            .from('promo_codes')
+            .insert([promoData])
+            .select()
+            .single();
+
+        if (promoError) {
+            logError('/api/create-promo-code', promoError);
+            return res.status(500).json({ error: 'Failed to create promo code' });
+        }
+
+        await updateUser(userId, { 
+            promo_codes_created: (user.promo_codes_created || 0) + 1 
+        });
+
+        if (notifyChannel) {
+            await sendPromoCodeCreatedNotification(promoResult);
+        }
+
+        res.json({
+            success: true,
+            code: promoResult,
+            message: 'Promo code created successfully'
+        });
+
+    } catch (error) {
+        logError('/api/create-promo-code', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/claim-promo-code', authenticate, strictLimiter, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const { code } = req.body;
+
+        const promoCheck = checkPromoCooldown(userId);
+        if (!promoCheck.allowed) {
+            return res.status(429).json({ 
+                error: `Please wait ${promoCheck.remaining} seconds before using another promo code` 
+            });
+        }
+
+        const user = await getUser(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const promo = await getPromoCode(code);
+        if (!promo || promo.status !== 'active') {
+            return res.status(400).json({ error: 'Invalid promo code' });
+        }
+
+        if ((promo.total_uses || 0) >= promo.max_uses) {
+            return res.status(400).json({ error: 'Promo code expired' });
+        }
+
+        if (promo.owner === userId) {
+            return res.status(400).json({ error: 'Cannot use your own code' });
+        }
+
+        const { data: usedData } = await supabase
+            .from('used_promo_codes')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('code', code)
+            .single();
+
+        if (usedData) {
+            return res.status(400).json({ error: 'Code already used' });
+        }
+
+        if (promo.required_channel) {
+            const isMember = await checkUserInChannel(userId, promo.required_channel);
+            if (!isMember) {
+                return res.status(400).json({ 
+                    error: 'Join the required channel first',
+                    requiredChannel: promo.required_channel 
+                });
+            }
+        }
+
+        setPromoCooldown(userId);
+
+        await usePromoCode(userId, code);
+        await incrementPromoUses(code);
+
+        let updates = {};
+        let rewardMessage = '';
+
+        if (promo.reward_type === 'power') {
+            updates.power_balance = (user.power_balance || 0) + promo.reward_amount;
+            rewardMessage = `+${promo.reward_amount} Power`;
+        } else if (promo.reward_type === 'gold') {
+            updates.gold_balance = (user.gold_balance || 0) + promo.reward_amount;
+            rewardMessage = `+${promo.reward_amount} Gold`;
+            await checkLargeTransaction(userId, promo.reward_amount, 'Promo Code');
+        }
+
+        const updatedUser = await updateUser(userId, {
+            ...updates,
+            last_promo_time: getCurrentTime()
+        });
+
+        await updateUserLevel(userId);
+
+        res.json({
+            success: true,
+            user: updatedUser,
+            reward: rewardMessage,
+            rewardType: promo.reward_type,
+            rewardAmount: promo.reward_amount
+        });
+
+    } catch (error) {
+        logError('/api/claim-promo-code', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/delete-promo-code', authenticate, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const { code } = req.body;
+
+        const { data: promo, error: checkError } = await supabase
+            .from('promo_codes')
+            .select('owner')
+            .eq('code', code)
+            .single();
+
+        if (checkError || !promo) {
+            return res.status(404).json({ error: 'Code not found' });
+        }
+
+        if (promo.owner !== userId) {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+
+        await supabase
+            .from('promo_codes')
+            .update({ status: 'deleted' })
+            .eq('code', code);
+
+        res.json({ success: true });
+
+    } catch (error) {
+        logError('/api/delete-promo-code', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -2116,6 +2759,16 @@ app.post('/api/apply-promo', authenticate, strictLimiter, async (req, res) => {
         }
         if (promo.max_uses && (promo.total_uses || 0) >= promo.max_uses) {
             return res.status(400).json({ error: 'Promo code expired' });
+        }
+        
+        if (promo.required_channel) {
+            const isMember = await checkUserInChannel(userId, promo.required_channel);
+            if (!isMember) {
+                return res.status(400).json({ 
+                    error: 'Join the required channel first',
+                    requiredChannel: promo.required_channel 
+                });
+            }
         }
         
         setPromoCooldown(userId);
@@ -2290,246 +2943,6 @@ app.post('/api/delete-task', authenticate, async (req, res) => {
     }
 });
 
-app.post('/api/check-payment', authenticate, async (req, res) => {
-    try {
-        const userId = req._userId;
-        const { memo, amount, taskData, taskType } = req.body;
-
-        const user = await getUser(userId);
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        const address = APP_CONFIG.PAYMENT_WALLET || APP_CONFIG.TON_WALLET_ADDRESS;
-        if (!address) {
-            return res.status(500).json({ error: 'Payment wallet not configured' });
-        }
-
-        const response = await fetch(`https://toncenter.com/api/v2/getTransactions?address=${address}&limit=3`);
-        const data = await response.json();
-        if (!data.ok) {
-            return res.status(500).json({ error: 'Payment API error' });
-        }
-
-        let foundTx = null;
-        if (data.result && data.result.length > 0) {
-            foundTx = data.result.find(tx => {
-                const msg = tx.in_msg?.message;
-                return msg && msg.includes(memo);
-            });
-        }
-
-        if (foundTx) {
-            const onChainMemo = foundTx.in_msg?.message || '';
-            if (onChainMemo !== memo) {
-                return res.json({ success: false, error: 'Failed to create task.' });
-            }
-
-            const txAmount = parseFloat(foundTx.in_msg?.value) / 1000000000 || 0;
-
-            if (taskType === 'special') {
-                const requiredAmount = APP_CONFIG.SPECIAL_TASK_PRICE || 10;
-                if (txAmount < requiredAmount * 0.98) {
-                    return res.json({ success: false, error: 'Insufficient payment amount' });
-                }
-
-                const { data: existingTask } = await supabase
-                    .from('special_tasks')
-                    .select('id')
-                    .eq('id', memo)
-                    .maybeSingle();
-                
-                if (existingTask) {
-                    return res.json({ success: false, error: 'Failed to create task.' });
-                }
-
-                let verification = taskData.verification || false;
-                if (verification && taskData.link) {
-                    const channelMatch = taskData.link.match(/t\.me\/([^\/\?]+)/);
-                    if (channelMatch) {
-                        const isAdmin = await checkBotIsAdminInChannel(channelMatch[1]);
-                        if (!isAdmin) {
-                            return res.json({
-                                success: false,
-                                error: 'Bot is not admin in the channel. Please add @GramPirateBot as admin.'
-                            });
-                        }
-                    }
-                }
-
-                const taskToAdd = {
-                    id: memo,
-                    name: taskData.name,
-                    url: taskData.link,
-                    reward_power: APP_CONFIG.SPECIAL_TASK_REWARD_POWER || 50,
-                    reward_gold: APP_CONFIG.SPECIAL_TASK_REWARD_GOLD || 5,
-                    verification: verification,
-                    owner: userId,
-                    total_completed: 0,
-                    status: 'active',
-                    created_at: getCurrentTime(),
-                    notified: false
-                };
-
-                const { data: taskResult, error: taskError } = await supabase
-                    .from('special_tasks')
-                    .insert([taskToAdd])
-                    .select()
-                    .single();
-
-                if (taskError) {
-                    logError('/api/check-payment', taskError);
-                    return res.status(500).json({ error: 'Failed to add task' });
-                }
-
-                await updateUser(userId, { 
-                    special_tasks_count: (user.special_tasks_count || 0) + 1 
-                });
-
-                await sendSpecialTaskCreatedNotification(taskResult);
-
-                return res.json({
-                    success: true,
-                    task: taskResult,
-                    message: 'Payment verified and special task added'
-                });
-
-            } else {
-                const rewardNum = parseInt(taskData.reward);
-                const totalNum = parseInt(taskData.total);
-                
-                if (rewardNum > 100) {
-                    return res.json({ success: false, error: 'Failed to create task.' });
-                }
-                if (totalNum < 100 || totalNum > 5000) {
-                    return res.json({ success: false, error: 'Failed to create task.' });
-                }
-                if (rewardNum * totalNum > 50000) {
-                    return res.json({ success: false, error: 'Failed to create task.' });
-                }
-                
-                const requiredAmount = (taskData.total * taskData.reward / 1000) * (APP_CONFIG.PRICE_PER_100 || 0.001);
-                if (txAmount >= requiredAmount * 0.98) {
-                    let verification = taskData.verification || false;
-                    if (verification && taskData.link) {
-                        const channelMatch = taskData.link.match(/t\.me\/([^\/\?]+)/);
-                        if (channelMatch) {
-                            const isAdmin = await checkBotIsAdminInChannel(channelMatch[1]);
-                            if (!isAdmin) {
-                                return res.json({
-                                    success: false,
-                                    error: 'Bot is not admin in the channel. Please add @GramPirateBot as admin.'
-                                });
-                            }
-                        }
-                    }
-                    
-                    const { data: existingTask } = await supabase
-                        .from('tasks')
-                        .select('id')
-                        .eq('id', memo)
-                        .maybeSingle();
-                    
-                    if (existingTask) {
-                        return res.json({ 
-                            success: false, 
-                            error: 'Failed to create task.' 
-                        });
-                    }
-
-                    const taskToAdd = {
-                        id: memo,
-                        name: taskData.name,
-                        url: taskData.link,
-                        category: 'social',
-                        reward: taskData.reward,
-                        total: taskData.total,
-                        verification: verification,
-                        owner: userId,
-                        status: 'active',
-                        created_at: getCurrentTime(),
-                        total_completed: 0,
-                        notified: false
-                    };
-
-                    const { data: taskResult, error: taskError } = await supabase
-                        .from('tasks')
-                        .insert([taskToAdd])
-                        .select()
-                        .single();
-
-                    if (taskError) {
-                        logError('/api/check-payment', taskError);
-                        return res.status(500).json({ error: 'Failed to add task' });
-                    }
-
-                    await updateUser(userId, { task_count: (user.task_count || 0) + 1 });
-
-                    await sendTaskCreatedNotification(taskResult);
-
-                    return res.json({
-                        success: true,
-                        task: taskResult,
-                        message: 'Payment verified and task added'
-                    });
-                } else {
-                    return res.json({
-                        success: false,
-                        error: 'Insufficient payment amount'
-                    });
-                }
-            }
-        } else {
-            return res.json({
-                success: false,
-                error: 'Payment not found'
-            });
-        }
-    } catch (error) {
-        logError('/api/check-payment', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-async function sendTaskCreatedNotification(task) {
-    try {
-        const CHANNEL_ID = '@PTS_TASKS';
-        if (!BOT_TOKEN) return;
-        
-        const appLink = `https://t.me/GramPirateBot/app`;
-
-        const message = `<b>⚡ NEW TASK AVAILABLE!</b>\n\n` +
-            `<b>📋 Task: ${task.name}</b>\n` +
-            `<b>👷‍♂️ Target: ${task.total} (0/${task.total})</b>\n` +
-            `<b>⏳ Status: ACTIVE</b>\n\n` +
-            `<b>🎁 Reward: ${task.reward} POWER + ${APP_CONFIG.SOCIAL_GOLD_REWARD || 1} GOLD</b>`;
-
-        const replyMarkup = {
-            inline_keyboard: [[
-                { 
-                    text: '✅ COMPLETE NOW', 
-                    url: appLink 
-                }
-            ]]
-        };
-
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: CHANNEL_ID,
-                text: message,
-                parse_mode: 'HTML',
-                reply_markup: replyMarkup,
-                disable_web_page_preview: true
-            })
-        });
-
-    } catch (error) {
-        console.error('Failed to send task notification:', error);
-    }
-}
-
 app.post('/api/setup-promotion', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
@@ -2625,12 +3038,7 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
 
         const CHANNEL_USERNAME = 'GramPTS';
         try {
-            const chatMember = await fetch(
-                `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=@${CHANNEL_USERNAME}&user_id=${userId}`
-            ).then(r => r.json());
-
-            const isMember = chatMember.ok && ['member', 'administrator', 'creator'].includes(chatMember.result?.status);
-            
+            const isMember = await checkUserInChannel(userId, CHANNEL_USERNAME);
             if (!isMember) {
                 return res.status(400).json({ error: 'Failed to send withdrawal request' });
             }
@@ -2875,7 +3283,9 @@ const PORT = process.env.PORT || 8080;
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🏴‍☠️ GRAM PIRATES server running on port ${PORT}`);
     console.log(`🔐 Authentication: Telegram initData validation enabled`);
+    console.log(`🛡️  Webhook: Secret token protection enabled`);
     console.log(`📋 Special Tasks: Enabled`);
+    console.log(`🎟️  Promo Codes System: Enabled`);
     console.log(`⏱️  Task cooldown: ${APP_CONFIG.TASK_COMPLETION_COOLDOWN_SECONDS}s`);
     console.log(`⏱️  Promo cooldown: ${APP_CONFIG.PROMO_CODE_COOLDOWN_SECONDS}s`);
 });
