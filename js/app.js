@@ -102,6 +102,7 @@ const translations = {
         main_tasks: "Main Tasks",
         partner_tasks: "Partner Tasks",
         social_tasks: "Social Tasks",
+        special_tasks: "Special Tasks",
         tasks_completed: "Tasks completed",
         current_level: "Current Level",
         main_task_complete: "Complete",
@@ -193,6 +194,7 @@ const translations = {
         withdrawal_success: "Withdrawal successful!",
         withdrawal_failed: "Withdrawal failed",
         add_social_task: "Add Social Task",
+        add_special_task: "Add Special Task",
         task_name: "Task Name",
         task_link: "Link",
         total: "Total",
@@ -225,6 +227,7 @@ const translations = {
         payment_error: "Payment error",
         task_added: "Task Added!",
         task_added_success: "Your social task has been added successfully.",
+        special_task_added_success: "Your special task has been added successfully.",
         name_required: "Name must be between 5-20 characters",
         link_required: "Please enter a valid link starting with https://",
         invalid_total: "Please enter a valid total between 100-5000",
@@ -232,18 +235,12 @@ const translations = {
         promo_cooldown: "Please wait before using another promo code",
         ad_error: "Ad failed to load. Please try again.",
         ad_success: "Ad watched successfully! +{reward} Power",
-        device_verify_title: "New Device Detected",
-        device_verify_sub: "A verification code was sent to your Telegram. Please enter it below to continue.",
-        device_verify_placeholder: "— — — — — —",
-        device_verify_btn: "Verify Device",
-        device_resend_btn: "Resend Code",
-        device_verify_error: "Invalid code. Please try again.",
-        device_code_sent: "Verification code sent to your Telegram",
-        device_verified: "Device verified successfully!",
         my_tasks: "My Tasks",
+        my_special_tasks: "My Special Tasks",
         task_status_active: "Active",
         task_status_completed: "Completed",
         no_my_tasks: "You haven't created any social tasks yet.",
+        no_my_special_tasks: "You haven't created any special tasks yet.",
         verification_note: "You must add the bot as admin to verify membership",
         gold_reward: "Gold Reward",
         watch_earn: "WATCH & EARN",
@@ -260,7 +257,17 @@ const translations = {
         tasks_channel_desc: "Get live tasks notifications",
         not_registered_title: "Not Registered",
         not_registered_message: "You need to start the bot first to register your account.",
-        register_now: "Register Now"
+        register_now: "Register Now",
+        task_cooldown: "Please wait {s}s before completing another task",
+        promo_code_cooldown: "Please wait {s}s before using another promo code",
+        unlimited: "UNLIMITED",
+        total_completed: "Total Completed",
+        special_task_price: "Special Task Price: {price} GRAM",
+        special_task_reward: "Reward: {power} Power + {gold} Gold",
+        enter_wallet_address: "Enter wallet address",
+        enter_amount: "Enter amount",
+        fixed_price: "Fixed Price",
+        special_task_note: "This is an unlimited task. You can complete it multiple times."
     },
     ar: {
         level: "المستوى",
@@ -365,6 +372,7 @@ const translations = {
         main_tasks: "المهام الرئيسية",
         partner_tasks: "مهام الشركاء",
         social_tasks: "المهام الاجتماعية",
+        special_tasks: "المهام الخاصة",
         tasks_completed: "المهام المكتملة",
         current_level: "المستوى الحالي",
         main_task_complete: "إكمال",
@@ -456,6 +464,7 @@ const translations = {
         withdrawal_success: "تم السحب بنجاح!",
         withdrawal_failed: "فشل السحب",
         add_social_task: "إضافة مهمة اجتماعية",
+        add_special_task: "إضافة مهمة خاصة",
         task_name: "اسم المهمة",
         task_link: "الرابط",
         total: "الإجمالي",
@@ -488,6 +497,7 @@ const translations = {
         payment_error: "خطأ في الدفع",
         task_added: "تمت إضافة المهمة!",
         task_added_success: "تمت إضافة مهمتك الاجتماعية بنجاح.",
+        special_task_added_success: "تمت إضافة مهمتك الخاصة بنجاح.",
         name_required: "يجب أن يكون الاسم بين 5-20 حرفاً",
         link_required: "يرجى إدخال رابط صحيح يبدأ بـ https://",
         invalid_total: "يرجى إدخال إجمالي صحيح بين 100-5000",
@@ -495,18 +505,12 @@ const translations = {
         promo_cooldown: "يرجى الانتظار قبل استخدام رمز ترويجي آخر",
         ad_error: "فشل تحميل الإعلان. حاول مرة أخرى.",
         ad_success: "تم مشاهدة الإعلان بنجاح! +{reward} قوة",
-        device_verify_title: "جهاز جديد تم اكتشافه",
-        device_verify_sub: "تم إرسال رمز التحقق إلى تليجرام. يرجى إدخاله للمتابعة.",
-        device_verify_placeholder: "— — — — — —",
-        device_verify_btn: "التحقق من الجهاز",
-        device_resend_btn: "إعادة إرسال الرمز",
-        device_verify_error: "رمز غير صالح. حاول مرة أخرى.",
-        device_code_sent: "تم إرسال رمز التحقق إلى تليجرام",
-        device_verified: "تم التحقق من الجهاز بنجاح!",
         my_tasks: "مهامي",
+        my_special_tasks: "مهامي الخاصة",
         task_status_active: "نشط",
         task_status_completed: "مكتمل",
         no_my_tasks: "لم تقم بإنشاء أي مهام اجتماعية بعد.",
+        no_my_special_tasks: "لم تقم بإنشاء أي مهام خاصة بعد.",
         verification_note: "يجب إضافة البوت كمدير للتحقق من العضوية",
         gold_reward: "مكافأة الذهب",
         watch_earn: "شاهد واربح",
@@ -523,7 +527,17 @@ const translations = {
         tasks_channel_desc: "احصل على إشعارات المهام المباشرة",
         not_registered_title: "غير مسجل",
         not_registered_message: "يجب أن تبدأ البوت أولاً لتسجيل حسابك.",
-        register_now: "سجل الآن"
+        register_now: "سجل الآن",
+        task_cooldown: "يرجى الانتظار {s}ث قبل إكمال مهمة أخرى",
+        promo_code_cooldown: "يرجى الانتظار {s}ث قبل استخدام رمز ترويجي آخر",
+        unlimited: "غير محدود",
+        total_completed: "إجمالي المكتملة",
+        special_task_price: "سعر المهمة الخاصة: {price} جرام",
+        special_task_reward: "المكافأة: {power} قوة + {gold} ذهب",
+        enter_wallet_address: "أدخل عنوان المحفظة",
+        enter_amount: "أدخل المبلغ",
+        fixed_price: "سعر ثابت",
+        special_task_note: "هذه مهمة غير محدودة. يمكنك إكمالها عدة مرات."
     },
     ru: {
         level: "Уровень",
@@ -628,6 +642,7 @@ const translations = {
         main_tasks: "Основные задания",
         partner_tasks: "Партнёрские задания",
         social_tasks: "Социальные задания",
+        special_tasks: "Специальные задания",
         tasks_completed: "Заданий выполнено",
         current_level: "Текущий уровень",
         main_task_complete: "Выполнить",
@@ -719,6 +734,7 @@ const translations = {
         withdrawal_success: "Вывод успешен!",
         withdrawal_failed: "Ошибка вывода",
         add_social_task: "Добавить социальное задание",
+        add_special_task: "Добавить специальное задание",
         task_name: "Название задания",
         task_link: "Ссылка",
         total: "Всего",
@@ -751,6 +767,7 @@ const translations = {
         payment_error: "Ошибка оплаты",
         task_added: "Задание добавлено!",
         task_added_success: "Ваше социальное задание успешно добавлено.",
+        special_task_added_success: "Ваше специальное задание успешно добавлено.",
         name_required: "Название должно содержать 5-20 символов",
         link_required: "Пожалуйста, введите корректную ссылку, начинающуюся с https://",
         invalid_total: "Пожалуйста, введите корректное значение от 100 до 5000",
@@ -758,18 +775,12 @@ const translations = {
         promo_cooldown: "Пожалуйста, подождите перед использованием другого промокода",
         ad_error: "Не удалось загрузить рекламу. Попробуйте снова.",
         ad_success: "Реклама просмотрена! +{reward} мощности",
-        device_verify_title: "Обнаружено новое устройство",
-        device_verify_sub: "Код подтверждения отправлен в Telegram. Введите его ниже для продолжения.",
-        device_verify_placeholder: "— — — — — —",
-        device_verify_btn: "Подтвердить устройство",
-        device_resend_btn: "Отправить код повторно",
-        device_verify_error: "Неверный код. Попробуйте снова.",
-        device_code_sent: "Код подтверждения отправлен в Telegram",
-        device_verified: "Устройство успешно подтверждено!",
         my_tasks: "Мои задания",
+        my_special_tasks: "Мои специальные задания",
         task_status_active: "Активно",
         task_status_completed: "Завершено",
         no_my_tasks: "Вы пока не создали ни одного социального задания.",
+        no_my_special_tasks: "Вы пока не создали ни одного специального задания.",
         verification_note: "Вы должны добавить бота как администратора для проверки членства",
         gold_reward: "Награда золотом",
         watch_earn: "СМОТРИ И ЗАРАБАТЫВАЙ",
@@ -786,7 +797,17 @@ const translations = {
         tasks_channel_desc: "Получайте уведомления о заданиях в реальном времени",
         not_registered_title: "Не зарегистрирован",
         not_registered_message: "Сначала запустите бота, чтобы зарегистрировать аккаунт.",
-        register_now: "Зарегистрироваться"
+        register_now: "Зарегистрироваться",
+        task_cooldown: "Подождите {s}с перед выполнением следующего задания",
+        promo_code_cooldown: "Подождите {s}с перед использованием другого промокода",
+        unlimited: "БЕЗЛИМИТНО",
+        total_completed: "Всего выполнено",
+        special_task_price: "Цена специального задания: {price} GRAM",
+        special_task_reward: "Награда: {power} мощности + {gold} золота",
+        enter_wallet_address: "Введите адрес кошелька",
+        enter_amount: "Введите сумму",
+        fixed_price: "Фиксированная цена",
+        special_task_note: "Это безлимитное задание. Вы можете выполнять его несколько раз."
     },
     fa: {
         level: "سطح",
@@ -891,6 +912,7 @@ const translations = {
         main_tasks: "وظایف اصلی",
         partner_tasks: "وظایف شریک",
         social_tasks: "وظایف اجتماعی",
+        special_tasks: "وظایف ویژه",
         tasks_completed: "وظایف تکمیل شده",
         current_level: "سطح فعلی",
         main_task_complete: "تکمیل",
@@ -982,6 +1004,7 @@ const translations = {
         withdrawal_success: "برداشت با موفقیت انجام شد!",
         withdrawal_failed: "برداشت ناموفق بود",
         add_social_task: "افزودن وظیفه اجتماعی",
+        add_special_task: "افزودن وظیفه ویژه",
         task_name: "نام وظیفه",
         task_link: "لینک",
         total: "کل",
@@ -1014,6 +1037,7 @@ const translations = {
         payment_error: "خطا در پرداخت",
         task_added: "وظیفه اضافه شد!",
         task_added_success: "وظیفه اجتماعی شما با موفقیت اضافه شد.",
+        special_task_added_success: "وظیفه ویژه شما با موفقیت اضافه شد.",
         name_required: "نام باید بین ۵-۲۰ کاراکتر باشد",
         link_required: "لطفاً یک لینک معتبر که با https:// شروع می‌شود وارد کنید",
         invalid_total: "لطفاً یک کل معتبر بین ۱۰۰-۵۰۰۰ وارد کنید",
@@ -1021,18 +1045,12 @@ const translations = {
         promo_cooldown: "لطفاً قبل از استفاده از کد تبلیغاتی دیگر صبر کنید",
         ad_error: "بارگذاری تبلیغ ناموفق بود. دوباره تلاش کنید.",
         ad_success: "تبلیغ با موفقیت تماشا شد! +{reward} قدرت",
-        device_verify_title: "دستگاه جدید شناسایی شد",
-        device_verify_sub: "کد تأیید به تلگرام شما ارسال شد. لطفاً آن را در زیر وارد کنید.",
-        device_verify_placeholder: "— — — — — —",
-        device_verify_btn: "تأیید دستگاه",
-        device_resend_btn: "ارسال مجدد کد",
-        device_verify_error: "کد نامعتبر است. دوباره تلاش کنید.",
-        device_code_sent: "کد تأیید به تلگرام شما ارسال شد",
-        device_verified: "دستگاه با موفقیت تأیید شد!",
         my_tasks: "وظایف من",
+        my_special_tasks: "وظایف ویژه من",
         task_status_active: "فعال",
         task_status_completed: "تکمیل شده",
         no_my_tasks: "شما هنوز هیچ وظیفه اجتماعی ایجاد نکرده‌اید.",
+        no_my_special_tasks: "شما هنوز هیچ وظیفه ویژه‌ای ایجاد نکرده‌اید.",
         verification_note: "برای تأیید عضویت باید ربات را به عنوان مدیر اضافه کنید",
         gold_reward: "پاداش طلا",
         watch_earn: "تماشا و درآمد",
@@ -1049,7 +1067,17 @@ const translations = {
         tasks_channel_desc: "اعلان‌های وظایف زنده را دریافت کنید",
         not_registered_title: "ثبت نشده",
         not_registered_message: "ابتدا باید ربات را استارت کنید تا حساب شما ثبت شود.",
-        register_now: "ثبت نام کنید"
+        register_now: "ثبت نام کنید",
+        task_cooldown: "لطفاً {s}ثانیه قبل از تکمیل وظیفه بعدی صبر کنید",
+        promo_code_cooldown: "لطفاً {s}ثانیه قبل از استفاده از کد تبلیغاتی دیگر صبر کنید",
+        unlimited: "نامحدود",
+        total_completed: "کل تکمیل شده",
+        special_task_price: "قیمت وظیفه ویژه: {price} گرم",
+        special_task_reward: "پاداش: {power} قدرت + {gold} طلا",
+        enter_wallet_address: "آدرس کیف پول را وارد کنید",
+        enter_amount: "مبلغ را وارد کنید",
+        fixed_price: "قیمت ثابت",
+        special_task_note: "این یک وظیفه نامحدود است. می‌توانید آن را چندین بار تکمیل کنید."
     }
 };
 
@@ -1059,14 +1087,15 @@ class App {
         this.tgUser = null;
         this.isInitialized = false;
         this.serverUrl = '';
-        this.userDeviceId = null;
         this.jwtToken = null;
         this.isAuthenticated = false;
         this.taskCache = {
             main: { data: [], timestamp: 0 },
             partner: { data: [], timestamp: 0 },
             social: { data: [], timestamp: 0 },
-            myTasks: { data: [], timestamp: 0 }
+            special: { data: [], timestamp: 0 },
+            myTasks: { data: [], timestamp: 0 },
+            mySpecialTasks: { data: [], timestamp: 0 }
         };
         this.CACHE_DURATION = 300000;
 
@@ -1078,6 +1107,7 @@ class App {
         this.userLevel = 1;
         this.hasStartedMining = false;
         this.userCompletedTasks = new Set();
+        this.userCompletedSpecialTasks = new Set();
         this.userCompletedPartnerTasks = new Set();
         this.userCompletedPromoCodes = new Set();
         this.miningActive = false;
@@ -1095,10 +1125,10 @@ class App {
         this.adWatchCount = 0;
         this.adLastWatch = 0;
         this.monetagAdLastWatch = 0;
-        this.userWallet = null;
         this.socialGoldReward = 1;
         this.adRewardPower = 20;
         this.userTaskCount = 0;
+        this.specialTaskCount = 0;
 
         this.lang = 'en';
         this.referredBy = null;
@@ -1124,6 +1154,8 @@ class App {
         this.membershipCache = new Map();
         this.requestCooldown = new Map();
         this._lastFetchTime = new Map();
+        this._taskCompletionCooldown = 0;
+        this._promoCooldown = 0;
 
         this.quests = {
             welcomeBonusClaimed: false,
@@ -1137,13 +1169,16 @@ class App {
         this.mainTasks = [];
         this.partnerTasks = [];
         this.socialTasks = [];
+        this.specialTasks = [];
         this.mySocialTasks = [];
+        this.mySpecialTasks = [];
         
         this.promotionData = null;
         this.promotionStatus = null;
         this.hasPromotionBonus = false;
 
         this.pendingTaskData = null;
+        this.pendingTaskType = null;
 
         this.loadSettings();
     }
@@ -1277,6 +1312,34 @@ class App {
         return true;
     }
 
+    canCompleteTask() {
+        const now = Date.now();
+        const cooldownMs = 10000;
+        if (this._taskCompletionCooldown && (now - this._taskCompletionCooldown) < cooldownMs) {
+            const remaining = Math.ceil((cooldownMs - (now - this._taskCompletionCooldown)) / 1000);
+            return { allowed: false, remaining };
+        }
+        return { allowed: true, remaining: 0 };
+    }
+
+    setTaskCooldown() {
+        this._taskCompletionCooldown = Date.now();
+    }
+
+    canUsePromo() {
+        const now = Date.now();
+        const cooldownMs = 5000;
+        if (this._promoCooldown && (now - this._promoCooldown) < cooldownMs) {
+            const remaining = Math.ceil((cooldownMs - (now - this._promoCooldown)) / 1000);
+            return { allowed: false, remaining };
+        }
+        return { allowed: true, remaining: 0 };
+    }
+
+    setPromoCooldown() {
+        this._promoCooldown = Date.now();
+    }
+
     async fetchFromServer(endpoint, data = {}) {
         if (!this.checkCooldown(endpoint)) {
             throw new Error('Cooldown');
@@ -1294,7 +1357,6 @@ class App {
             const payload = {
                 ...data,
                 userId: this.tgUser?.id,
-                deviceId: this.userDeviceId,
                 username: this.tgUser?.username || '',
                 firstName: this.tgUser?.first_name || 'User',
                 photoUrl: this.tgUser?.photo_url || this.config.DEFAULT_USER_AVATAR
@@ -1324,34 +1386,18 @@ class App {
                 throw new Error('Not registered');
             }
 
-            if (result.error === 'device_mismatch') {
-                localStorage.removeItem('pirate_device_id');
-                localStorage.removeItem('pirate_jwt');
-                this.userDeviceId = null;
-                this.jwtToken = null;
-                this.isAuthenticated = false;
-                this.showNotification('Error', 'Device mismatch. Please restart the app.', 'error');
-                throw new Error('Device error');
-            }
-
-            if (result.error === 'Device mismatch' || result.error === 'device_already_used') {
-                this.showNotification('Error', result.message || 'Device verification failed', 'error');
-                throw new Error('Device error');
-            }
-
-            if (result.error === 'new_device') {
-                this.showDeviceVerificationModal();
-                throw new Error('New device');
-            }
-
             if (result.error === 'Account banned') {
                 this.showBanModal();
                 throw new Error('Banned');
             }
 
+            if (result.error === 'Too many requests') {
+                throw new Error('Cooldown');
+            }
+
             return result;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error' || error.message === 'Not registered') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Auth required' || error.message === 'Not registered') {
                 throw error;
             }
             console.error('Server fetch error:', error);
@@ -1404,10 +1450,6 @@ class App {
             if (result.token) {
                 this.jwtToken = result.token;
                 localStorage.setItem('pirate_jwt', result.token);
-                if (result.deviceId) {
-                    this.userDeviceId = result.deviceId;
-                    localStorage.setItem('pirate_device_id', result.deviceId);
-                }
                 this.isAuthenticated = true;
                 return true;
             }
@@ -1422,12 +1464,16 @@ class App {
         if (this.jwtToken && this.isAuthenticated) return true;
 
         try {
-            const storedJwt = localStorage.getItem('pirate_jwt');
-            const storedDeviceId = localStorage.getItem('pirate_device_id');
+            const initData = this.tg?.initData;
+            
+            if (!initData) {
+                console.error('No initData available');
+                return false;
+            }
 
+            const storedJwt = localStorage.getItem('pirate_jwt');
             if (storedJwt) {
                 this.jwtToken = storedJwt;
-                this.userDeviceId = storedDeviceId;
                 const result = await this.fetchFromServer('/api/refresh', {});
                 if (result.token) {
                     this.jwtToken = result.token;
@@ -1438,18 +1484,16 @@ class App {
             }
 
             const result = await this.fetchFromServer('/api/auth', {
+                initData: initData,
                 userId: this.tgUser?.id,
                 username: this.tgUser?.username || '',
-                deviceId: this.userDeviceId
+                firstName: this.tgUser?.first_name || 'User',
+                photoUrl: this.tgUser?.photo_url || this.config.DEFAULT_USER_AVATAR
             });
 
             if (result.token) {
                 this.jwtToken = result.token;
                 localStorage.setItem('pirate_jwt', result.token);
-                if (result.deviceId) {
-                    this.userDeviceId = result.deviceId;
-                    localStorage.setItem('pirate_device_id', result.deviceId);
-                }
                 this.isAuthenticated = true;
                 return true;
             }
@@ -1459,126 +1503,12 @@ class App {
                 return false;
             }
 
-            if (result.error === 'device_mismatch') {
-                this.showDeviceVerificationModal();
-                return false;
-            }
-
             return false;
         } catch (error) {
             if (error.message === 'Not registered') return false;
-            if (error.message === 'New device') return false;
             if (error.message === 'Cooldown') return false;
             console.error('Authentication failed:', error);
             return false;
-        }
-    }
-
-    async verifyDeviceCode(code) {
-        try {
-            const result = await this.fetchFromServer('/api/verify-device', {
-                code: code
-            });
-
-            if (result.success && result.token) {
-                this.jwtToken = result.token;
-                localStorage.setItem('pirate_jwt', result.token);
-                if (result.deviceId) {
-                    this.userDeviceId = result.deviceId;
-                    localStorage.setItem('pirate_device_id', result.deviceId);
-                }
-                this.isAuthenticated = true;
-                return true;
-            }
-
-            return false;
-        } catch (error) {
-            console.error('Device verification failed:', error);
-            return false;
-        }
-    }
-
-    async resendDeviceCode() {
-        try {
-            const result = await this.fetchFromServer('/api/resend-device-code', {});
-            if (result.success) {
-                this.showNotification('Code Sent', this.t('device_code_sent'), 'success');
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.error('Resend code failed:', error);
-            return false;
-        }
-    }
-
-    showDeviceVerificationModal() {
-        const modal = document.getElementById('device-verification-modal');
-        const errorEl = document.getElementById('device-verify-error');
-        const input = document.getElementById('device-verify-input');
-        const btn = document.getElementById('device-verify-btn');
-        const resendBtn = document.getElementById('device-resend-btn');
-
-        if (errorEl) errorEl.style.display = 'none';
-        if (input) input.value = '';
-        if (modal) modal.style.display = 'flex';
-
-        const newBtn = btn?.cloneNode(true);
-        if (btn && newBtn) {
-            btn.parentNode.replaceChild(newBtn, btn);
-            newBtn.addEventListener('click', async () => {
-                const code = document.getElementById('device-verify-input')?.value.trim();
-                if (!code || code.length < 6) {
-                    const err = document.getElementById('device-verify-error');
-                    if (err) {
-                        err.textContent = 'Please enter a valid 6-digit code';
-                        err.style.display = 'block';
-                    }
-                    return;
-                }
-                newBtn.disabled = true;
-                newBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Verifying...';
-                
-                const success = await this.verifyDeviceCode(code);
-                
-                newBtn.disabled = false;
-                newBtn.innerHTML = this.t('device_verify_btn');
-                
-                if (success) {
-                    modal.style.display = 'none';
-                    this.showNotification('Success', this.t('device_verified'), 'success');
-                    this.vibrate('success');
-                    await this.loadUserData();
-                    this.renderMining();
-                } else {
-                    const err = document.getElementById('device-verify-error');
-                    if (err) {
-                        err.textContent = this.t('device_verify_error');
-                        err.style.display = 'block';
-                    }
-                    this.vibrate('error');
-                }
-            });
-        }
-
-        const newResend = resendBtn?.cloneNode(true);
-        if (resendBtn && newResend) {
-            resendBtn.parentNode.replaceChild(newResend, resendBtn);
-            newResend.addEventListener('click', async () => {
-                newResend.disabled = true;
-                newResend.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
-                await this.resendDeviceCode();
-                newResend.disabled = false;
-                newResend.innerHTML = this.t('device_resend_btn');
-            });
-        }
-
-        if (input) {
-            input.addEventListener('input', (e) => {
-                e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                const err = document.getElementById('device-verify-error');
-                if (err) err.style.display = 'none';
-            });
         }
     }
 
@@ -1641,8 +1571,6 @@ class App {
         if (this._userDataLoaded) return;
 
         try {
-            this.userDeviceId = localStorage.getItem('pirate_device_id');
-
             const authenticated = await this.authenticate();
             if (!authenticated) {
                 return;
@@ -1694,7 +1622,6 @@ class App {
             this.promotionData = user.promotion || null;
             this.promotionStatus = this.promotionData?.status || null;
             this.hasPromotionBonus = this.promotionStatus === 'approved';
-            this.userWallet = user.wallet || null;
             this.isAuthenticated = true;
             
             if (this.tgUser?.photo_url && this.tgUser.photo_url !== user.photo_url) {
@@ -1704,6 +1631,7 @@ class App {
             }
             
             this.userTaskCount = user.task_count || 0;
+            this.specialTaskCount = user.special_tasks_count || 0;
 
             if (user.quests) {
                 this.quests = user.quests;
@@ -1715,6 +1643,10 @@ class App {
 
             if (result.completedTasks) {
                 this.userCompletedTasks = new Set(result.completedTasks);
+            }
+
+            if (result.completedSpecialTasks) {
+                this.userCompletedSpecialTasks = new Set(result.completedSpecialTasks);
             }
 
             if (result.withdrawals) {
@@ -1743,9 +1675,7 @@ class App {
         } catch (error) {
             if (error.message === 'Cooldown') return;
             if (error.message === 'Banned') return;
-            if (error.message === 'New device') return;
             if (error.message === 'Auth required') return;
-            if (error.message === 'Device error') return;
             if (error.message === 'Not registered') return;
             console.error('loadUserData error:', error);
             this.showNotification('Error', 'Failed to load user data', 'error');
@@ -1813,6 +1743,13 @@ class App {
     }
 
     async completeTaskOnServer(taskId, isPartner = false, taskOwner = null) {
+        const cooldownCheck = this.canCompleteTask();
+        if (!cooldownCheck.allowed) {
+            this.showNotification('Cooldown', this.t('task_cooldown', { s: cooldownCheck.remaining }), 'warning');
+            this.vibrate('warning');
+            return false;
+        }
+
         try {
             const result = await this.fetchFromServer('/api/complete-task', {
                 taskId: taskId,
@@ -1834,6 +1771,7 @@ class App {
                 this.updateLevelFromPower();
                 this.updateHeaderBalances();
                 this.vibrate('success');
+                this.setTaskCooldown();
                 
                 this.socialTasks = this.socialTasks.filter(t => t.id !== taskId);
                 this.mainTasks = this.mainTasks.filter(t => t.id !== taskId);
@@ -1846,10 +1784,56 @@ class App {
 
             return true;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Auth required') {
                 return false;
             }
             console.error('Complete task error:', error);
+            this.showNotification('Error', 'Failed to complete task', 'error');
+            this.vibrate('error');
+            return false;
+        }
+    }
+
+    async completeSpecialTaskOnServer(taskId) {
+        const cooldownCheck = this.canCompleteTask();
+        if (!cooldownCheck.allowed) {
+            this.showNotification('Cooldown', this.t('task_cooldown', { s: cooldownCheck.remaining }), 'warning');
+            this.vibrate('warning');
+            return false;
+        }
+
+        try {
+            const result = await this.fetchFromServer('/api/complete-special-task', {
+                taskId: taskId
+            });
+
+            if (result.error) {
+                this.showNotification('Error', result.error, 'error');
+                this.vibrate('error');
+                return false;
+            }
+
+            if (result.user) {
+                this.powerBalance = result.user.power_balance || 0;
+                this.goldBalance = result.user.gold_balance || 0;
+                this.totalTasksCompleted = result.user.total_tasks_completed || 0;
+                this.specialTaskCount = result.user.special_tasks_count || 0;
+                this.userLevel = result.user.level || 1;
+                this.updateLevelFromPower();
+                this.updateHeaderBalances();
+                this.vibrate('success');
+                this.setTaskCooldown();
+                
+                this.specialTasks = this.specialTasks.filter(t => t.id !== taskId);
+                this.taskCache.special.data = this.specialTasks;
+            }
+
+            return true;
+        } catch (error) {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Auth required') {
+                return false;
+            }
+            console.error('Complete special task error:', error);
             this.showNotification('Error', 'Failed to complete task', 'error');
             this.vibrate('error');
             return false;
@@ -1894,7 +1878,7 @@ class App {
 
             return false;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Auth required') {
                 return false;
             }
             console.error('Claim quest error:', error);
@@ -1929,7 +1913,7 @@ class App {
 
             return false;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Auth required') {
                 return false;
             }
             console.error('Convert error:', error);
@@ -1980,7 +1964,7 @@ class App {
 
             return false;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Auth required') {
                 return false;
             }
             console.error('Claim referral earnings error:', error);
@@ -2015,7 +1999,7 @@ class App {
 
             return false;
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Auth required') {
                 return false;
             }
             console.error('Watch ad error:', error);
@@ -2076,38 +2060,6 @@ class App {
                 btn.disabled = false;
                 btn.innerHTML = this.t('watch');
             }
-        }
-    }
-
-    async setWallet(walletAddress) {
-        try {
-            const result = await this.fetchFromServer('/api/set-wallet', {
-                wallet: walletAddress
-            });
-
-            if (result.error) {
-                this.showNotification('Error', result.error, 'error');
-                this.vibrate('error');
-                return false;
-            }
-
-            if (result.user) {
-                this.userWallet = result.user.wallet;
-                this.showNotification(this.t('wallet_set'), this.t('wallet_set_success'), 'success');
-                this.vibrate('success');
-                if (this._walletLoaded) this.renderWallet();
-                return true;
-            }
-
-            return false;
-        } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
-                return false;
-            }
-            console.error('Set wallet error:', error);
-            this.showNotification('Error', 'Failed to set wallet', 'error');
-            this.vibrate('error');
-            return false;
         }
     }
 
@@ -2298,6 +2250,13 @@ class App {
     async applyPromoCode(code) {
         if (!this.tgUser) return false;
 
+        const promoCheck = this.canUsePromo();
+        if (!promoCheck.allowed) {
+            this.showNotification('Cooldown', this.t('promo_code_cooldown', { s: promoCheck.remaining }), 'warning');
+            this.vibrate('warning');
+            return false;
+        }
+
         try {
             const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID });
             await AdController.show();
@@ -2326,6 +2285,7 @@ class App {
                 this.updateLevelFromPower();
                 this.updateHeaderBalances();
                 this.vibrate('success');
+                this.setPromoCooldown();
             }
 
             this.showNotification('Reward Claimed', `You have received ${result.reward}`, 'success');
@@ -2333,7 +2293,7 @@ class App {
             return true;
 
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Auth required') {
                 return false;
             }
             console.error('Apply promo error:', error);
@@ -2360,10 +2320,25 @@ class App {
             return tasks || [];
             
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Auth required') {
                 return [];
             }
             console.error('Load tasks error:', error);
+            return [];
+        }
+    }
+
+    async loadSpecialTasks() {
+        try {
+            const result = await this.fetchFromServer('/api/special-tasks', {});
+            const tasks = result.tasks || [];
+            tasks.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            return tasks;
+        } catch (error) {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Auth required') {
+                return [];
+            }
+            console.error('Load special tasks error:', error);
             return [];
         }
     }
@@ -2393,6 +2368,18 @@ class App {
         }
     }
 
+    async loadMySpecialTasks() {
+        try {
+            const result = await this.fetchFromServer('/api/my-special-tasks', {});
+            this.mySpecialTasks = result.tasks || [];
+            this.taskCache.mySpecialTasks = { data: this.mySpecialTasks, timestamp: Date.now() };
+            return this.mySpecialTasks;
+        } catch (error) {
+            console.error('Error loading my special tasks:', error);
+            return [];
+        }
+    }
+
     async deleteMyTask(taskId) {
         try {
             const result = await this.fetchFromServer('/api/delete-task', { taskId });
@@ -2405,6 +2392,22 @@ class App {
             return false;
         } catch (error) {
             console.error('Error deleting task:', error);
+            return false;
+        }
+    }
+
+    async deleteMySpecialTask(taskId) {
+        try {
+            const result = await this.fetchFromServer('/api/delete-special-task', { taskId });
+            if (result.success) {
+                this.mySpecialTasks = this.mySpecialTasks.filter(t => t.id !== taskId);
+                this.taskCache.mySpecialTasks.data = this.mySpecialTasks;
+                this.showNotification('Success', 'Task deleted successfully', 'success');
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error deleting special task:', error);
             return false;
         }
     }
@@ -2459,6 +2462,61 @@ class App {
                         this.renderMyTasks();
                         this.socialTasks = this.socialTasks.filter(t => t.id !== taskId);
                         this.taskCache.social.data = this.socialTasks;
+                        this.renderEarn();
+                    }
+                }
+            });
+        });
+    }
+
+    showMySpecialTasksModal() {
+        const modal = document.getElementById('my-special-tasks-modal');
+        if (!modal) return;
+        modal.style.display = 'flex';
+        this.renderMySpecialTasks();
+    }
+
+    renderMySpecialTasks() {
+        const container = document.getElementById('my-special-tasks-container');
+        if (!container) return;
+
+        if (this.mySpecialTasks.length === 0) {
+            container.innerHTML = `<div class="no-data"><i class="fas fa-star"></i><p>${this.t('no_my_special_tasks')}</p></div>`;
+            return;
+        }
+
+        container.innerHTML = this.mySpecialTasks.map(task => {
+            const statusText = task.status === 'active' ? this.t('task_status_active') : this.t('task_status_completed');
+            const statusClass = task.status === 'active' ? 'active' : 'completed';
+            return `
+                <div class="my-task-item">
+                    <div class="task-info">
+                        <h4>${task.name}</h4>
+                        <div class="task-meta">
+                            <span><i class="fas fa-bolt"></i> ${task.reward_power} Power</span>
+                            <span><img src="${this.config.GOLD_ICON}" style="width:12px;height:12px;"> ${task.reward_gold} Gold</span>
+                        </div>
+                        <div class="task-progress-text">
+                            <span>${this.t('total_completed')}: ${task.total_completed || 0}</span>
+                            <span class="task-status ${statusClass}">${statusText}</span>
+                        </div>
+                    </div>
+                    <div class="task-actions">
+                        <button class="action-btn delete" data-id="${task.id}">Delete</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.querySelectorAll('.action-btn.delete').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (confirm('Are you sure you want to delete this task?')) {
+                    const taskId = btn.dataset.id;
+                    const success = await this.deleteMySpecialTask(taskId);
+                    if (success) {
+                        this.renderMySpecialTasks();
+                        this.specialTasks = this.specialTasks.filter(t => t.id !== taskId);
+                        this.taskCache.special.data = this.specialTasks;
                         this.renderEarn();
                     }
                 }
@@ -2566,9 +2624,22 @@ class App {
             return;
         }
 
+        if (!wallet || !wallet.startsWith('UQ') || wallet.length < 20) {
+            this.showNotification('Error', this.t('wallet_invalid'), 'error');
+            this.vibrate('error');
+            return;
+        }
+
         const minWithdraw = this.config.MINIMUM_WITHDRAW || 100;
         if (amount < minWithdraw) {
             this.showNotification('Error', this.t('min_withdraw_gold_amount'), 'error');
+            this.vibrate('error');
+            return;
+        }
+
+        const maxWithdraw = this.config.MAXIMUM_WITHDRAW || 3000;
+        if (amount > maxWithdraw) {
+            this.showNotification('Error', this.t('max_withdraw_gold_amount'), 'error');
             this.vibrate('error');
             return;
         }
@@ -2590,7 +2661,8 @@ class App {
 
         try {
             const result = await this.fetchFromServer('/api/withdraw-gram', {
-                goldAmount: amount
+                goldAmount: amount,
+                walletAddress: wallet
             });
 
             if (result.error) {
@@ -2634,7 +2706,7 @@ class App {
             this._withdrawLock = false;
 
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Auth required') {
                 if (withdrawBtn) {
                     withdrawBtn.disabled = false;
                     withdrawBtn.innerHTML = this.t('confirm_withdrawal');
@@ -2661,8 +2733,8 @@ class App {
             return;
         }
 
-        if (!wallet || wallet.length < 20) {
-            this.showNotification('Error', 'Invalid wallet address', 'error');
+        if (!wallet || !wallet.startsWith('UQ') || wallet.length < 20) {
+            this.showNotification('Error', this.t('wallet_invalid'), 'error');
             this.vibrate('error');
             return;
         }
@@ -3041,6 +3113,15 @@ class App {
             </div>
 
             <div class="section-header gold-header" style="margin-top:0;">
+                <h3><i class="fas fa-star"></i> ${this.t('special_tasks')}</h3>
+                <button id="add-special-task-btn" class="add-btn"><i class="fas fa-plus"></i></button>
+                <button id="my-special-tasks-btn" class="my-tasks-btn"><i class="fas fa-list"></i></button>
+            </div>
+            <div id="special-tasks-container" class="tasks-list">
+                <div class="task-loading"><i class="fas fa-spinner fa-pulse"></i><p>${this.t('loading')}...</p></div>
+            </div>
+
+            <div class="section-header gold-header">
                 <h3><i class="fas fa-home"></i> ${this.t('main_tasks')}</h3>
             </div>
             <div id="main-tasks-container" class="tasks-list">
@@ -3089,9 +3170,116 @@ class App {
             this.showMyTasksModal();
         });
 
+        document.getElementById('add-special-task-btn')?.addEventListener('click', () => {
+            this.showAddSpecialTaskModal();
+        });
+
+        document.getElementById('my-special-tasks-btn')?.addEventListener('click', () => {
+            this.loadMySpecialTasks();
+            this.showMySpecialTasksModal();
+        });
+
+        this.loadSpecialTasksList();
         this.loadMainTasks();
         this.loadPartnerTasks();
         this.loadSocialTasks();
+    }
+
+    showAddSpecialTaskModal() {
+        const modal = document.getElementById('add-special-task-modal');
+        if (!modal) return;
+        modal.style.display = 'flex';
+
+        const nameInput = document.getElementById('special-task-name');
+        const linkInput = document.getElementById('special-task-link');
+        const verificationGroup = document.getElementById('special-verification-group');
+        const verificationNote = document.getElementById('special-verification-note');
+        const priceDisplay = document.getElementById('special-task-price-display');
+
+        let selectedVerification = 'no';
+
+        if (priceDisplay) {
+            priceDisplay.textContent = (this.config.SPECIAL_TASK_PRICE || 10) + ' GRAM';
+        }
+
+        document.querySelectorAll('.special-verif-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.special-verif-option').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedVerification = btn.dataset.value;
+                if (selectedVerification === 'yes' && linkInput.value.trim().startsWith('https://t.me/')) {
+                    verificationNote.style.display = 'inline';
+                } else {
+                    verificationNote.style.display = 'none';
+                }
+            });
+        });
+
+        linkInput.addEventListener('input', () => {
+            const val = linkInput.value.trim();
+            if (val.startsWith('https://') && !val.startsWith('https://t.me/')) {
+                verificationGroup.style.display = 'none';
+                selectedVerification = 'no';
+                document.querySelectorAll('.special-verif-option').forEach(b => b.classList.remove('active'));
+                document.querySelector('.special-verif-option[data-value="no"]')?.classList.add('active');
+                verificationNote.style.display = 'none';
+            } else if (val.startsWith('https://t.me/')) {
+                verificationGroup.style.display = 'block';
+                if (selectedVerification === 'yes') {
+                    verificationNote.style.display = 'inline';
+                }
+            }
+        });
+
+        document.querySelector('.special-verif-option[data-value="no"]')?.classList.add('active');
+        verificationGroup.style.display = 'none';
+
+        document.getElementById('pay-add-special-task-btn')?.addEventListener('click', async () => {
+            const name = nameInput.value.trim();
+            const link = linkInput.value.trim();
+
+            if (name.length < 5 || name.length > 20) {
+                this.showNotification('Error', this.t('name_required'), 'error');
+                this.vibrate('error');
+                return;
+            }
+
+            if (!link.startsWith('https://')) {
+                this.showNotification('Error', this.t('link_required'), 'error');
+                this.vibrate('error');
+                return;
+            }
+
+            if (selectedVerification === 'yes' && link.startsWith('https://t.me/')) {
+                const channelMatch = link.match(/t\.me\/([^\/\?]+)/);
+                if (channelMatch) {
+                    try {
+                        const checkResult = await this.fetchFromServer('/api/check-bot-admin', {
+                            channel: channelMatch[1]
+                        });
+                        if (!checkResult.isAdmin) {
+                            this.showNotification('Error', 'Bot is not admin in the channel. Please add @GramPirateBot as admin.', 'error');
+                            this.vibrate('error');
+                            return;
+                        }
+                    } catch (error) {
+                        this.showNotification('Error', 'Failed to verify bot admin status', 'error');
+                        this.vibrate('error');
+                        return;
+                    }
+                }
+            }
+
+            this.pendingTaskData = {
+                name,
+                link,
+                verification: selectedVerification === 'yes'
+            };
+            this.pendingTaskType = 'special';
+
+            modal.style.display = 'none';
+            this.showPaymentModal();
+        });
     }
 
     showAddSocialTaskModal() {
@@ -3244,6 +3432,7 @@ class App {
                 reward: selectedReward,
                 verification: selectedVerification === 'yes'
             };
+            this.pendingTaskType = 'social';
 
             modal.style.display = 'none';
             this.showPaymentModal();
@@ -3266,9 +3455,16 @@ class App {
             wallet.substring(0, 10) + '.....' + wallet.substring(wallet.length - 10) : 
             wallet;
 
-        const memo = 'task_' + userId + '_' + (this.userTaskCount + 1);
-        const amount = (this.pendingTaskData.total * this.pendingTaskData.reward / 1000) * (this.config.PRICE_PER_100 || 0.001);
-        const nanoAmount = Math.floor(amount * 1000000000);
+        const memo = this.pendingTaskType === 'special' 
+            ? 'special_' + userId + '_' + Date.now()
+            : 'task_' + userId + '_' + (this.userTaskCount + 1);
+
+        let amount;
+        if (this.pendingTaskType === 'special') {
+            amount = this.config.SPECIAL_TASK_PRICE || 10;
+        } else {
+            amount = (this.pendingTaskData.total * this.pendingTaskData.reward / 1000) * (this.config.PRICE_PER_100 || 0.001);
+        }
 
         const walletDisplayEl = document.getElementById('payment-wallet-display');
         const memoDisplay = document.getElementById('payment-memo-display');
@@ -3315,7 +3511,8 @@ class App {
                     const result = await this.fetchFromServer('/api/check-payment', {
                         memo: memo,
                         amount: amount,
-                        taskData: this.pendingTaskData
+                        taskData: this.pendingTaskData,
+                        taskType: this.pendingTaskType
                     });
 
                     if (result.success) {
@@ -3323,14 +3520,25 @@ class App {
                             statusEl.textContent = this.t('payment_verified');
                             statusEl.style.color = '#2ecc71';
                         }
-                        this.userTaskCount = this.userTaskCount + 1;
-                        this.showNotification(this.t('task_added'), this.t('task_added_success'), 'success');
+                        if (this.pendingTaskType === 'special') {
+                            this.specialTaskCount = this.specialTaskCount + 1;
+                            this.showNotification(this.t('task_added'), this.t('special_task_added_success'), 'success');
+                        } else {
+                            this.userTaskCount = this.userTaskCount + 1;
+                            this.showNotification(this.t('task_added'), this.t('task_added_success'), 'success');
+                        }
                         this.vibrate('success');
                         this.pendingTaskData = null;
+                        this.pendingTaskType = null;
                         setTimeout(() => {
                             modal.style.display = 'none';
-                            this.loadSocialTasks();
-                            this.loadMyTasks();
+                            if (this.pendingTaskType === 'special') {
+                                this.loadSpecialTasksList();
+                                this.loadMySpecialTasks();
+                            } else {
+                                this.loadSocialTasks();
+                                this.loadMyTasks();
+                            }
                             this.renderEarn();
                         }, 1500);
                     } else {
@@ -3348,6 +3556,138 @@ class App {
                     this.vibrate('error');
                 }
             });
+        }
+    }
+
+    async loadSpecialTasksList() {
+        const container = document.getElementById('special-tasks-container');
+        if (!container) return;
+
+        this.isTaskRunning = false;
+        container.replaceChildren();
+        
+        try {
+            const tasks = await this.loadSpecialTasks();
+            this.specialTasks = tasks;
+
+            if (tasks.length === 0) {
+                container.innerHTML = `<div class="no-data"><i class="fas fa-star"></i><p>${this.t('no_tasks_available')}</p></div>`;
+                return;
+            }
+
+            container.innerHTML = tasks.map(task => {
+                const isCompleted = this.userCompletedSpecialTasks.has(task.id);
+                return `
+                    <div class="task-card task-special" data-task-id="${task.id}">
+                        <div class="task-header">
+                            <div class="task-icon"><img src="${this.config.TASK_IMAGE}" class="task-img"></div>
+                            <div class="task-info">
+                                <h4>${task.name}</h4>
+                                <div class="task-reward">
+                                    <span class="reward-badge"><i class="fas fa-bolt"></i> ${task.reward_power} Power</span>
+                                    <span class="reward-badge"><img src="${this.config.GOLD_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> ${task.reward_gold} Gold</span>
+                                </div>
+                                <div style="font-size:0.55rem;color:#888;margin-top:2px;">
+                                    <span class="unlimited-badge">${this.t('unlimited')}</span>
+                                    <span>${this.t('total_completed')}: ${task.total_completed || 0}</span>
+                                </div>
+                            </div>
+                            <button class="task-btn start" data-id="${task.id}" data-url="${task.url || ''}" data-verify="${task.verification || false}" data-owner="${task.owner || ''}">Start</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.querySelectorAll('#special-tasks-container .task-btn.start').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    if (this.isTaskRunning) {
+                        this.showNotification('Busy', 'Complete current task first', 'warning');
+                        return;
+                    }
+                    
+                    const taskId = btn.dataset.id;
+                    const task = this.specialTasks.find(t => t.id === taskId);
+                    if (!task) return;
+                    
+                    this.isTaskRunning = true;
+                    this.disableAllTaskButtons(true);
+                    btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
+                    btn.disabled = true;
+                    
+                    if (task.url) {
+                        window.open(task.url, '_blank');
+                    }
+                    
+                    let seconds = this.config.TASK_VERIFICATION_DELAY || 10;
+                    const interval = setInterval(() => {
+                        seconds--;
+                        if (seconds <= 0) {
+                            clearInterval(interval);
+                            btn.innerHTML = this.t('claim');
+                            btn.disabled = false;
+                            btn.classList.remove('start');
+                            btn.classList.add('claim-btn');
+                            
+                            const newBtn = btn.cloneNode(true);
+                            btn.parentNode.replaceChild(newBtn, btn);
+                            
+                            newBtn.addEventListener('click', async (e) => {
+                                e.stopPropagation();
+                                newBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
+                                newBtn.disabled = true;
+                                
+                                let isMember = true;
+                                if (task.verification && task.url) {
+                                    const chatId = this.extractChatId(task.url);
+                                    if (chatId) {
+                                        isMember = await this.checkMembership(chatId);
+                                    }
+                                }
+                                
+                                if (isMember) {
+                                    const success = await this.completeSpecialTaskOnServer(taskId);
+                                    if (success) {
+                                        newBtn.innerHTML = '✓ Done';
+                                        newBtn.disabled = true;
+                                        newBtn.classList.add('done');
+                                        newBtn.classList.remove('claim-btn');
+                                        this.userCompletedSpecialTasks.add(taskId);
+                                        this.showNotification('Reward Claimed', `You have received ${task.reward_power} Power + ${task.reward_gold} Gold`, 'success');
+                                        this.vibrate('success');
+                                        this.isTaskRunning = false;
+                                        this.disableAllTaskButtons(false);
+                                        this.renderMining();
+                                        this.loadSpecialTasksList();
+                                    } else {
+                                        newBtn.innerHTML = this.t('claim');
+                                        newBtn.disabled = false;
+                                        newBtn.classList.remove('claim-btn');
+                                        newBtn.classList.add('start');
+                                    }
+                                } else {
+                                    this.showNotification('Join Required', 'Please join the channel first', 'warning');
+                                    this.vibrate('warning');
+                                    newBtn.innerHTML = 'Start';
+                                    newBtn.disabled = false;
+                                    newBtn.classList.remove('claim-btn');
+                                    newBtn.classList.add('start');
+                                }
+                                this.isTaskRunning = false;
+                                this.disableAllTaskButtons(false);
+                            });
+                        }
+                    }, 1000);
+                });
+            });
+
+        } catch (error) {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Auth required') {
+                return;
+            }
+            console.error('Load special tasks error:', error);
+            container.innerHTML = `<div class="no-data"><i class="fas fa-exclamation-triangle"></i><p>${this.t('no_tasks')}</p></div>`;
+            this.isTaskRunning = false;
+            this.disableAllTaskButtons(false);
         }
     }
 
@@ -3472,7 +3812,7 @@ class App {
             });
 
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Auth required') {
                 return;
             }
             console.error('Load main tasks error:', error);
@@ -3611,7 +3951,7 @@ class App {
             });
 
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Auth required') {
                 return;
             }
             console.error('Load partner tasks error:', error);
@@ -3747,7 +4087,7 @@ class App {
             });
 
         } catch (error) {
-            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'New device' || error.message === 'Auth required' || error.message === 'Device error') {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Auth required') {
                 return;
             }
             console.error('Load social tasks error:', error);
@@ -3928,7 +4268,7 @@ class App {
                     this.renderTeam();
                 }
             } catch (error) {
-                if (error.message !== 'Cooldown' && error.message !== 'Banned' && error.message !== 'New device' && error.message !== 'Auth required' && error.message !== 'Device error') {
+                if (error.message !== 'Cooldown' && error.message !== 'Banned' && error.message !== 'Auth required') {
                     this.showNotification('Error', 'Failed to setup promotion', 'error');
                     this.vibrate('error');
                 }
@@ -3945,11 +4285,8 @@ class App {
 
         const exchangeRate = this.config.PIRATE_TO_GRAM_RATE || 10000;
         const minWithdrawGold = this.config.MINIMUM_WITHDRAW || 200;
+        const maxWithdrawGold = this.config.MAXIMUM_WITHDRAW || 3000;
         const withdrawalFees = this.config.WITHDRAWAL_FEES || 80;
-
-        const walletDisplay = this.userWallet ? 
-            this.userWallet.substring(0, 5) + '.....' + this.userWallet.substring(this.userWallet.length - 5) : 
-            '-';
 
         const historyHtml = this.withdrawals && this.withdrawals.length ? this.withdrawals.slice(0, 5).map(w => {
             const date = new Date(w.timestamp);
@@ -3974,20 +4311,6 @@ class App {
             </div>
         `}).join('') : '<div class="no-data">' + this.t('no_withdrawals') + '</div>';
 
-        let walletSetupHtml = '';
-        if (!this.userWallet) {
-            walletSetupHtml = `
-            <div class="wallet-setup-card gold-card">
-                <div class="setup-title"><i class="fas fa-wallet"></i> ${this.t('setup_wallet')}</div>
-                <div class="setup-input-group">
-                    <input type="text" id="wallet-setup-input" class="form-input gold-input" placeholder="${this.t('wallet_address')}">
-                    <button id="wallet-setup-btn" class="setup-btn gold-btn">${this.t('confirm_wallet')}</button>
-                </div>
-                <div class="setup-note"><i class="fas fa-exclamation-triangle"></i> ${this.t('wallet_note')}</div>
-            </div>
-            `;
-        }
-
         el.innerHTML = `
             <div class="wallet-card gold-card">
                 <div class="wallet-balances">
@@ -4004,13 +4327,11 @@ class App {
                 </div>
             </div>
 
-            ${walletSetupHtml}
-
             <div class="withdraw-card gold-card">
                 <h4 style="text-align:center; color:#FFD700; margin-bottom:14px;"><i class="fas fa-arrow-up"></i> ${this.t('convert_withdraw')}</h4>
 
                 <div class="form-group">
-                    <label class="form-label">${this.t('enter_gold_amount')}</label>
+                    <label class="form-label">${this.t('enter_amount')}</label>
                     <div class="input-wrapper">
                         <input type="number" id="withdraw-amount" class="form-input gold-input" placeholder="${this.t('min_withdraw_gold_amount')}" step="1">
                         <button id="max-amount" class="action-btn gold-btn">MAX</button>
@@ -4018,10 +4339,8 @@ class App {
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">${this.t('wallet')}</label>
-                    <div class="wallet-address-display" id="wallet-addr" onclick="window.app?.copyToClipboard('${this.userWallet || ''}')">
-                        ${walletDisplay}
-                    </div>
+                    <label class="form-label">${this.t('wallet_address')}</label>
+                    <input type="text" id="withdraw-wallet" class="form-input gold-input" placeholder="${this.t('enter_wallet_address')}" autocomplete="off">
                 </div>
 
                 <div class="withdraw-preview" id="withdraw-preview">
@@ -4046,8 +4365,8 @@ class App {
             </div>
         `;
 
-        const walletInput = document.getElementById('wallet-addr');
         const amountInput = document.getElementById('withdraw-amount');
+        const walletInput = document.getElementById('withdraw-wallet');
         const withdrawBtn = document.getElementById('withdraw-btn');
         const maxBtn = document.getElementById('max-amount');
         const preview = document.getElementById('withdraw-preview');
@@ -4060,7 +4379,8 @@ class App {
             }
 
             const fees = this.config.WITHDRAWAL_FEES || 50;
-            const isValid = amount >= (this.config.MINIMUM_WITHDRAW || 100) && amount <= 2000 && amount <= this.goldBalance && (amount - fees) > 0;
+            const wallet = walletInput?.value.trim();
+            const isValid = amount >= minWithdrawGold && amount <= maxWithdrawGold && amount <= this.goldBalance && (amount - fees) > 0 && wallet && wallet.startsWith('UQ') && wallet.length >= 20;
             if (withdrawBtn) {
                 withdrawBtn.disabled = !isValid;
                 withdrawBtn.classList.toggle('disabled', !isValid);
@@ -4069,44 +4389,25 @@ class App {
 
         maxBtn?.addEventListener('click', () => {
             if (amountInput) {
-                amountInput.value = Math.min(Math.floor(this.goldBalance), 2000);
+                amountInput.value = Math.min(Math.floor(this.goldBalance), maxWithdrawGold);
                 updatePreview();
             }
         });
 
-        walletInput?.addEventListener('input', updatePreview);
         amountInput?.addEventListener('input', updatePreview);
+        walletInput?.addEventListener('input', updatePreview);
 
         withdrawBtn?.addEventListener('click', () => {
             if (withdrawBtn.disabled) return;
             const amount = parseFloat(amountInput.value);
-            const wallet = this.userWallet;
-            if (!wallet || wallet.length < 20) {
-                this.showNotification('Error', 'Invalid wallet address', 'error');
+            const wallet = walletInput.value.trim();
+            if (!wallet || !wallet.startsWith('UQ') || wallet.length < 20) {
+                this.showNotification('Error', this.t('wallet_invalid'), 'error');
                 this.vibrate('error');
                 return;
             }
             this.withdraw(amount, wallet);
         });
-
-        const setupBtn = document.getElementById('wallet-setup-btn');
-        const setupInput = document.getElementById('wallet-setup-input');
-        if (setupBtn && setupInput) {
-            setupBtn.addEventListener('click', async () => {
-                const wallet = setupInput.value.trim();
-                if (!wallet || !wallet.startsWith('UQ') || wallet.length < 20) {
-                    this.showNotification('Error', this.t('wallet_invalid'), 'error');
-                    this.vibrate('error');
-                    return;
-                }
-                setupBtn.disabled = true;
-                setupBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
-                await this.setWallet(wallet);
-                setupBtn.disabled = false;
-                setupBtn.innerHTML = this.t('confirm_wallet');
-                this.renderWallet();
-            });
-        }
     }
 
     showNotification(title, message, type) {
@@ -4204,16 +4505,8 @@ class App {
             this.tg = window.Telegram.WebApp;
             this.tgUser = this.tg.initDataUnsafe.user;
 
-            const userId = this.tgUser.id;
-            const storedUserId = localStorage.getItem('pirate_user_id');
-            
-            if (storedUserId && storedUserId !== userId.toString()) {
-                this.showNotification('Error', 'Device already used with another account', 'error');
-                this.tg?.close();
-                return;
-            }
-            if (!storedUserId) {
-                localStorage.setItem('pirate_user_id', userId.toString());
+            if (!this.tgUser) {
+                throw new Error('No user data');
             }
 
             this.tg.ready();
@@ -4271,7 +4564,7 @@ class App {
             this.isInitialized = true;
 
         } catch (err) {
-            if (err.message === 'Cooldown' || err.message === 'Banned' || err.message === 'New device' || err.message === 'Auth required' || err.message === 'Device error' || err.message === 'Not registered') {
+            if (err.message === 'Cooldown' || err.message === 'Banned' || err.message === 'Auth required' || err.message === 'Not registered') {
                 return;
             }
             console.error('Initialization error:', err);
