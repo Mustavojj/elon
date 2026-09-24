@@ -24,6 +24,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const JWT_SECRET = process.env.JWT_SECRET;
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 
 const requestCooldown = new Map();
 const notifiedUsers = new Set();
@@ -939,6 +940,12 @@ app.post('/api/check-bot-admin', authenticate, async (req, res) => {
 app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
     try {
         const update = req.body;
+
+        const secretToken = req.headers['x-telegram-bot-api-secret-token'];
+        if (!WEBHOOK_SECRET || secretToken !== WEBHOOK_SECRET) {
+            console.warn('🚫 Unauthorized webhook from:', req.ip);
+            return res.sendStatus(403);
+        }
         
         if (update.message && update.message.chat && update.message.chat.type === 'private') {
             const chatId = update.message.chat.id;
