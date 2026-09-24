@@ -29,12 +29,22 @@ const requestCooldown = new Map();
 const notifiedUsers = new Set();
 const getUserCache = new Map();
 const withdrawLocks = new Map();
+const taskCompletionLocks = new Map();
+const promoCodeLocks = new Map();
 
 function logError(endpoint, error) {
     console.error(`❌ [${endpoint}] Error:`, error.message || error);
     if (error.stack) {
         console.error(`📚 Stack:`, error.stack);
     }
+}
+
+function logInfo(endpoint, message, data = {}) {
+    console.log(`📌 [${endpoint}] ${message}`, JSON.stringify(data));
+}
+
+function logAuth(endpoint, message, data = {}) {
+    console.log(`🔐 [${endpoint}] ${message}`, JSON.stringify(data));
 }
 
 const generalLimiter = rateLimit({
@@ -66,40 +76,128 @@ const veryStrictLimiter = rateLimit({
 
 app.use('/api/', generalLimiter);
 
-async function isDeviceUsedByOtherUser(deviceId, currentUserId) {
-    if (!deviceId) return false;
-    try {
-        const { data, error } = await supabase
-            .from('users')
-            .select('id, device_id')
-            .eq('device_id', deviceId)
-            .neq('id', currentUserId)
-            .single();
-        if (error && error.code !== 'PGRST116') {
-            logError('isDeviceUsedByOtherUser', error);
-        }
-        return !!data;
-    } catch (error) {
-        logError('isDeviceUsedByOtherUser', error);
-        return false;
-    }
-}
-
-function checkCooldown(userId, endpoint) {
+function checkCooldown(userId, endpoint, cooldownMs = 1500) {
     const now = Date.now();
     const key = `${userId}_${endpoint}`;
     const lastCall = requestCooldown.get(key) || 0;
-    if (now - lastCall < 1500) return false;
+    if (now - lastCall < cooldownMs) return false;
     requestCooldown.set(key, now);
     return true;
+}
+
+function checkTaskCompletionCooldown(userId) {
+    const now = Date.now();
+    const key = `task_completion_${userId}`;
+    const lastCompletion = taskCompletionLocks.get(key) || 0;
+    const cooldownMs = 10000;
+    if (now - lastCompletion < cooldownMs) {
+        const remaining = Math.ceil((cooldownMs - (now - lastCompletion)) / 1000);
+        return { allowed: false, remaining };
+    }
+    return { allowed: true, remaining: 0 };
+}
+
+function setTaskCompletionCooldown(userId) {
+    const key = `task_completion_${userId}`;
+    taskCompletionLocks.set(key, Date.now());
+}
+
+function checkPromoCooldown(userId) {
+    const now = Date.now();
+    const key = `promo_${userId}`;
+    const lastPromo = promoCodeLocks.get(key) || 0;
+    const cooldownMs = 5000;
+    if (now - lastPromo < cooldownMs) {
+        const remaining = Math.ceil((cooldownMs - (now - lastPromo)) / 1000);
+        return { allowed: false, remaining };
+    }
+    return { allowed: true, remaining: 0 };
+}
+
+function setPromoCooldown(userId) {
+    const key = `promo_${userId}`;
+    promoCodeLocks.set(key, Date.now());
 }
 
 function validateUserId(userId) {
     return userId && typeof userId === 'number' && userId > 0;
 }
 
-function generateJWT(userId, deviceId) {
-    return jwt.sign({ userId, deviceId }, JWT_SECRET, { expiresIn: '7d' });
+function validateTelegramInitData(initData, botToken) {
+    if (!initData || !botToken) {
+        return { valid: false, error: 'Missing initData or bot token' };
+    }
+
+    try {
+        const urlParams = new URLSearchParams(initData);
+        const hash = urlParams.get('hash');
+        
+        if (!hash) {
+            return { valid: false, error: 'Missing hash' };
+        }
+
+        urlParams.delete('hash');
+        
+        const dataCheckString = Array.from(urlParams.entries())
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([key, value]) => `${key}=${value}`)
+            .join('\n');
+
+        const secretKey = crypto
+            .createHmac('sha256', 'WebAppData')
+            .update(botToken)
+            .digest();
+
+        const calculatedHash = crypto
+            .createHmac('sha256', secretKey)
+            .update(dataCheckString)
+            .digest('hex');
+
+        if (calculatedHash !== hash) {
+            return { valid: false, error: 'Invalid hash' };
+        }
+
+        const authDate = parseInt(urlParams.get('auth_date'));
+        const now = Math.floor(Date.now() / 1000);
+        const maxAge = 86400;
+
+        if (now - authDate > maxAge) {
+            return { valid: false, error: 'initData expired' };
+        }
+
+        const userJson = urlParams.get('user');
+        let user = null;
+        if (userJson) {
+            try {
+                user = JSON.parse(userJson);
+            } catch (e) {
+                return { valid: false, error: 'Invalid user data' };
+            }
+        }
+
+        return { 
+            valid: true, 
+            user,
+            authDate,
+            queryId: urlParams.get('query_id')
+        };
+
+    } catch (error) {
+        logError('validateTelegramInitData', error);
+        return { valid: false, error: error.message };
+    }
+}
+
+function generateJWT(userId, telegramId) {
+    return jwt.sign(
+        { 
+            userId, 
+            telegramId,
+            iat: Math.floor(Date.now() / 1000)
+        }, 
+        JWT_SECRET, 
+        { expiresIn: '7d' }
+    );
 }
 
 function verifyJWT(token) {
@@ -126,24 +224,8 @@ function authenticate(req, res, next) {
         return res.status(401).json({ error: 'Invalid or expired token' });
     }
     req._userId = decoded.userId;
-    req._deviceId = decoded.deviceId;
+    req._telegramId = decoded.telegramId;
     next();
-}
-
-async function validateDevice(userId, deviceId) {
-    if (!deviceId) return true;
-    try {
-        const { data: user } = await supabase
-            .from('users')
-            .select('device_id')
-            .eq('id', userId)
-            .single();
-        if (!user) return true;
-        if (user.device_id && user.device_id !== deviceId) return false;
-        return true;
-    } catch (error) {
-        return true;
-    }
 }
 
 async function checkBotIsAdminInChannel(channelUsername) {
@@ -166,6 +248,7 @@ const APP_CONFIG = {
     APP_NAME: "GRAM PIRATES 🏴‍☠️",
     BOT_USERNAME: "GramPirateBot",
     MINIMUM_WITHDRAW: 200,
+    MAXIMUM_WITHDRAW: 3000,
     WITHDRAWAL_FEES: 80,
     REFERRAL_PERCENTAGE: 10,
     MINING_SESSION_HOURS: 12,
@@ -201,6 +284,11 @@ const APP_CONFIG = {
     MIN_CLAIM_GOLD: 1,
     PRICE_PER_100: 0.10,
     SOCIAL_GOLD_REWARD: 1,
+    SPECIAL_TASK_PRICE: 10,
+    SPECIAL_TASK_REWARD_POWER: 50,
+    SPECIAL_TASK_REWARD_GOLD: 5,
+    TASK_COMPLETION_COOLDOWN_SECONDS: 10,
+    PROMO_CODE_COOLDOWN_SECONDS: 5,
     PAYMENTS_CHANNEL: "https://t.me/Pirates_Proof",
     QUESTS: {
         welcome_bonus: { reward: 1000, type: "power" },
@@ -379,10 +467,64 @@ async function getTasks(category, userId) {
     }
 }
 
+async function getSpecialTasks(userId) {
+    try {
+        const { data: tasks, error } = await supabase
+            .from('special_tasks')
+            .select('*')
+            .eq('status', 'active');
+        
+        if (error) throw error;
+        
+        const { data: completed } = await supabase
+            .from('user_completed_special_tasks')
+            .select('task_id')
+            .eq('user_id', userId);
+        
+        const completedIds = new Set(completed?.map(t => t.task_id) || []);
+        
+        const availableTasks = tasks.filter(task => 
+            !completedIds.has(task.id) && task.owner !== userId
+        );
+        
+        return availableTasks || [];
+    } catch (error) {
+        return [];
+    }
+}
+
+async function getMySpecialTasks(userId) {
+    try {
+        const { data: tasks, error } = await supabase
+            .from('special_tasks')
+            .select('*')
+            .eq('owner', userId)
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        return tasks || [];
+    } catch (error) {
+        return [];
+    }
+}
+
 async function getCompletedTasks(userId) {
     try {
         const { data, error } = await supabase
             .from('user_completed_tasks')
+            .select('task_id')
+            .eq('user_id', userId);
+        if (error) throw error;
+        return data ? data.map(t => t.task_id) : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+async function getCompletedSpecialTasks(userId) {
+    try {
+        const { data, error } = await supabase
+            .from('user_completed_special_tasks')
             .select('task_id')
             .eq('user_id', userId);
         if (error) throw error;
@@ -860,7 +1002,10 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
                     last_withdraw_time: 0,
                     referred_by_verified: false,
                     wallet: null,
-                    task_count: 0
+                    task_count: 0,
+                    special_tasks_count: 0,
+                    last_task_completion_time: 0,
+                    last_promo_time: 0
                 };
                 
                 if (referrerId && referrerId !== chatId) {
@@ -960,34 +1105,132 @@ app.post('/api/check-membership', authenticate, async (req, res) => {
 
 app.post('/api/auth', strictLimiter, async (req, res) => {
     try {
-        const { userId, username, deviceId: clientDeviceId } = req.body;
+        const { initData, userId, username, firstName, photoUrl } = req.body;
         
-        if (!validateUserId(userId)) {
-            return res.status(400).json({ error: 'Invalid user' });
+        logAuth('/api/auth', 'Authentication attempt', { 
+            hasInitData: !!initData, 
+            userId 
+        });
+
+        if (!initData) {
+            logAuth('/api/auth', 'Missing initData', { userId });
+            return res.status(400).json({ error: 'Missing initData' });
         }
 
-        const user = await getUser(userId);
-        if (!user) {
-            return res.status(404).json({ 
-                error: 'user_not_registered',
-                message: 'Please start the bot first to register'
+        const validation = validateTelegramInitData(initData, BOT_TOKEN);
+        
+        if (!validation.valid) {
+            logAuth('/api/auth', 'Invalid initData', { 
+                error: validation.error,
+                userId 
             });
+            return res.status(403).json({ error: 'Invalid Telegram data: ' + validation.error });
+        }
+
+        const telegramUser = validation.user;
+        if (!telegramUser || !telegramUser.id) {
+            logAuth('/api/auth', 'No user in initData', {});
+            return res.status(403).json({ error: 'No user data in initData' });
+        }
+
+        if (userId && telegramUser.id !== userId) {
+            logAuth('/api/auth', 'User ID mismatch', { 
+                initDataUserId: telegramUser.id,
+                requestUserId: userId 
+            });
+            return res.status(403).json({ error: 'User ID mismatch' });
+        }
+
+        logAuth('/api/auth', 'Telegram data validated', { 
+            telegramId: telegramUser.id,
+            username: telegramUser.username 
+        });
+
+        let user = await getUser(telegramUser.id);
+        
+        if (!user) {
+            logInfo('/api/auth', 'User not found, creating...', { userId: telegramUser.id });
+            const userData = {
+                id: telegramUser.id,
+                username: telegramUser.username || '',
+                first_name: telegramUser.first_name || 'User',
+                photo_url: photoUrl || telegramUser.photo_url || APP_CONFIG.DEFAULT_USER_AVATAR,
+                created_at: getCurrentTime(),
+                power_balance: 0,
+                gold_balance: 0,
+                gram_balance: 0,
+                referral_power_earnings: 0,
+                referral_gold_earnings: 0,
+                level: 1,
+                total_tasks_completed: 0,
+                total_mining_starts: 0,
+                daily_mining_starts: 0,
+                last_mining_date: '',
+                last_mining_end_time: 0,
+                referral_reward_given: false,
+                state: 'active',
+                verified: true,
+                quests: {
+                    welcome_bonus_claimed: false,
+                    current_level_quest_index: 0,
+                    current_task_quest_index: 0,
+                    current_referral_quest_index: 0
+                },
+                mining_active: false,
+                mining_start_time: null,
+                mining_end_time: null,
+                pending_gold_reward: 0,
+                total_referrals: 0,
+                referral_power: 0,
+                ad_watch_count: 0,
+                ad_last_watch: 0,
+                monetag_ad_last_watch: 0,
+                promotion: null,
+                last_withdraw_time: 0,
+                referred_by_verified: false,
+                wallet: null,
+                task_count: 0,
+                special_tasks_count: 0,
+                last_task_completion_time: 0,
+                last_promo_time: 0
+            };
+            
+            try {
+                user = await createUser(userData);
+                logInfo('/api/auth', 'User created successfully', { userId: telegramUser.id });
+            } catch (createError) {
+                logError('/api/auth', createError);
+                user = await getUser(telegramUser.id);
+                if (!user) {
+                    return res.status(500).json({ error: 'Failed to create user' });
+                }
+            }
+        } else {
+            logInfo('/api/auth', 'User found', { userId: telegramUser.id });
+            
+            const updates = {};
+            if (telegramUser.username && telegramUser.username !== user.username) {
+                updates.username = telegramUser.username;
+            }
+            if (telegramUser.first_name && telegramUser.first_name !== user.first_name) {
+                updates.first_name = telegramUser.first_name;
+            }
+            if (photoUrl && photoUrl !== user.photo_url) {
+                updates.photo_url = photoUrl;
+            }
+            
+            if (Object.keys(updates).length > 0) {
+                user = await updateUser(telegramUser.id, updates);
+            }
         }
 
         if (user.state === 'ban') {
+            logAuth('/api/auth', 'Banned user attempted login', { userId: telegramUser.id });
             return res.status(403).json({ error: 'Account banned' });
         }
 
-        let deviceId = user.device_id;
-
-        if (!deviceId) {
-            deviceId = crypto.randomBytes(32).toString('hex');
-            await updateUser(userId, { device_id: deviceId });
-        } else if (clientDeviceId && clientDeviceId !== deviceId) {
-            return res.status(403).json({ error: 'device_mismatch' });
-        }
-
-        const token = generateJWT(userId, deviceId);
+        const token = generateJWT(user.id, user.id);
+        
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -995,91 +1238,19 @@ app.post('/api/auth', strictLimiter, async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
         
-        res.json({ success: true, user, token, deviceId });
+        logAuth('/api/auth', 'Authentication successful', { 
+            userId: user.id,
+            tokenGenerated: true 
+        });
+        
+        res.json({ 
+            success: true, 
+            user, 
+            token,
+            authenticated: true
+        });
     } catch (error) {
         logError('/api/auth', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.post('/api/verify-device', strictLimiter, async (req, res) => {
-    try {
-        const { userId, code } = req.body;
-        
-        if (!validateUserId(userId) || !code) {
-            return res.status(400).json({ error: 'Invalid request' });
-        }
-
-        const { data: verification, error } = await supabase
-            .from('verification_codes')
-            .select('*')
-            .eq('user_id', userId)
-            .eq('code', code)
-            .eq('used', false)
-            .single();
-
-        if (error || !verification) {
-            return res.status(400).json({ error: 'Invalid code' });
-        }
-
-        const currentTime = getCurrentTime();
-        
-        if (currentTime > verification.expires_at) {
-            await supabase
-                .from('verification_codes')
-                .update({ used: true })
-                .eq('id', verification.id);
-            return res.status(400).json({ error: 'Code expired' });
-        }
-
-        const newDeviceId = crypto.randomBytes(32).toString('hex');
-        await updateUser(userId, { device_id: newDeviceId });
-        await supabase
-            .from('verification_codes')
-            .update({ used: true })
-            .eq('id', verification.id);
-
-        const token = generateJWT(userId, newDeviceId);
-        res.cookie('token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000
-        });
-
-        const user = await getUser(userId);
-        res.json({ success: true, token, user, deviceId: newDeviceId });
-    } catch (error) {
-        console.error('❌ [verify-device] Fatal error:', error.message);
-        logError('/api/verify-device', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.post('/api/resend-device-code', strictLimiter, async (req, res) => {
-    try {
-        const { userId } = req.body;
-        if (!validateUserId(userId)) {
-            return res.status(400).json({ error: 'Invalid user' });
-        }
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-        await supabase
-            .from('verification_codes')
-            .upsert({
-                user_id: userId,
-                code: code,
-                expires_at: getCurrentTime() + 300000,
-                created_at: getCurrentTime(),
-                used: false
-            });
-        await sendTelegramNotification(
-            userId,
-            '🔄 New Verification Code',
-            `🔑 Your new verification code: \`${code}\`\n\n⏳ Valid for 5 minutes.`
-        );
-        res.json({ success: true });
-    } catch (error) {
-        logError('/api/resend-device-code', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1087,7 +1258,6 @@ app.post('/api/resend-device-code', strictLimiter, async (req, res) => {
 app.post('/api/refresh', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
-        const deviceId = req._deviceId;
         const user = await getUser(userId);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
@@ -1095,14 +1265,14 @@ app.post('/api/refresh', authenticate, async (req, res) => {
         if (user.state === 'ban') {
             return res.status(403).json({ error: 'Account banned' });
         }
-        const token = generateJWT(userId, deviceId);
+        const token = generateJWT(userId, userId);
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
-        res.json({ success: true, token, deviceId });
+        res.json({ success: true, token });
     } catch (error) {
         logError('/api/refresh', error);
         res.status(500).json({ error: error.message });
@@ -1213,8 +1383,9 @@ app.post('/api/get-user', authenticate, async (req, res) => {
         if (user.state === 'ban') {
             return res.status(403).json({ error: 'Account banned', banned: true });
         }
-        const [completedTasks, withdrawals] = await Promise.all([
+        const [completedTasks, completedSpecialTasks, withdrawals] = await Promise.all([
             getCompletedTasks(userId),
+            getCompletedSpecialTasks(userId),
             getWithdrawals(userId)
         ]);
         await updateUserLevel(userId);
@@ -1222,6 +1393,7 @@ app.post('/api/get-user', authenticate, async (req, res) => {
         const responseData = {
             user: user,
             completedTasks,
+            completedSpecialTasks,
             withdrawals
         };
         getUserCache.set(cacheKey, { data: responseData, timestamp: now });
@@ -1235,7 +1407,6 @@ app.post('/api/get-user', authenticate, async (req, res) => {
 app.post('/api/update-user', authenticate, async (req, res) => {
     res.json({ success: true });
 });
-
 
 app.post('/api/update-photo', authenticate, async (req, res) => {
     try {
@@ -1254,10 +1425,6 @@ app.post('/api/update-photo', authenticate, async (req, res) => {
 app.post('/api/start-mining', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -1314,10 +1481,6 @@ app.post('/api/start-mining', authenticate, strictLimiter, async (req, res) => {
 app.post('/api/stop-mining', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
         if (!user.mining_active) {
@@ -1349,10 +1512,6 @@ app.post('/api/stop-mining', authenticate, strictLimiter, async (req, res) => {
 app.post('/api/claim-mining', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
         const level = calculateLevel(user.power_balance || 0);
@@ -1400,10 +1559,6 @@ app.post('/api/claim-quest', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
         const { questType } = req.body;
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
         let reward = 0;
@@ -1471,11 +1626,13 @@ app.post('/api/complete-task', authenticate, strictLimiter, async (req, res) => 
         const userId = req._userId;
         const { taskId } = req.body;
         
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
+        const cooldownCheck = checkTaskCompletionCooldown(userId);
+        if (!cooldownCheck.allowed) {
+            return res.status(429).json({ 
+                error: `Please wait ${cooldownCheck.remaining} seconds before completing another task` 
+            });
         }
-        
+
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -1522,6 +1679,8 @@ app.post('/api/complete-task', authenticate, strictLimiter, async (req, res) => 
             return res.status(400).json({ error: 'Task already completed!' });
         }
 
+        setTaskCompletionCooldown(userId);
+
         const newTotalCompleted = (task.total_completed || 0) + 1;
         await supabase
             .from('tasks')
@@ -1542,7 +1701,8 @@ app.post('/api/complete-task', authenticate, strictLimiter, async (req, res) => 
         const updatedUser = await updateUser(userId, {
             power_balance: (user.power_balance || 0) + task.reward,
             gold_balance: (user.gold_balance || 0) + goldReward,
-            total_tasks_completed: totalCompleted
+            total_tasks_completed: totalCompleted,
+            last_task_completion_time: getCurrentTime()
         });
 
         if (newTotalCompleted >= task.total && task.category === 'social' && task.owner && task.owner !== userId && !task.notified) {
@@ -1576,14 +1736,270 @@ app.post('/api/complete-task', authenticate, strictLimiter, async (req, res) => 
     }
 });
 
+app.post('/api/special-tasks', authenticate, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const user = await getUser(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        
+        const tasks = await getSpecialTasks(userId);
+        res.json({ tasks });
+    } catch (error) {
+        logError('/api/special-tasks', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/my-special-tasks', authenticate, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const tasks = await getMySpecialTasks(userId);
+        res.json({ tasks });
+    } catch (error) {
+        logError('/api/my-special-tasks', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/complete-special-task', authenticate, strictLimiter, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const { taskId } = req.body;
+        
+        const cooldownCheck = checkTaskCompletionCooldown(userId);
+        if (!cooldownCheck.allowed) {
+            return res.status(429).json({ 
+                error: `Please wait ${cooldownCheck.remaining} seconds before completing another task` 
+            });
+        }
+
+        const user = await getUser(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const { data: task, error: taskError } = await supabase
+            .from('special_tasks')
+            .select('*')
+            .eq('id', taskId)
+            .single();
+
+        if (taskError || !task) {
+            return res.status(404).json({ error: 'Task not found' });
+        }
+
+        const { data: completed } = await supabase
+            .from('user_completed_special_tasks')
+            .select('task_id')
+            .eq('user_id', userId)
+            .eq('task_id', taskId)
+            .single();
+
+        if (completed) {
+            return res.status(400).json({ error: 'Task already completed!' });
+        }
+
+        setTaskCompletionCooldown(userId);
+
+        const newTotalCompleted = (task.total_completed || 0) + 1;
+        await supabase
+            .from('special_tasks')
+            .update({ total_completed: newTotalCompleted })
+            .eq('id', taskId);
+
+        await supabase
+            .from('user_completed_special_tasks')
+            .insert([{ user_id: userId, task_id: taskId, completed_at: getCurrentTime() }]);
+
+        const rewardPower = APP_CONFIG.SPECIAL_TASK_REWARD_POWER || 50;
+        const rewardGold = APP_CONFIG.SPECIAL_TASK_REWARD_GOLD || 5;
+        
+        let totalCompleted = (user.total_tasks_completed || 0) + 1;
+        
+        const updatedUser = await updateUser(userId, {
+            power_balance: (user.power_balance || 0) + rewardPower,
+            gold_balance: (user.gold_balance || 0) + rewardGold,
+            total_tasks_completed: totalCompleted,
+            special_tasks_count: (user.special_tasks_count || 0) + 1,
+            last_task_completion_time: getCurrentTime()
+        });
+
+        if (task.owner && task.owner !== userId) {
+            await sendTelegramNotification(
+                task.owner,
+                '<b>✅ Special Task Completed!</b>',
+                `<b>🏴‍☠️ Someone completed your task "${task.name}"!</b>`
+            );
+        }
+
+        if (user.referred_by) {
+            const referralEarning = rewardPower * (APP_CONFIG.REFERRAL_TASKS_PERCENTAGE / 100);
+            await addReferralCommission(user.referred_by, referralEarning, 'power');
+        }
+
+        await updateUserLevel(userId);
+
+        res.json({
+            success: true,
+            user: updatedUser,
+            rewardPower: rewardPower,
+            rewardGold: rewardGold
+        });
+    } catch (error) {
+        logError('/api/complete-special-task', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/create-special-task', authenticate, strictLimiter, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const { name, link, verification } = req.body;
+
+        if (!name || name.length < 5 || name.length > 20) {
+            return res.status(400).json({ error: 'Name must be between 5-20 characters' });
+        }
+
+        if (!link || !link.startsWith('https://')) {
+            return res.status(400).json({ error: 'Please enter a valid link starting with https://' });
+        }
+
+        const user = await getUser(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        if (verification && link.includes('t.me/')) {
+            const channelMatch = link.match(/t\.me\/([^\/\?]+)/);
+            if (channelMatch) {
+                const isAdmin = await checkBotIsAdminInChannel(channelMatch[1]);
+                if (!isAdmin) {
+                    return res.status(400).json({ 
+                        error: 'Bot is not admin in the channel. Please add @GramPirateBot as admin.' 
+                    });
+                }
+            }
+        }
+
+        const taskId = 'special_' + userId + '_' + Date.now();
+
+        const taskData = {
+            id: taskId,
+            name: name,
+            url: link,
+            reward_power: APP_CONFIG.SPECIAL_TASK_REWARD_POWER || 50,
+            reward_gold: APP_CONFIG.SPECIAL_TASK_REWARD_GOLD || 5,
+            verification: verification || false,
+            owner: userId,
+            total_completed: 0,
+            status: 'active',
+            created_at: getCurrentTime(),
+            notified: false
+        };
+
+        const { data: task, error: taskError } = await supabase
+            .from('special_tasks')
+            .insert([taskData])
+            .select()
+            .single();
+
+        if (taskError) {
+            logError('/api/create-special-task', taskError);
+            return res.status(500).json({ error: 'Failed to create task' });
+        }
+
+        await updateUser(userId, { 
+            special_tasks_count: (user.special_tasks_count || 0) + 1 
+        });
+
+        await sendSpecialTaskCreatedNotification(task);
+
+        res.json({
+            success: true,
+            task: task
+        });
+    } catch (error) {
+        logError('/api/create-special-task', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+async function sendSpecialTaskCreatedNotification(task) {
+    try {
+        const CHANNEL_ID = '@PTS_TASKS';
+        if (!BOT_TOKEN) return;
+        
+        const appLink = `https://t.me/GramPirateBot/app`;
+
+        const message = `<b>⚡ NEW SPECIAL TASK!</b>\n\n` +
+            `<b>📋 Task: ${task.name}</b>\n` +
+            `<b>👷‍♂️ Total Completed: ${task.total_completed || 0}</b>\n` +
+            `<b>⏳ Status: UNLIMITED</b>\n\n` +
+            `<b>🎁 Reward: ${task.reward_power} POWER + ${task.reward_gold} GOLD</b>`;
+
+        const replyMarkup = {
+            inline_keyboard: [[
+                { 
+                    text: '✅ COMPLETE NOW', 
+                    url: appLink 
+                }
+            ]]
+        };
+
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: CHANNEL_ID,
+                text: message,
+                parse_mode: 'HTML',
+                reply_markup: replyMarkup,
+                disable_web_page_preview: true
+            })
+        });
+
+    } catch (error) {
+        console.error('Failed to send special task notification:', error);
+    }
+}
+
+app.post('/api/delete-special-task', authenticate, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const { taskId } = req.body;
+
+        const { data: task, error: checkError } = await supabase
+            .from('special_tasks')
+            .select('owner')
+            .eq('id', taskId)
+            .single();
+
+        if (checkError || !task) {
+            return res.status(404).json({ error: 'Task not found' });
+        }
+
+        if (task.owner !== userId) {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+
+        await supabase
+            .from('special_tasks')
+            .delete()
+            .eq('id', taskId);
+
+        await supabase
+            .from('user_completed_special_tasks')
+            .delete()
+            .eq('task_id', taskId);
+
+        res.json({ success: true });
+
+    } catch (error) {
+        logError('/api/delete-special-task', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.post('/api/convert-gold-to-power', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
         const { goldAmount } = req.body;
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
         const amount = parseFloat(goldAmount);
@@ -1618,10 +2034,6 @@ app.post('/api/claim-referral-earnings', authenticate, strictLimiter, async (req
     try {
         const userId = req._userId;
         const { type } = req.body;
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
         const hasPromotionBonus = user.promotion?.status === 'approved';
@@ -1672,10 +2084,14 @@ app.post('/api/apply-promo', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
         const { code } = req.body;
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
+        
+        const cooldownCheck = checkPromoCooldown(userId);
+        if (!cooldownCheck.allowed) {
+            return res.status(429).json({ 
+                error: `Please wait ${cooldownCheck.remaining} seconds before using another promo code` 
+            });
         }
+
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
         const { data: usedData } = await supabase
@@ -1694,6 +2110,9 @@ app.post('/api/apply-promo', authenticate, strictLimiter, async (req, res) => {
         if (promo.max_uses && (promo.total_uses || 0) >= promo.max_uses) {
             return res.status(400).json({ error: 'Promo code expired' });
         }
+        
+        setPromoCooldown(userId);
+        
         await usePromoCode(userId, code);
         await incrementPromoUses(code);
         let updates = {};
@@ -1718,7 +2137,10 @@ app.post('/api/apply-promo', authenticate, strictLimiter, async (req, res) => {
             const type = rewardType === 'power' ? 'power' : 'gold';
             await addReferralCommission(user.referred_by, referralEarning, type);
         }
-        const updatedUser = await updateUser(userId, updates);
+        const updatedUser = await updateUser(userId, {
+            ...updates,
+            last_promo_time: getCurrentTime()
+        });
         await updateUserLevel(userId);
         res.json({
             success: true,
@@ -1734,10 +2156,6 @@ app.post('/api/apply-promo', authenticate, strictLimiter, async (req, res) => {
 app.post('/api/watch-ad', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
         const now = getCurrentTime();
@@ -1767,10 +2185,6 @@ app.post('/api/watch-ad', authenticate, strictLimiter, async (req, res) => {
 app.post('/api/watch-monetag-ad', authenticate, strictLimiter, async (req, res) => {
     try {
         const userId = req._userId;
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
         const now = getCurrentTime();
@@ -1800,10 +2214,6 @@ app.post('/api/tasks/:category', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
         const { category } = req.params;
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
         if (!checkCooldown(userId, req.path)) {
             return res.status(429).json({ error: 'Too many requests. Please wait 5 seconds.' });
         }
@@ -1876,11 +2286,7 @@ app.post('/api/delete-task', authenticate, async (req, res) => {
 app.post('/api/check-payment', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
-        const { memo, amount, taskData } = req.body;
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
+        const { memo, amount, taskData, taskType } = req.body;
 
         const user = await getUser(userId);
         if (!user) {
@@ -1907,23 +2313,29 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
         }
 
         if (foundTx) {
-            
-            const rewardNum = parseInt(taskData.reward);
-            const totalNum = parseInt(taskData.total);
-            
-            if (rewardNum > 100) {
+            const onChainMemo = foundTx.in_msg?.message || '';
+            if (onChainMemo !== memo) {
                 return res.json({ success: false, error: 'Failed to create task.' });
             }
-            if (totalNum < 100 || totalNum > 5000) {
-                return res.json({ success: false, error: 'Failed to create task..' });
-            }
-            if (rewardNum * totalNum > 50000) {
-                return res.json({ success: false, error: 'Failed to create task...' });
-            }
-            
+
             const txAmount = parseFloat(foundTx.in_msg?.value) / 1000000000 || 0;
-            const requiredAmount = (taskData.total * taskData.reward / 1000) * (APP_CONFIG.PRICE_PER_100 || 0.001);
-            if (txAmount >= requiredAmount * 0.98) {
+
+            if (taskType === 'special') {
+                const requiredAmount = APP_CONFIG.SPECIAL_TASK_PRICE || 10;
+                if (txAmount < requiredAmount * 0.98) {
+                    return res.json({ success: false, error: 'Insufficient payment amount' });
+                }
+
+                const { data: existingTask } = await supabase
+                    .from('special_tasks')
+                    .select('id')
+                    .eq('id', memo)
+                    .maybeSingle();
+                
+                if (existingTask) {
+                    return res.json({ success: false, error: 'Failed to create task.' });
+                }
+
                 let verification = taskData.verification || false;
                 if (verification && taskData.link) {
                     const channelMatch = taskData.link.match(/t\.me\/([^\/\?]+)/);
@@ -1937,43 +2349,23 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
                         }
                     }
                 }
-                
-                const { data: existingTask } = await supabase
-                    .from('tasks')
-                    .select('id')
-                    .eq('id', memo)
-                    .maybeSingle();
-                
-                if (existingTask) {
-                    return res.json({ 
-                        success: false, 
-                        error: 'Failed to create task.' 
-                    });
-                }
 
-                const onChainMemo = foundTx.in_msg?.message || '';
-                if (onChainMemo !== memo) {
-                    return res.json({ success: false, error: 'Failed to create task.' });
-                }
-
-                const taskId = memo;
                 const taskToAdd = {
-                    id: taskId,
+                    id: memo,
                     name: taskData.name,
                     url: taskData.link,
-                    category: 'social',
-                    reward: taskData.reward,
-                    total: taskData.total,
+                    reward_power: APP_CONFIG.SPECIAL_TASK_REWARD_POWER || 50,
+                    reward_gold: APP_CONFIG.SPECIAL_TASK_REWARD_GOLD || 5,
                     verification: verification,
                     owner: userId,
+                    total_completed: 0,
                     status: 'active',
                     created_at: getCurrentTime(),
-                    total_completed: 0,
                     notified: false
                 };
 
                 const { data: taskResult, error: taskError } = await supabase
-                    .from('tasks')
+                    .from('special_tasks')
                     .insert([taskToAdd])
                     .select()
                     .single();
@@ -1983,20 +2375,102 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
                     return res.status(500).json({ error: 'Failed to add task' });
                 }
 
-                await updateUser(userId, { task_count: (user.task_count || 0) + 1 });
+                await updateUser(userId, { 
+                    special_tasks_count: (user.special_tasks_count || 0) + 1 
+                });
 
-                await sendTaskCreatedNotification(taskResult);
+                await sendSpecialTaskCreatedNotification(taskResult);
 
                 return res.json({
                     success: true,
                     task: taskResult,
-                    message: 'Payment verified and task added'
+                    message: 'Payment verified and special task added'
                 });
+
             } else {
-                return res.json({
-                    success: false,
-                    error: 'Insufficient payment amount'
-                });
+                const rewardNum = parseInt(taskData.reward);
+                const totalNum = parseInt(taskData.total);
+                
+                if (rewardNum > 100) {
+                    return res.json({ success: false, error: 'Failed to create task.' });
+                }
+                if (totalNum < 100 || totalNum > 5000) {
+                    return res.json({ success: false, error: 'Failed to create task.' });
+                }
+                if (rewardNum * totalNum > 50000) {
+                    return res.json({ success: false, error: 'Failed to create task.' });
+                }
+                
+                const requiredAmount = (taskData.total * taskData.reward / 1000) * (APP_CONFIG.PRICE_PER_100 || 0.001);
+                if (txAmount >= requiredAmount * 0.98) {
+                    let verification = taskData.verification || false;
+                    if (verification && taskData.link) {
+                        const channelMatch = taskData.link.match(/t\.me\/([^\/\?]+)/);
+                        if (channelMatch) {
+                            const isAdmin = await checkBotIsAdminInChannel(channelMatch[1]);
+                            if (!isAdmin) {
+                                return res.json({
+                                    success: false,
+                                    error: 'Bot is not admin in the channel. Please add @GramPirateBot as admin.'
+                                });
+                            }
+                        }
+                    }
+                    
+                    const { data: existingTask } = await supabase
+                        .from('tasks')
+                        .select('id')
+                        .eq('id', memo)
+                        .maybeSingle();
+                    
+                    if (existingTask) {
+                        return res.json({ 
+                            success: false, 
+                            error: 'Failed to create task.' 
+                        });
+                    }
+
+                    const taskToAdd = {
+                        id: memo,
+                        name: taskData.name,
+                        url: taskData.link,
+                        category: 'social',
+                        reward: taskData.reward,
+                        total: taskData.total,
+                        verification: verification,
+                        owner: userId,
+                        status: 'active',
+                        created_at: getCurrentTime(),
+                        total_completed: 0,
+                        notified: false
+                    };
+
+                    const { data: taskResult, error: taskError } = await supabase
+                        .from('tasks')
+                        .insert([taskToAdd])
+                        .select()
+                        .single();
+
+                    if (taskError) {
+                        logError('/api/check-payment', taskError);
+                        return res.status(500).json({ error: 'Failed to add task' });
+                    }
+
+                    await updateUser(userId, { task_count: (user.task_count || 0) + 1 });
+
+                    await sendTaskCreatedNotification(taskResult);
+
+                    return res.json({
+                        success: true,
+                        task: taskResult,
+                        message: 'Payment verified and task added'
+                    });
+                } else {
+                    return res.json({
+                        success: false,
+                        error: 'Insufficient payment amount'
+                    });
+                }
             }
         } else {
             return res.json({
@@ -2053,10 +2527,6 @@ app.post('/api/setup-promotion', authenticate, strictLimiter, async (req, res) =
     try {
         const userId = req._userId;
         const { channel } = req.body;
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
 
         if (!channel || !channel.startsWith('https://t.me/')) {
             return res.status(400).json({ error: 'Invalid channel link' });
@@ -2125,45 +2595,6 @@ app.post('/api/check-promotion', authenticate, async (req, res) => {
     }
 });
 
-app.post('/api/set-wallet', authenticate, strictLimiter, async (req, res) => {
-    try {
-        const userId = req._userId;
-        const { wallet } = req.body;
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
-
-        const user = await getUser(userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
-        
-        if (user.wallet) {
-            return res.status(400).json({ error: 'Wallet already set.' });
-        }
-
-        if (!wallet || !wallet.startsWith('UQ') || wallet.length < 20) {
-            return res.status(400).json({ error: 'Invalid wallet address. Must start with UQ and be at least 20 characters.' });
-        }
-
-        const { data: existingUser } = await supabase
-            .from('users')
-            .select('id')
-            .eq('wallet', wallet)
-            .neq('id', userId)
-            .single();
-
-        if (existingUser) {
-            return res.status(400).json({ error: 'Cannot connect your wallet' });
-        }
-
-        const updatedUser = await updateUser(userId, { wallet: wallet });
-        res.json({ success: true, user: updatedUser });
-    } catch (error) {
-        logError('/api/set-wallet', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
 app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res) => {
     const userId = req._userId;
 
@@ -2173,11 +2604,7 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
     withdrawLocks.set(userId, Date.now());
 
     try {
-        const { goldAmount } = req.body;
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
+        const { goldAmount, walletAddress } = req.body;
         const user = await getUser(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -2205,9 +2632,8 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
             return res.status(500).json({ error: 'Failed to send withdrawal request' });
         }
         
-        const walletAddress = user.wallet;
-        if (!walletAddress) {
-            return res.status(400).json({ error: 'No wallet set. Please set your wallet first.' });
+        if (!walletAddress || !walletAddress.startsWith('UQ') || walletAddress.length < 20) {
+            return res.status(400).json({ error: 'Invalid wallet address. Must start with UQ and be at least 20 characters.' });
         }
 
         const gold = parseFloat(goldAmount);
@@ -2222,8 +2648,8 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
         if (gold < APP_CONFIG.MINIMUM_WITHDRAW) {
             return res.status(400).json({ error: `Minimum withdrawal: ${APP_CONFIG.MINIMUM_WITHDRAW} Gold` });
         }
-        if (gold > 3000) {
-            return res.status(400).json({ error: 'Failed to create withdrawal request.' });
+        if (gold > APP_CONFIG.MAXIMUM_WITHDRAW) {
+            return res.status(400).json({ error: `Maximum withdrawal: ${APP_CONFIG.MAXIMUM_WITHDRAW} Gold` });
         }
         if ((user.power_balance || 0) < 2001) {
             return res.status(400).json({ error: 'Failed to create withdrawal request.' });
@@ -2239,12 +2665,11 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
             return res.status(400).json({ error: 'Insufficient Gold balance' });
         }
 
-
         const BLOCKED_WALLETS = [
             'UQCmCv32lwvOZPtYmxoGu3e-k0MLlbkIJ4gaCFYYYLbkAfGP',
         ];
         
-        if (user.wallet && BLOCKED_WALLETS.includes(user.wallet)) {
+        if (BLOCKED_WALLETS.includes(walletAddress)) {
             return res.status(403).json({ error: 'Failed to create withdrawal request.' });
         }
         
@@ -2353,10 +2778,6 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
 app.post('/api/get-withdrawals', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
         const withdrawals = await getWithdrawals(userId);
         res.json({ withdrawals });
     } catch (error) {
@@ -2368,10 +2789,6 @@ app.post('/api/get-withdrawals', authenticate, async (req, res) => {
 app.post('/api/get-referrals', authenticate, async (req, res) => {
     try {
         const userId = req._userId;
-        const validDevice = await validateDevice(userId, req._deviceId);
-        if (!validDevice) {
-            return res.status(403).json({ error: 'Device mismatch' });
-        }
         const referrals = await getReferrals(userId);
         res.json({ referrals });
     } catch (error) {
@@ -2379,7 +2796,6 @@ app.post('/api/get-referrals', authenticate, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
 
 app.get('/api/admin/cleanup-duplicate-wallets', async (req, res) => {
     try {
@@ -2447,11 +2863,14 @@ app.get('/api/admin/cleanup-duplicate-wallets', async (req, res) => {
     }
 });
 
-
 const PORT = process.env.PORT || 8080;
 
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🏴‍☠️ GRAM PIRATES server running on port ${PORT}`);
+    console.log(`🔐 Authentication: Telegram initData validation enabled`);
+    console.log(`📋 Special Tasks: Enabled`);
+    console.log(`⏱️  Task cooldown: ${APP_CONFIG.TASK_COMPLETION_COOLDOWN_SECONDS}s`);
+    console.log(`⏱️  Promo cooldown: ${APP_CONFIG.PROMO_CODE_COOLDOWN_SECONDS}s`);
 });
 
 server.on('error', (error) => {
