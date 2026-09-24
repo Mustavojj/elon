@@ -237,17 +237,19 @@ const translations = {
         ad_success: "Ad watched successfully! +{reward} Power",
         my_tasks: "My Tasks",
         my_special_tasks: "My Special Tasks",
+        my_promo_codes: "My Promo Codes",
         task_status_active: "Active",
         task_status_completed: "Completed",
         no_my_tasks: "You haven't created any social tasks yet.",
         no_my_special_tasks: "You haven't created any special tasks yet.",
+        no_my_promo_codes: "You haven't created any promo codes yet.",
         verification_note: "You must add the bot as admin to verify membership",
         gold_reward: "Gold Reward",
         watch_earn: "WATCH & EARN",
         quests_title: "Quests",
         payments_channel: "Payments Channel",
         click_to_copy: "(Click to copy)",
-        view_on_explorer: "View on Explorer", 
+        view_on_explorer: "View on Explorer",
         community_links: "Community Links",
         official_channel: "Official Channel",
         official_channel_desc: "Join official channel to get news",
@@ -267,7 +269,33 @@ const translations = {
         enter_wallet_address: "Enter wallet address",
         enter_amount: "Enter amount",
         fixed_price: "Fixed Price",
-        special_task_note: "This is an unlimited task. You can complete it multiple times."
+        special_task_note: "This is an unlimited task. You can complete it multiple times.",
+        create_promo_code: "Create Promo Code",
+        promo_code_reward_type: "Reward Type",
+        promo_code_reward_amount: "Reward per Use",
+        promo_code_max_uses: "Max Total Uses (50-5000)",
+        promo_code_required_channel: "Required Channel (Optional)",
+        promo_code_notify_channel: "Notify Channel",
+        promo_code_random: "Random",
+        pay_create_code: "PAY & CREATE CODE",
+        generate_random: "Random",
+        promo_code_cost: "Total Cost",
+        yes: "Yes",
+        no: "No",
+        claim_promo_code: "Claim Promo Code",
+        promo_requirements: "Requirements",
+        join_channel: "Join Channel",
+        watch_ad_requirement: "Watch Advertisement",
+        promo_reward_preview: "You will receive",
+        promo_claim_final: "CLAIM REWARD",
+        join_first: "Join the channel first",
+        watch_ad_first: "Watch the ad first",
+        promo_code_used: "Code already used",
+        promo_code_invalid: "Invalid promo code",
+        promo_code_expired: "Promo code expired",
+        promo_codes_channel: "Promo Codes Channel",
+        promo_codes_channel_desc: "Get all new promo codes",
+        open_channel: "Open"
     },
     ar: {
         level: "المستوى",
@@ -507,10 +535,12 @@ const translations = {
         ad_success: "تم مشاهدة الإعلان بنجاح! +{reward} قوة",
         my_tasks: "مهامي",
         my_special_tasks: "مهامي الخاصة",
+        my_promo_codes: "أكوادي الترويجية",
         task_status_active: "نشط",
         task_status_completed: "مكتمل",
         no_my_tasks: "لم تقم بإنشاء أي مهام اجتماعية بعد.",
         no_my_special_tasks: "لم تقم بإنشاء أي مهام خاصة بعد.",
+        no_my_promo_codes: "لم تقم بإنشاء أي أكواد ترويجية بعد.",
         verification_note: "يجب إضافة البوت كمدير للتحقق من العضوية",
         gold_reward: "مكافأة الذهب",
         watch_earn: "شاهد واربح",
@@ -537,7 +567,33 @@ const translations = {
         enter_wallet_address: "أدخل عنوان المحفظة",
         enter_amount: "أدخل المبلغ",
         fixed_price: "سعر ثابت",
-        special_task_note: "هذه مهمة غير محدودة. يمكنك إكمالها عدة مرات."
+        special_task_note: "هذه مهمة غير محدودة. يمكنك إكمالها عدة مرات.",
+        create_promo_code: "إنشاء كود ترويجي",
+        promo_code_reward_type: "نوع المكافأة",
+        promo_code_reward_amount: "المكافأة لكل تفعيل",
+        promo_code_max_uses: "الحد الأقصى للتفعيلات (50-5000)",
+        promo_code_required_channel: "القناة الإجبارية (اختياري)",
+        promo_code_notify_channel: "إشعار في القناة",
+        promo_code_random: "عشوائي",
+        pay_create_code: "ادفع وأنشئ الكود",
+        generate_random: "عشوائي",
+        promo_code_cost: "التكلفة الإجمالية",
+        yes: "نعم",
+        no: "لا",
+        claim_promo_code: "استلام الكود الترويجي",
+        promo_requirements: "المتطلبات",
+        join_channel: "انضم للقناة",
+        watch_ad_requirement: "شاهد الإعلان",
+        promo_reward_preview: "ستحصل على",
+        promo_claim_final: "استلام المكافأة",
+        join_first: "انضم للقناة أولاً",
+        watch_ad_first: "شاهد الإعلان أولاً",
+        promo_code_used: "الكود مستخدم بالفعل",
+        promo_code_invalid: "كود غير صالح",
+        promo_code_expired: "الكود منتهي الصلاحية",
+        promo_codes_channel: "قناة الأكواد الترويجية",
+        promo_codes_channel_desc: "احصل على جميع الأكواد الجديدة",
+        open_channel: "فتح"
     },
     ru: {
         level: "Уровень",
@@ -777,10 +833,12 @@ const translations = {
         ad_success: "Реклама просмотрена! +{reward} мощности",
         my_tasks: "Мои задания",
         my_special_tasks: "Мои специальные задания",
+        my_promo_codes: "Мои промокоды",
         task_status_active: "Активно",
         task_status_completed: "Завершено",
         no_my_tasks: "Вы пока не создали ни одного социального задания.",
         no_my_special_tasks: "Вы пока не создали ни одного специального задания.",
+        no_my_promo_codes: "Вы пока не создали ни одного промокода.",
         verification_note: "Вы должны добавить бота как администратора для проверки членства",
         gold_reward: "Награда золотом",
         watch_earn: "СМОТРИ И ЗАРАБАТЫВАЙ",
@@ -807,7 +865,33 @@ const translations = {
         enter_wallet_address: "Введите адрес кошелька",
         enter_amount: "Введите сумму",
         fixed_price: "Фиксированная цена",
-        special_task_note: "Это безлимитное задание. Вы можете выполнять его несколько раз."
+        special_task_note: "Это безлимитное задание. Вы можете выполнять его несколько раз.",
+        create_promo_code: "Создать промокод",
+        promo_code_reward_type: "Тип награды",
+        promo_code_reward_amount: "Награда за использование",
+        promo_code_max_uses: "Макс. использований (50-5000)",
+        promo_code_required_channel: "Обязательный канал (опционально)",
+        promo_code_notify_channel: "Уведомление в канал",
+        promo_code_random: "Случайно",
+        pay_create_code: "ОПЛАТИТЬ И СОЗДАТЬ",
+        generate_random: "Случайно",
+        promo_code_cost: "Общая стоимость",
+        yes: "Да",
+        no: "Нет",
+        claim_promo_code: "Забрать промокод",
+        promo_requirements: "Требования",
+        join_channel: "Присоединиться к каналу",
+        watch_ad_requirement: "Смотреть рекламу",
+        promo_reward_preview: "Вы получите",
+        promo_claim_final: "ЗАБРАТЬ НАГРАДУ",
+        join_first: "Сначала присоединитесь к каналу",
+        watch_ad_first: "Сначала посмотрите рекламу",
+        promo_code_used: "Код уже использован",
+        promo_code_invalid: "Неверный промокод",
+        promo_code_expired: "Промокод истёк",
+        promo_codes_channel: "Канал промокодов",
+        promo_codes_channel_desc: "Получите все новые промокоды",
+        open_channel: "Открыть"
     },
     fa: {
         level: "سطح",
@@ -1047,10 +1131,12 @@ const translations = {
         ad_success: "تبلیغ با موفقیت تماشا شد! +{reward} قدرت",
         my_tasks: "وظایف من",
         my_special_tasks: "وظایف ویژه من",
+        my_promo_codes: "کدهای تبلیغاتی من",
         task_status_active: "فعال",
         task_status_completed: "تکمیل شده",
         no_my_tasks: "شما هنوز هیچ وظیفه اجتماعی ایجاد نکرده‌اید.",
         no_my_special_tasks: "شما هنوز هیچ وظیفه ویژه‌ای ایجاد نکرده‌اید.",
+        no_my_promo_codes: "شما هنوز هیچ کد تبلیغاتی ایجاد نکرده‌اید.",
         verification_note: "برای تأیید عضویت باید ربات را به عنوان مدیر اضافه کنید",
         gold_reward: "پاداش طلا",
         watch_earn: "تماشا و درآمد",
@@ -1077,7 +1163,33 @@ const translations = {
         enter_wallet_address: "آدرس کیف پول را وارد کنید",
         enter_amount: "مبلغ را وارد کنید",
         fixed_price: "قیمت ثابت",
-        special_task_note: "این یک وظیفه نامحدود است. می‌توانید آن را چندین بار تکمیل کنید."
+        special_task_note: "این یک وظیفه نامحدود است. می‌توانید آن را چندین بار تکمیل کنید.",
+        create_promo_code: "ایجاد کد تبلیغاتی",
+        promo_code_reward_type: "نوع پاداش",
+        promo_code_reward_amount: "پاداش در هر استفاده",
+        promo_code_max_uses: "حداکثر استفاده (۵۰-۵۰۰۰)",
+        promo_code_required_channel: "کانال اجباری (اختیاری)",
+        promo_code_notify_channel: "اعلان در کانال",
+        promo_code_random: "تصادفی",
+        pay_create_code: "پرداخت و ایجاد کد",
+        generate_random: "تصادفی",
+        promo_code_cost: "هزینه کل",
+        yes: "بله",
+        no: "خیر",
+        claim_promo_code: "دریافت کد تبلیغاتی",
+        promo_requirements: "الزامات",
+        join_channel: "پیوستن به کانال",
+        watch_ad_requirement: "تماشای تبلیغ",
+        promo_reward_preview: "شما دریافت خواهید کرد",
+        promo_claim_final: "دریافت پاداش",
+        join_first: "ابتدا به کانال بپیوندید",
+        watch_ad_first: "ابتدا تبلیغ را تماشا کنید",
+        promo_code_used: "کد قبلاً استفاده شده",
+        promo_code_invalid: "کد نامعتبر",
+        promo_code_expired: "کد منقضی شده",
+        promo_codes_channel: "کانال کدهای تبلیغاتی",
+        promo_codes_channel_desc: "تمام کدهای جدید را دریافت کنید",
+        open_channel: "باز کردن"
     }
 };
 
@@ -1095,7 +1207,9 @@ class App {
             social: { data: [], timestamp: 0 },
             special: { data: [], timestamp: 0 },
             myTasks: { data: [], timestamp: 0 },
-            mySpecialTasks: { data: [], timestamp: 0 }
+            mySpecialTasks: { data: [], timestamp: 0 },
+            promo: { data: [], timestamp: 0 },
+            myPromo: { data: [], timestamp: 0 }
         };
         this.CACHE_DURATION = 300000;
 
@@ -1129,6 +1243,7 @@ class App {
         this.adRewardPower = 20;
         this.userTaskCount = 0;
         this.specialTaskCount = 0;
+        this.promoCodeCount = 0;
 
         this.lang = 'en';
         this.referredBy = null;
@@ -1172,13 +1287,16 @@ class App {
         this.specialTasks = [];
         this.mySocialTasks = [];
         this.mySpecialTasks = [];
-        
+        this.promoCodes = [];
+        this.myPromoCodes = [];
+
         this.promotionData = null;
         this.promotionStatus = null;
         this.hasPromotionBonus = false;
 
         this.pendingTaskData = null;
         this.pendingTaskType = null;
+        this.pendingPromoData = null;
 
         this.loadSettings();
     }
@@ -1465,7 +1583,7 @@ class App {
 
         try {
             const initData = this.tg?.initData;
-            
+
             if (!initData) {
                 console.error('No initData available');
                 return false;
@@ -1534,7 +1652,7 @@ class App {
             text-align: center;
             gap: 20px;
         `;
-        
+
         page.innerHTML = `
             <div style="font-size: 80px; margin-bottom: 10px;">🏴‍☠️</div>
             <h2 style="color: #FFD700; font-size: 1.5rem; font-weight: 700; margin: 0;">${this.t('not_registered_title')}</h2>
@@ -1558,7 +1676,7 @@ class App {
                 ${this.t('register_now')}
             </a>
         `;
-        
+
         document.body.appendChild(page);
 
         const app = document.getElementById('app');
@@ -1623,15 +1741,16 @@ class App {
             this.promotionStatus = this.promotionData?.status || null;
             this.hasPromotionBonus = this.promotionStatus === 'approved';
             this.isAuthenticated = true;
-            
+
             if (this.tgUser?.photo_url && this.tgUser.photo_url !== user.photo_url) {
                 this.fetchFromServer('/api/update-photo', {
                     photoUrl: this.tgUser.photo_url
                 }).catch(() => {});
             }
-            
+
             this.userTaskCount = user.task_count || 0;
             this.specialTaskCount = user.special_tasks_count || 0;
+            this.promoCodeCount = user.promo_codes_created || 0;
 
             if (user.quests) {
                 this.quests = user.quests;
@@ -1652,9 +1771,9 @@ class App {
             if (result.withdrawals) {
                 this.withdrawals = result.withdrawals;
             }
-            
+
             this.totalReferrals = user.total_referrals || 0;
-            
+
             this._userDataLoaded = true;
 
             const nameSpan = document.getElementById('user-name');
@@ -1772,11 +1891,11 @@ class App {
                 this.updateHeaderBalances();
                 this.vibrate('success');
                 this.setTaskCooldown();
-                
+
                 this.socialTasks = this.socialTasks.filter(t => t.id !== taskId);
                 this.mainTasks = this.mainTasks.filter(t => t.id !== taskId);
                 this.partnerTasks = this.partnerTasks.filter(t => t.id !== taskId);
-                
+
                 this.taskCache.social.data = this.socialTasks;
                 this.taskCache.main.data = this.mainTasks;
                 this.taskCache.partner.data = this.partnerTasks;
@@ -1823,8 +1942,8 @@ class App {
                 this.updateHeaderBalances();
                 this.vibrate('success');
                 this.setTaskCooldown();
-                
-                this.specialTasks = this.specialTasks.filter(t => t.id !== taskId);
+
+                this.userCompletedSpecialTasks.add(taskId);
                 this.taskCache.special.data = this.specialTasks;
             }
 
@@ -1855,7 +1974,7 @@ class App {
             if (result.user) {
                 this.powerBalance = result.user.power_balance || 0;
                 this.quests = result.user.quests || this.quests;
-                
+
                 if (questType === 'level') {
                     this.quests.currentLevelQuestIndex = result.questIndex || 0;
                 } else if (questType === 'task') {
@@ -1863,15 +1982,15 @@ class App {
                 } else if (questType === 'referral') {
                     this.quests.currentReferralQuestIndex = result.questIndex || 0;
                 }
-                
+
                 this._dirtyQuests = true;
                 await this.saveUserData(true);
-                
+
                 this.userLevel = result.user.level || 1;
                 this.updateLevelFromPower();
                 this.updateHeaderBalances();
                 this.vibrate('success');
-                
+
                 this.showNotification('Reward Claimed', `You have received ${result.reward} Power`, 'success');
                 return true;
             }
@@ -2027,7 +2146,7 @@ class App {
             }
 
             const result = await show_11687712();
-            
+
             if (result) {
                 const rewardResult = await this.fetchFromServer('/api/watch-monetag-ad', {});
 
@@ -2101,32 +2220,32 @@ class App {
 
     async startMining() {
         const serverTime = await this.getServerTime();
-        
+
         const result = await this.fetchFromServer('/api/start-mining', {
             serverTime: serverTime
         });
-        
+
         if (result.error) {
             this.showNotification('Error', result.error, 'error');
             this.vibrate('error');
             return;
         }
-        
+
         if (result.user) {
             this.miningActive = result.user.mining_active || false;
             this.miningStartTime = result.user.mining_start_time || null;
             this.miningEndTime = result.user.mining_end_time || null;
             this.pendingGoldReward = result.user.pending_gold_reward || 0;
             this.totalMiningStarts = result.user.total_mining_starts || 0;
-            
+
             this._dirtyMining = true;
             await this.saveUserData(true);
-            
+
             this.renderMining();
             this.startMiningLoop();
             this.showNotification('Mining Started', 'Your rig is now mining Gold', 'success');
             this.vibrate('success');
-            
+
             if (this._earnLoaded) this.renderEarn();
         }
     }
@@ -2135,22 +2254,22 @@ class App {
         if (!this.miningActive) return;
 
         const result = await this.fetchFromServer('/api/stop-mining', {});
-        
+
         if (result.error) {
             this.showNotification('Error', result.error, 'error');
             this.vibrate('error');
             return;
         }
-        
+
         if (result.user) {
             this.miningActive = result.user.mining_active || false;
             this.miningStartTime = result.user.mining_start_time || null;
             this.miningEndTime = result.user.mining_end_time || null;
             this.pendingGoldReward = result.user.pending_gold_reward || 0;
-            
+
             this._dirtyMining = true;
             await this.saveUserData(true);
-            
+
             this.renderMining();
             if (this.miningInterval) clearInterval(this.miningInterval);
             if (this.uiUpdateInterval) clearInterval(this.uiUpdateInterval);
@@ -2163,7 +2282,7 @@ class App {
             this.vibrate('error');
             return;
         }
-        
+
         if (this.pendingGoldReward <= 0) {
             this.showNotification('Error', 'No rewards to claim', 'error');
             this.vibrate('error');
@@ -2194,7 +2313,7 @@ class App {
             this.miningStartTime = result.user.mining_start_time || null;
             this.miningEndTime = result.user.mining_end_time || null;
             this.userLevel = result.user.level || 1;
-            
+
             this._dirtyGold = false;
             this._dirtyMining = false;
             this.updateLevelFromPower();
@@ -2306,7 +2425,7 @@ class App {
     async loadTasks(category) {
         try {
             const result = await this.fetchFromServer(`/api/tasks/${category}`, {});
-        
+
             const tasks = result.tasks;
             if (category === 'social' && tasks) {
                 tasks.sort((a, b) => {
@@ -2318,7 +2437,7 @@ class App {
             }
 
             return tasks || [];
-            
+
         } catch (error) {
             if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Auth required') {
                 return [];
@@ -2346,11 +2465,11 @@ class App {
     async loadTasksWithCache(category) {
         const now = Date.now();
         const cache = this.taskCache[category];
-        
+
         if (cache && (now - cache.timestamp) < this.CACHE_DURATION) {
             return cache.data;
         }
-        
+
         const tasks = await this.loadTasks(category);
         this.taskCache[category] = { data: tasks, timestamp: now };
         return tasks;
@@ -2377,6 +2496,44 @@ class App {
         } catch (error) {
             console.error('Error loading my special tasks:', error);
             return [];
+        }
+    }
+
+    async loadPromoCodes() {
+        try {
+            const result = await this.fetchFromServer('/api/promo-codes', {});
+            this.promoCodes = result.codes || [];
+            this.taskCache.promo = { data: this.promoCodes, timestamp: Date.now() };
+            return this.promoCodes;
+        } catch (error) {
+            console.error('Error loading promo codes:', error);
+            return [];
+        }
+    }
+
+    async loadMyPromoCodes() {
+        try {
+            const result = await this.fetchFromServer('/api/my-promo-codes', {});
+            this.myPromoCodes = result.codes || [];
+            this.taskCache.myPromo = { data: this.myPromoCodes, timestamp: Date.now() };
+            return this.myPromoCodes;
+        } catch (error) {
+            console.error('Error loading my promo codes:', error);
+            return [];
+        }
+    }
+
+    async generateRandomPromoCode() {
+        try {
+            const result = await this.fetchFromServer('/api/generate-promo-code', {});
+            return result.code || 'PIRATE' + Math.random().toString(36).substring(2, 10).toUpperCase();
+        } catch (error) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = 'PIRATE';
+            for (let i = 0; i < 8; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
         }
     }
 
@@ -2408,6 +2565,22 @@ class App {
             return false;
         } catch (error) {
             console.error('Error deleting special task:', error);
+            return false;
+        }
+    }
+
+    async deleteMyPromoCode(code) {
+        try {
+            const result = await this.fetchFromServer('/api/delete-promo-code', { code });
+            if (result.success) {
+                this.myPromoCodes = this.myPromoCodes.filter(c => c.code !== code);
+                this.taskCache.myPromo.data = this.myPromoCodes;
+                this.showNotification('Success', 'Code deleted successfully', 'success');
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error deleting promo code:', error);
             return false;
         }
     }
@@ -2689,11 +2862,11 @@ class App {
 
             this.showNotification('Withdrawn!', `${result.gramAmount.toFixed(5)} GRAM sent to your wallet`, 'success');
             this.vibrate('success');
-            
+
             if (this._walletLoaded) {
                 this.renderWallet();
             }
-            
+
             if (withdrawBtn) {
                 withdrawBtn.disabled = true;
                 withdrawBtn.innerHTML = '✓ Sent';
@@ -2702,7 +2875,7 @@ class App {
                     withdrawBtn.innerHTML = this.t('confirm_withdrawal');
                 }, 5000);
             }
-            
+
             this._withdrawLock = false;
 
         } catch (error) {
@@ -2771,9 +2944,6 @@ class App {
         const adsgramCooldown = this.adLastWatch ? Math.max(0, (5 * 60 * 1000) - (now - this.adLastWatch)) : 0;
         const adsgramAvailable = adsgramCooldown === 0;
 
-        const monetagCooldown = this.monetagAdLastWatch ? Math.max(0, (3 * 60 * 1000) - (now - this.monetagAdLastWatch)) : 0;
-        const monetagAvailable = monetagCooldown === 0;
-
         const levelQuests = this.config?.QUESTS?.level_quests || [];
         const levelIndex = this.quests.currentLevelQuestIndex || 0;
         const currentLevelQuest = levelIndex < levelQuests.length ? levelQuests[levelIndex] : null;
@@ -2795,7 +2965,7 @@ class App {
         const welcomeBonusClaimed = this.quests.welcomeBonusClaimed || this.powerBalance > 1000;
 
         const claimText = this.t('claim_reward', { amount: this.pendingGoldReward.toFixed(3) });
-        
+
         el.innerHTML = `
             <div class="mining-card gold-card">
                 <div class="mining-icon-container">
@@ -2974,7 +3144,7 @@ class App {
             }
 
             const result = await this.fetchFromServer('/api/claim-welcome-bonus', {});
-            
+
             if (result.success) {
                 this.powerBalance = result.user.power_balance;
                 this.quests.welcomeBonusClaimed = true;
@@ -3105,11 +3275,16 @@ class App {
             <div class="promo-card gold-card">
                 <div class="promo-header">
                     <div class="promo-title"><i class="fas fa-gift"></i> ${this.t('promo_code')}</div>
+                    <div class="promo-codes-actions">
+                        <button id="add-promo-code-btn" class="promo-action-btn" title="${this.t('create_promo_code')}"><i class="fas fa-plus"></i></button>
+                        <a href="${this.config.PROMO_CODES_CHANNEL || 'https://t.me/GramPTS_Codes'}" target="_blank" class="promo-action-btn" title="${this.t('promo_codes_channel')}"><i class="fas fa-bell"></i></a>
+                    </div>
                 </div>
                 <div class="promo-input-group">
                     <input type="text" id="promo-input" class="form-input gold-input" placeholder="${this.t('enter_code')}" autocomplete="off">
                     <button id="promo-submit" class="promo-submit-btn gold-btn" disabled>${this.t('claim')}</button>
                 </div>
+                <div id="active-promo-codes-container" class="promo-codes-list"></div>
             </div>
 
             <div class="section-header gold-header" style="margin-top:0;">
@@ -3161,6 +3336,10 @@ class App {
             });
         }
 
+        document.getElementById('add-promo-code-btn')?.addEventListener('click', () => {
+            this.showAddPromoCodeModal();
+        });
+
         document.getElementById('add-social-task-btn')?.addEventListener('click', () => {
             this.showAddSocialTaskModal();
         });
@@ -3179,10 +3358,458 @@ class App {
             this.showMySpecialTasksModal();
         });
 
+        this.loadActivePromoCodes();
         this.loadSpecialTasksList();
         this.loadMainTasks();
         this.loadPartnerTasks();
         this.loadSocialTasks();
+    }
+
+    async loadActivePromoCodes() {
+        const container = document.getElementById('active-promo-codes-container');
+        if (!container) return;
+
+        try {
+            const codes = await this.loadPromoCodes();
+            if (codes.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = codes.map(code => {
+                const rewardDisplay = code.reward_type === 'power'
+                    ? `<i class="fas fa-bolt"></i> ${code.reward_amount} ${this.t('power')}`
+                    : `<img src="${this.config.GOLD_ICON}" style="width:12px;height:12px;border-radius:50%;"> ${code.reward_amount} ${this.t('gold')}`;
+                return `
+                    <div class="promo-code-card">
+                        <div class="promo-code-info">
+                            <div class="promo-code-value">${code.code}</div>
+                            <div class="promo-code-rewards">${rewardDisplay} · ${code.total_uses || 0}/${code.max_uses}</div>
+                        </div>
+                        <button class="promo-code-btn" data-code="${code.code}">${this.t('claim')}</button>
+                    </div>
+                `;
+            }).join('');
+
+            container.querySelectorAll('.promo-code-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const code = btn.dataset.code;
+                    const codeData = this.promoCodes.find(c => c.code === code);
+                    if (codeData) this.showPromoClaimModal(codeData);
+                });
+            });
+        } catch (error) {
+            console.error('Error loading active promo codes:', error);
+        }
+    }
+
+    showAddPromoCodeModal() {
+        const modal = document.getElementById('add-promo-code-modal');
+        if (!modal) return;
+        modal.style.display = 'flex';
+
+        const codeInput = document.getElementById('promo-code-input');
+        const rewardAmountInput = document.getElementById('promo-reward-amount');
+        const maxUsesInput = document.getElementById('promo-max-uses');
+        const requiredChannelInput = document.getElementById('promo-required-channel');
+        const costDisplay = document.getElementById('promo-cost-display');
+        const generateBtn = document.getElementById('generate-promo-code');
+
+        let selectedType = 'power';
+        let selectedNotify = 'yes';
+
+        const updateCost = () => {
+            const amount = parseInt(rewardAmountInput.value) || 0;
+            const uses = parseInt(maxUsesInput.value) || 0;
+            const totalReward = amount * uses;
+            const pricePer1000 = selectedType === 'power'
+                ? (this.config.PROMO_CODE_POWER_PRICE_PER_1000 || 0.05)
+                : (this.config.PROMO_CODE_GOLD_PRICE_PER_1000 || 0.10);
+            const cost = (totalReward / 1000) * pricePer1000;
+            costDisplay.textContent = cost.toFixed(4) + ' GRAM';
+        };
+
+        document.querySelectorAll('.promo-type-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.promo-type-option').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedType = btn.dataset.value;
+                updateCost();
+            });
+        });
+
+        document.querySelectorAll('.promo-notify-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.promo-notify-option').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedNotify = btn.dataset.value;
+            });
+        });
+
+        rewardAmountInput.addEventListener('input', updateCost);
+        maxUsesInput.addEventListener('input', updateCost);
+
+        if (generateBtn) {
+            generateBtn.replaceWith(generateBtn.cloneNode(true));
+            const newGenBtn = document.getElementById('generate-promo-code');
+            newGenBtn.addEventListener('click', async () => {
+                newGenBtn.disabled = true;
+                newGenBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
+                const code = await this.generateRandomPromoCode();
+                codeInput.value = code;
+                newGenBtn.disabled = false;
+                newGenBtn.innerHTML = `<i class="fas fa-dice"></i> ${this.t('generate_random')}`;
+            });
+        }
+
+        this.loadMyPromoCodesList();
+
+        const payBtn = document.getElementById('pay-create-promo-btn');
+        if (payBtn) {
+            payBtn.replaceWith(payBtn.cloneNode(true));
+            const newPayBtn = document.getElementById('pay-create-promo-btn');
+            newPayBtn.addEventListener('click', () => {
+                const code = codeInput.value.trim().toUpperCase();
+                const amount = parseInt(rewardAmountInput.value);
+                const uses = parseInt(maxUsesInput.value);
+                const requiredChannel = requiredChannelInput.value.trim().replace('@', '');
+
+                if (!code || code.length < 5 || code.length > 20) {
+                    this.showNotification('Error', 'Code must be between 5-20 characters', 'error');
+                    this.vibrate('error');
+                    return;
+                }
+
+                if (!amount || amount < 1) {
+                    this.showNotification('Error', 'Please enter a valid reward amount', 'error');
+                    this.vibrate('error');
+                    return;
+                }
+
+                const minUses = this.config.PROMO_CODE_MIN_TOTAL || 50;
+                const maxUses = this.config.PROMO_CODE_MAX_TOTAL || 5000;
+                if (!uses || uses < minUses || uses > maxUses) {
+                    this.showNotification('Error', `Max uses must be between ${minUses}-${maxUses}`, 'error');
+                    this.vibrate('error');
+                    return;
+                }
+
+                this.pendingPromoData = {
+                    code: code,
+                    rewardType: selectedType,
+                    rewardAmount: amount,
+                    maxUses: uses,
+                    requiredChannel: requiredChannel || null,
+                    notifyChannel: selectedNotify === 'yes'
+                };
+
+                modal.style.display = 'none';
+                this.showPromoPaymentModal();
+            });
+        }
+    }
+
+    async loadMyPromoCodesList() {
+        const container = document.getElementById('my-promo-codes-container');
+        if (!container) return;
+
+        try {
+            const codes = await this.loadMyPromoCodes();
+            if (codes.length === 0) {
+                container.innerHTML = `<div class="no-data" style="padding:16px;"><i class="fas fa-ticket-alt"></i><p style="font-size:0.7rem;">${this.t('no_my_promo_codes')}</p></div>`;
+                return;
+            }
+
+            container.innerHTML = codes.map(code => {
+                const rewardDisplay = code.reward_type === 'power'
+                    ? `<i class="fas fa-bolt"></i> ${code.reward_amount}`
+                    : `<img src="${this.config.GOLD_ICON}" style="width:12px;height:12px;"> ${code.reward_amount}`;
+                const isDeleted = code.status === 'deleted';
+                return `
+                    <div class="promo-code-card" style="${isDeleted ? 'opacity:0.5;' : ''}">
+                        <div class="promo-code-info">
+                            <div class="promo-code-value">${code.code}</div>
+                            <div class="promo-code-rewards">${rewardDisplay} · ${code.total_uses || 0}/${code.max_uses}</div>
+                        </div>
+                        ${!isDeleted ? `<button class="task-btn delete-btn" data-code="${code.code}"><i class="fas fa-trash"></i></button>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            container.querySelectorAll('.task-btn.delete-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    if (confirm('Delete this promo code?')) {
+                        const code = btn.dataset.code;
+                        await this.deleteMyPromoCode(code);
+                        this.loadMyPromoCodesList();
+                    }
+                });
+            });
+        } catch (error) {
+            console.error('Error loading my promo codes:', error);
+        }
+    }
+
+    showPromoPaymentModal() {
+        const modal = document.getElementById('payment-modal');
+        if (!modal || !this.pendingPromoData) return;
+
+        if (!this.tgUser || !this.tgUser.id) {
+            this.showNotification('Error', 'User not loaded. Please restart.', 'error');
+            return;
+        }
+
+        const userId = this.tgUser.id;
+        const wallet = this.config.PAYMENT_WALLET || this.config.TON_WALLET_ADDRESS;
+
+        const walletDisplay = wallet.length > 12 ?
+            wallet.substring(0, 10) + '.....' + wallet.substring(wallet.length - 10) :
+            wallet;
+
+        const memo = 'promo_' + userId + '_' + crypto.randomUUID();
+
+        const totalReward = this.pendingPromoData.rewardAmount * this.pendingPromoData.maxUses;
+        const pricePer1000 = this.pendingPromoData.rewardType === 'power'
+            ? (this.config.PROMO_CODE_POWER_PRICE_PER_1000 || 0.05)
+            : (this.config.PROMO_CODE_GOLD_PRICE_PER_1000 || 0.10);
+        const amount = (totalReward / 1000) * pricePer1000;
+
+        const walletDisplayEl = document.getElementById('payment-wallet-display');
+        const memoDisplay = document.getElementById('payment-memo-display');
+        const amountDisplay = document.getElementById('payment-amount-display');
+        const tonkeeperLink = document.getElementById('tonkeeper-link');
+        const statusEl = document.getElementById('payment-status');
+
+        if (walletDisplayEl) {
+            walletDisplayEl.textContent = walletDisplay;
+            walletDisplayEl.className = 'copyable-text';
+            walletDisplayEl.onclick = () => this.copyToClipboard(wallet);
+        }
+        if (memoDisplay) {
+            memoDisplay.textContent = memo;
+            memoDisplay.className = 'copyable-text';
+            memoDisplay.onclick = () => this.copyToClipboard(memo);
+        }
+        if (amountDisplay) {
+            amountDisplay.textContent = amount.toFixed(4) + ' GRAM';
+            amountDisplay.className = 'copyable-text';
+            amountDisplay.onclick = () => this.copyToClipboard(amount.toFixed(4) + ' GRAM');
+        }
+
+        if (tonkeeperLink) {
+            const tonkeeperUrl = `https://app.tonkeeper.com/transfer/${wallet}?text=${encodeURIComponent(memo)}`;
+            tonkeeperLink.href = tonkeeperUrl;
+        }
+
+        if (statusEl) statusEl.textContent = '';
+
+        modal.style.display = 'flex';
+
+        const checkBtn = document.getElementById('check-payment-btn');
+        if (checkBtn) {
+            checkBtn.replaceWith(checkBtn.cloneNode(true));
+            const newCheckBtn = document.getElementById('check-payment-btn');
+            newCheckBtn.addEventListener('click', async () => {
+                if (statusEl) {
+                    statusEl.textContent = this.t('payment_checking');
+                    statusEl.style.color = '#FFD700';
+                }
+
+                try {
+                    const result = await this.fetchFromServer('/api/create-promo-code', {
+                        ...this.pendingPromoData,
+                        memo: memo
+                    });
+
+                    if (result.success) {
+                        if (statusEl) {
+                            statusEl.textContent = this.t('payment_verified');
+                            statusEl.style.color = '#2ecc71';
+                        }
+                        this.promoCodeCount = this.promoCodeCount + 1;
+                        this.showNotification(this.t('task_added'), 'Promo code created successfully', 'success');
+                        this.vibrate('success');
+                        this.pendingPromoData = null;
+                        setTimeout(() => {
+                            modal.style.display = 'none';
+                            this.loadMyPromoCodes();
+                            this.loadPromoCodes();
+                            this.renderEarn();
+                        }, 1500);
+                    } else {
+                        if (statusEl) {
+                            statusEl.textContent = result.error || this.t('payment_failed');
+                            statusEl.style.color = '#e74c3c';
+                        }
+                        this.vibrate('error');
+                    }
+                } catch (error) {
+                    if (statusEl) {
+                        statusEl.textContent = this.t('payment_error');
+                        statusEl.style.color = '#e74c3c';
+                    }
+                    this.vibrate('error');
+                }
+            });
+        }
+    }
+
+    showPromoClaimModal(codeData) {
+        const modal = document.getElementById('promo-claim-modal');
+        const content = document.getElementById('promo-claim-content');
+        if (!modal || !content) return;
+
+        const rewardDisplay = codeData.reward_type === 'power'
+            ? `<i class="fas fa-bolt" style="color:#FFD700;"></i> ${codeData.reward_amount} Power`
+            : `<img src="${this.config.GOLD_ICON}" style="width:20px;height:20px;border-radius:50%;"> ${codeData.reward_amount} Gold`;
+
+        let requirementsHtml = '';
+        if (codeData.required_channel) {
+            requirementsHtml += `
+                <div class="promo-requirement-item" id="req-channel-${codeData.code}">
+                    <div class="promo-requirement-icon"><i class="fab fa-telegram"></i></div>
+                    <div class="promo-requirement-info">
+                        <h5>${this.t('join_channel')}</h5>
+                        <p>@${codeData.required_channel}</p>
+                    </div>
+                    <a href="https://t.me/${codeData.required_channel}" target="_blank" class="promo-requirement-btn" id="join-btn-${codeData.code}">Join</a>
+                </div>
+            `;
+        }
+
+        requirementsHtml += `
+            <div class="promo-requirement-item" id="req-ad-${codeData.code}">
+                <div class="promo-requirement-icon"><i class="fas fa-play-circle"></i></div>
+                <div class="promo-requirement-info">
+                    <h5>${this.t('watch_ad_requirement')}</h5>
+                    <p>${this.t('ad_reward')}</p>
+                </div>
+                <button class="promo-requirement-btn" id="watch-btn-${codeData.code}">Watch</button>
+            </div>
+        `;
+
+        content.innerHTML = `
+            <div class="promo-reward-preview">
+                <div class="reward-value">${rewardDisplay}</div>
+                <div class="reward-label">${this.t('promo_reward_preview')}</div>
+            </div>
+            <div class="promo-requirements">
+                ${requirementsHtml}
+            </div>
+            <button class="promo-claim-btn-final" id="final-claim-${codeData.code}" disabled>${this.t('promo_claim_final')}</button>
+        `;
+
+        modal.style.display = 'flex';
+
+        let channelJoined = !codeData.required_channel;
+        let adWatched = false;
+
+        const updateClaimState = () => {
+            const claimBtn = document.getElementById(`final-claim-${codeData.code}`);
+            if (claimBtn) {
+                claimBtn.disabled = !(channelJoined && adWatched);
+            }
+        };
+
+        if (codeData.required_channel) {
+            const joinBtn = document.getElementById(`join-btn-${codeData.code}`);
+            if (joinBtn) {
+                joinBtn.addEventListener('click', async () => {
+                    joinBtn.classList.add('completed');
+                    joinBtn.textContent = '✓';
+                    const isMember = await this.checkMembership(codeData.required_channel);
+                    if (isMember) {
+                        channelJoined = true;
+                        const reqItem = document.getElementById(`req-channel-${codeData.code}`);
+                        if (reqItem) reqItem.style.opacity = '0.6';
+                        updateClaimState();
+                    } else {
+                        joinBtn.classList.remove('completed');
+                        joinBtn.textContent = 'Join';
+                        this.showNotification('Join Required', this.t('join_first'), 'warning');
+                    }
+                });
+            }
+        }
+
+        const watchBtn = document.getElementById(`watch-btn-${codeData.code}`);
+        if (watchBtn) {
+            watchBtn.addEventListener('click', async () => {
+                watchBtn.disabled = true;
+                watchBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
+                try {
+                    const AdController = window.Adsgram.init({ blockId: this.config.REWARD_AD_BLOCK_ID || "37724" });
+                    await AdController.show();
+                    adWatched = true;
+                    watchBtn.classList.add('completed');
+                    watchBtn.textContent = '✓';
+                    const reqItem = document.getElementById(`req-ad-${codeData.code}`);
+                    if (reqItem) reqItem.style.opacity = '0.6';
+                    updateClaimState();
+                } catch (e) {
+                    watchBtn.disabled = false;
+                    watchBtn.textContent = 'Watch';
+                    this.showNotification('No Ads', 'No ads available at the moment', 'warning');
+                }
+            });
+        }
+
+        const claimBtn = document.getElementById(`final-claim-${codeData.code}`);
+        if (claimBtn) {
+            claimBtn.addEventListener('click', async () => {
+                claimBtn.disabled = true;
+                claimBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
+                const result = await this.claimPromoCode(codeData.code);
+                if (result) {
+                    modal.style.display = 'none';
+                    this.renderEarn();
+                } else {
+                    claimBtn.disabled = false;
+                    claimBtn.textContent = this.t('promo_claim_final');
+                }
+            });
+        }
+    }
+
+    async claimPromoCode(code) {
+        const promoCheck = this.canUsePromo();
+        if (!promoCheck.allowed) {
+            this.showNotification('Cooldown', this.t('promo_code_cooldown', { s: promoCheck.remaining }), 'warning');
+            this.vibrate('warning');
+            return false;
+        }
+
+        try {
+            const result = await this.fetchFromServer('/api/claim-promo-code', { code });
+
+            if (result.error) {
+                this.showNotification('Error', result.error, 'error');
+                this.vibrate('error');
+                return false;
+            }
+
+            if (result.user) {
+                this.powerBalance = result.user.power_balance || 0;
+                this.goldBalance = result.user.gold_balance || 0;
+                this.userLevel = result.user.level || 1;
+                this.updateLevelFromPower();
+                this.updateHeaderBalances();
+                this.setPromoCooldown();
+                this.showNotification(this.t('reward_claimed'), this.t('you_have_received', { reward: result.rewardAmount, type: result.rewardType }), 'success');
+                this.vibrate('success');
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            if (error.message === 'Cooldown' || error.message === 'Banned' || error.message === 'Auth required') {
+                return false;
+            }
+            console.error('Claim promo error:', error);
+            this.showNotification('Error', 'Failed to claim promo code', 'error');
+            this.vibrate('error');
+            return false;
+        }
     }
 
     showAddSpecialTaskModal() {
@@ -3234,52 +3861,57 @@ class App {
         document.querySelector('.special-verif-option[data-value="no"]')?.classList.add('active');
         verificationGroup.style.display = 'none';
 
-        document.getElementById('pay-add-special-task-btn')?.addEventListener('click', async () => {
-            const name = nameInput.value.trim();
-            const link = linkInput.value.trim();
+        const payBtn = document.getElementById('pay-add-special-task-btn');
+        if (payBtn) {
+            payBtn.replaceWith(payBtn.cloneNode(true));
+            const newPayBtn = document.getElementById('pay-add-special-task-btn');
+            newPayBtn.addEventListener('click', async () => {
+                const name = nameInput.value.trim();
+                const link = linkInput.value.trim();
 
-            if (name.length < 5 || name.length > 20) {
-                this.showNotification('Error', this.t('name_required'), 'error');
-                this.vibrate('error');
-                return;
-            }
+                if (name.length < 5 || name.length > 20) {
+                    this.showNotification('Error', this.t('name_required'), 'error');
+                    this.vibrate('error');
+                    return;
+                }
 
-            if (!link.startsWith('https://')) {
-                this.showNotification('Error', this.t('link_required'), 'error');
-                this.vibrate('error');
-                return;
-            }
+                if (!link.startsWith('https://')) {
+                    this.showNotification('Error', this.t('link_required'), 'error');
+                    this.vibrate('error');
+                    return;
+                }
 
-            if (selectedVerification === 'yes' && link.startsWith('https://t.me/')) {
-                const channelMatch = link.match(/t\.me\/([^\/\?]+)/);
-                if (channelMatch) {
-                    try {
-                        const checkResult = await this.fetchFromServer('/api/check-bot-admin', {
-                            channel: channelMatch[1]
-                        });
-                        if (!checkResult.isAdmin) {
-                            this.showNotification('Error', 'Bot is not admin in the channel. Please add @GramPirateBot as admin.', 'error');
+                if (selectedVerification === 'yes' && link.startsWith('https://t.me/')) {
+                    const channelMatch = link.match(/t\.me\/([^\/\?]+)/);
+                    if (channelMatch) {
+                        try {
+                            const checkResult = await this.fetchFromServer('/api/check-bot-admin', {
+                                channel: channelMatch[1]
+                            });
+                            if (!checkResult.isAdmin) {
+                                this.showNotification('Error', 'Bot is not admin in the channel. Please add @GramPirateBot as admin.', 'error');
+                                this.vibrate('error');
+                                return;
+                            }
+                        } catch (error) {
+                            this.showNotification('Error', 'Failed to verify bot admin status', 'error');
                             this.vibrate('error');
                             return;
                         }
-                    } catch (error) {
-                        this.showNotification('Error', 'Failed to verify bot admin status', 'error');
-                        this.vibrate('error');
-                        return;
                     }
                 }
-            }
 
-            this.pendingTaskData = {
-                name,
-                link,
-                verification: selectedVerification === 'yes'
-            };
-            this.pendingTaskType = 'special';
+                this.pendingTaskData = {
+                    name,
+                    link,
+                    verification: selectedVerification === 'yes'
+                };
+                this.pendingTaskType = 'special';
 
-            modal.style.display = 'none';
-            this.showPaymentModal();
-        });
+                modal.style.display = 'none';
+                this.showPaymentModal();
+            });
+        }
     }
 
     showAddSocialTaskModal() {
@@ -3383,60 +4015,65 @@ class App {
         verificationGroup.style.display = 'none';
         updateTotalCost();
 
-        document.getElementById('pay-add-task-btn')?.addEventListener('click', async () => {
-            const name = nameInput.value.trim();
-            const link = linkInput.value.trim();
+        const payBtn = document.getElementById('pay-add-task-btn');
+        if (payBtn) {
+            payBtn.replaceWith(payBtn.cloneNode(true));
+            const newPayBtn = document.getElementById('pay-add-task-btn');
+            newPayBtn.addEventListener('click', async () => {
+                const name = nameInput.value.trim();
+                const link = linkInput.value.trim();
 
-            if (name.length < 5 || name.length > 20) {
-                this.showNotification('Error', this.t('name_required'), 'error');
-                this.vibrate('error');
-                return;
-            }
+                if (name.length < 5 || name.length > 20) {
+                    this.showNotification('Error', this.t('name_required'), 'error');
+                    this.vibrate('error');
+                    return;
+                }
 
-            if (!link.startsWith('https://')) {
-                this.showNotification('Error', this.t('link_required'), 'error');
-                this.vibrate('error');
-                return;
-            }
+                if (!link.startsWith('https://')) {
+                    this.showNotification('Error', this.t('link_required'), 'error');
+                    this.vibrate('error');
+                    return;
+                }
 
-            if (selectedTotal < 100 || selectedTotal > 5000) {
-                this.showNotification('Error', this.t('invalid_total'), 'error');
-                this.vibrate('error');
-                return;
-            }
+                if (selectedTotal < 100 || selectedTotal > 5000) {
+                    this.showNotification('Error', this.t('invalid_total'), 'error');
+                    this.vibrate('error');
+                    return;
+                }
 
-            if (selectedVerification === 'yes' && link.startsWith('https://t.me/')) {
-                const channelMatch = link.match(/t\.me\/([^\/\?]+)/);
-                if (channelMatch) {
-                    try {
-                        const checkResult = await this.fetchFromServer('/api/check-bot-admin', {
-                            channel: channelMatch[1]
-                        });
-                        if (!checkResult.isAdmin) {
-                            this.showNotification('Error', 'Bot is not admin in the channel. Please add @GramPirateBot as admin.', 'error');
+                if (selectedVerification === 'yes' && link.startsWith('https://t.me/')) {
+                    const channelMatch = link.match(/t\.me\/([^\/\?]+)/);
+                    if (channelMatch) {
+                        try {
+                            const checkResult = await this.fetchFromServer('/api/check-bot-admin', {
+                                channel: channelMatch[1]
+                            });
+                            if (!checkResult.isAdmin) {
+                                this.showNotification('Error', 'Bot is not admin in the channel. Please add @GramPirateBot as admin.', 'error');
+                                this.vibrate('error');
+                                return;
+                            }
+                        } catch (error) {
+                            this.showNotification('Error', 'Failed to verify bot admin status', 'error');
                             this.vibrate('error');
                             return;
                         }
-                    } catch (error) {
-                        this.showNotification('Error', 'Failed to verify bot admin status', 'error');
-                        this.vibrate('error');
-                        return;
                     }
                 }
-            }
 
-            this.pendingTaskData = {
-                name,
-                link,
-                total: selectedTotal,
-                reward: selectedReward,
-                verification: selectedVerification === 'yes'
-            };
-            this.pendingTaskType = 'social';
+                this.pendingTaskData = {
+                    name,
+                    link,
+                    total: selectedTotal,
+                    reward: selectedReward,
+                    verification: selectedVerification === 'yes'
+                };
+                this.pendingTaskType = 'social';
 
-            modal.style.display = 'none';
-            this.showPaymentModal();
-        });
+                modal.style.display = 'none';
+                this.showPaymentModal();
+            });
+        }
     }
 
     showPaymentModal() {
@@ -3450,14 +4087,14 @@ class App {
 
         const userId = this.tgUser.id;
         const wallet = this.config.PAYMENT_WALLET || this.config.TON_WALLET_ADDRESS;
-        
-        const walletDisplay = wallet.length > 12 ? 
-            wallet.substring(0, 10) + '.....' + wallet.substring(wallet.length - 10) : 
+
+        const walletDisplay = wallet.length > 12 ?
+            wallet.substring(0, 10) + '.....' + wallet.substring(wallet.length - 10) :
             wallet;
 
-        const memo = this.pendingTaskType === 'special' 
-            ? 'special_' + userId + '_' + Date.now()
-            : 'task_' + userId + '_' + (this.userTaskCount + 1);
+        const memo = this.pendingTaskType === 'special'
+            ? 'special_' + userId + '_' + crypto.randomUUID()
+            : 'task_' + userId + '_' + crypto.randomUUID();
 
         let amount;
         if (this.pendingTaskType === 'special') {
@@ -3487,12 +4124,12 @@ class App {
             amountDisplay.className = 'copyable-text';
             amountDisplay.onclick = () => this.copyToClipboard(amount.toFixed(4) + ' GRAM');
         }
-        
+
         if (tonkeeperLink) {
             const tonkeeperUrl = `https://app.tonkeeper.com/transfer/${wallet}?text=${encodeURIComponent(memo)}`;
             tonkeeperLink.href = tonkeeperUrl;
         }
-        
+
         if (statusEl) statusEl.textContent = '';
 
         modal.style.display = 'flex';
@@ -3528,11 +4165,12 @@ class App {
                             this.showNotification(this.t('task_added'), this.t('task_added_success'), 'success');
                         }
                         this.vibrate('success');
+                        const taskType = this.pendingTaskType;
                         this.pendingTaskData = null;
                         this.pendingTaskType = null;
                         setTimeout(() => {
                             modal.style.display = 'none';
-                            if (this.pendingTaskType === 'special') {
+                            if (taskType === 'special') {
                                 this.loadSpecialTasksList();
                                 this.loadMySpecialTasks();
                             } else {
@@ -3565,7 +4203,7 @@ class App {
 
         this.isTaskRunning = false;
         container.replaceChildren();
-        
+
         try {
             const tasks = await this.loadSpecialTasks();
             this.specialTasks = tasks;
@@ -3577,6 +4215,10 @@ class App {
 
             container.innerHTML = tasks.map(task => {
                 const isCompleted = this.userCompletedSpecialTasks.has(task.id);
+                const buttonHtml = isCompleted
+                    ? `<button class="task-btn go" data-id="${task.id}" data-url="${task.url || ''}">${this.t('go')}</button>`
+                    : `<button class="task-btn start" data-id="${task.id}" data-url="${task.url || ''}" data-verify="${task.verification || false}" data-owner="${task.owner || ''}">Start</button>`;
+
                 return `
                     <div class="task-card task-special" data-task-id="${task.id}">
                         <div class="task-header">
@@ -3592,32 +4234,39 @@ class App {
                                     <span>${this.t('total_completed')}: ${task.total_completed || 0}</span>
                                 </div>
                             </div>
-                            <button class="task-btn start" data-id="${task.id}" data-url="${task.url || ''}" data-verify="${task.verification || false}" data-owner="${task.owner || ''}">Start</button>
+                            ${buttonHtml}
                         </div>
                     </div>
                 `;
             }).join('');
 
-            document.querySelectorAll('#special-tasks-container .task-btn.start').forEach(btn => {
+            container.querySelectorAll('.task-btn.go').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const url = btn.dataset.url;
+                    if (url) window.open(url, '_blank');
+                });
+            });
+
+            container.querySelectorAll('.task-btn.start').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     if (this.isTaskRunning) {
                         this.showNotification('Busy', 'Complete current task first', 'warning');
                         return;
                     }
-                    
+
                     const taskId = btn.dataset.id;
                     const task = this.specialTasks.find(t => t.id === taskId);
                     if (!task) return;
-                    
+
                     this.isTaskRunning = true;
                     this.disableAllTaskButtons(true);
                     btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
                     btn.disabled = true;
-                    
+
                     if (task.url) {
                         window.open(task.url, '_blank');
                     }
-                    
+
                     let seconds = this.config.TASK_VERIFICATION_DELAY || 10;
                     const interval = setInterval(() => {
                         seconds--;
@@ -3627,15 +4276,15 @@ class App {
                             btn.disabled = false;
                             btn.classList.remove('start');
                             btn.classList.add('claim-btn');
-                            
+
                             const newBtn = btn.cloneNode(true);
                             btn.parentNode.replaceChild(newBtn, btn);
-                            
+
                             newBtn.addEventListener('click', async (e) => {
                                 e.stopPropagation();
                                 newBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
                                 newBtn.disabled = true;
-                                
+
                                 let isMember = true;
                                 if (task.verification && task.url) {
                                     const chatId = this.extractChatId(task.url);
@@ -3643,7 +4292,7 @@ class App {
                                         isMember = await this.checkMembership(chatId);
                                     }
                                 }
-                                
+
                                 if (isMember) {
                                     const success = await this.completeSpecialTaskOnServer(taskId);
                                     if (success) {
@@ -3651,7 +4300,6 @@ class App {
                                         newBtn.disabled = true;
                                         newBtn.classList.add('done');
                                         newBtn.classList.remove('claim-btn');
-                                        this.userCompletedSpecialTasks.add(taskId);
                                         this.showNotification('Reward Claimed', `You have received ${task.reward_power} Power + ${task.reward_gold} Gold`, 'success');
                                         this.vibrate('success');
                                         this.isTaskRunning = false;
@@ -3733,20 +4381,20 @@ class App {
                         this.showNotification('Busy', 'Complete current task first', 'warning');
                         return;
                     }
-                    
+
                     const taskId = btn.dataset.id;
                     const task = this.mainTasks.find(t => t.id === taskId);
                     if (!task) return;
-                    
+
                     this.isTaskRunning = true;
                     this.disableAllTaskButtons(true);
                     btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
                     btn.disabled = true;
-                    
+
                     if (task.url) {
                         window.open(task.url, '_blank');
                     }
-                    
+
                     let seconds = this.config.TASK_VERIFICATION_DELAY || 10;
                     const interval = setInterval(() => {
                         seconds--;
@@ -3756,15 +4404,15 @@ class App {
                             btn.disabled = false;
                             btn.classList.remove('start');
                             btn.classList.add('claim-btn');
-                            
+
                             const newBtn = btn.cloneNode(true);
                             btn.parentNode.replaceChild(newBtn, btn);
-                            
+
                             newBtn.addEventListener('click', async (e) => {
                                 e.stopPropagation();
                                 newBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
                                 newBtn.disabled = true;
-                                
+
                                 let isMember = true;
                                 if (task.verification && task.url) {
                                     const chatId = this.extractChatId(task.url);
@@ -3772,7 +4420,7 @@ class App {
                                         isMember = await this.checkMembership(chatId);
                                     }
                                 }
-                                
+
                                 if (isMember) {
                                     const success = await this.completeTaskOnServer(taskId, false);
                                     if (success) {
@@ -3824,7 +4472,7 @@ class App {
 
     disableAllTaskButtons(disable) {
         document.querySelectorAll('.task-btn').forEach(btn => {
-            if (!btn.classList.contains('done')) {
+            if (!btn.classList.contains('done') && !btn.classList.contains('go')) {
                 btn.disabled = disable;
             }
         });
@@ -3838,7 +4486,7 @@ class App {
         this.taskCompletionTimers.forEach(timer => clearInterval(timer));
         this.taskCompletionTimers.clear();
         container.replaceChildren();
-        
+
         try {
             const tasks = await this.loadTasksWithCache('partner');
             const availableTasks = tasks.filter(task => !this.userCompletedTasks.has(task.id));
@@ -3872,20 +4520,20 @@ class App {
                         this.showNotification('Busy', 'Complete current task first', 'warning');
                         return;
                     }
-                    
+
                     const taskId = btn.dataset.id;
                     const task = this.partnerTasks.find(t => t.id === taskId);
                     if (!task) return;
-                    
+
                     this.isTaskRunning = true;
                     this.disableAllTaskButtons(true);
                     btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
                     btn.disabled = true;
-                    
+
                     if (task.url) {
                         window.open(task.url, '_blank');
                     }
-                    
+
                     let seconds = this.config.TASK_VERIFICATION_DELAY || 10;
                     const interval = setInterval(() => {
                         seconds--;
@@ -3895,15 +4543,15 @@ class App {
                             btn.disabled = false;
                             btn.classList.remove('start');
                             btn.classList.add('claim-btn');
-                            
+
                             const newBtn = btn.cloneNode(true);
                             btn.parentNode.replaceChild(newBtn, btn);
-                            
+
                             newBtn.addEventListener('click', async (e) => {
                                 e.stopPropagation();
                                 newBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
                                 newBtn.disabled = true;
-                                
+
                                 let isMember = true;
                                 if (task.verification && task.url) {
                                     const chatId = this.extractChatId(task.url);
@@ -3911,7 +4559,7 @@ class App {
                                         isMember = await this.checkMembership(chatId);
                                     }
                                 }
-                                
+
                                 if (isMember) {
                                     const success = await this.completeTaskOnServer(taskId, true, task.owner || null);
                                     if (success) {
@@ -3969,10 +4617,10 @@ class App {
         this.taskCompletionTimers.forEach(timer => clearInterval(timer));
         this.taskCompletionTimers.clear();
         container.replaceChildren();
-        
+
         try {
             const tasks = await this.loadTasksWithCache('social');
-            const availableTasks = tasks.filter(task => 
+            const availableTasks = tasks.filter(task =>
                 !this.userCompletedTasks.has(task.id) && task.owner !== this.tgUser?.id
             );
             this.socialTasks = availableTasks;
@@ -4009,20 +4657,20 @@ class App {
                         this.showNotification('Busy', 'Complete current task first', 'warning');
                         return;
                     }
-                    
+
                     const taskId = btn.dataset.id;
                     const task = this.socialTasks.find(t => t.id === taskId);
                     if (!task) return;
-                    
+
                     this.isTaskRunning = true;
                     this.disableAllTaskButtons(true);
                     btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
                     btn.disabled = true;
-                    
+
                     if (task.url) {
                         window.open(task.url, '_blank');
                     }
-                    
+
                     let seconds = this.config.TASK_VERIFICATION_DELAY || 10;
                     const interval = setInterval(() => {
                         seconds--;
@@ -4032,15 +4680,15 @@ class App {
                             btn.disabled = false;
                             btn.classList.remove('start');
                             btn.classList.add('claim-btn');
-                            
+
                             const newBtn = btn.cloneNode(true);
                             btn.parentNode.replaceChild(newBtn, btn);
-                            
+
                             newBtn.addEventListener('click', async (e) => {
                                 e.stopPropagation();
                                 newBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
                                 newBtn.disabled = true;
-                                
+
                                 let isMember = true;
                                 if (task.verification && task.url) {
                                     const chatId = this.extractChatId(task.url);
@@ -4048,7 +4696,7 @@ class App {
                                         isMember = await this.checkMembership(chatId);
                                     }
                                 }
-                                
+
                                 if (isMember) {
                                     const success = await this.completeTaskOnServer(taskId, false, task.owner || null);
                                     if (success) {
@@ -4294,7 +4942,7 @@ class App {
             const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             const statusClass = w.status || 'pending';
             const statusText = statusClass === 'completed' ? this.t('completed') : (statusClass === 'processing' ? 'PROCESSING' : this.t('pending'));
-            const explorerLink = statusClass === 'completed' && w.tx_hash ? 
+            const explorerLink = statusClass === 'completed' && w.tx_hash ?
                 `<a href="https://tonscan.org/tx/${w.tx_hash}" target="_blank" class="history-explorer-link"><i class="fas fa-arrow-up-right-from-square"></i> ${this.t('view_on_explorer')}</a>` : '';
             return `
             <div class="history-item gold-item">
@@ -4479,7 +5127,7 @@ class App {
             document.getElementById('app').style.display = 'none';
             document.getElementById('app-loader').style.display = 'none';
         }
-        
+
         document.getElementById('close-app-btn')?.addEventListener('click', () => {
             if (window.Telegram?.WebApp) {
                 window.Telegram.WebApp.close();
@@ -4594,7 +5242,7 @@ class App {
             const menuHeight = 200;
             const spaceBelow = window.innerHeight - rect.bottom;
             const spaceAbove = rect.top;
-            
+
             langMenu.style.position = 'fixed';
             if (spaceBelow < menuHeight && spaceAbove > menuHeight) {
                 langMenu.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
