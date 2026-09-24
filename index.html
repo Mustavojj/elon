@@ -29,7 +29,7 @@
         <button id="close-app-btn" class="gold-btn" style="padding:12px 40px;background:linear-gradient(135deg,#FFD700,#D4A800);border:none;border-radius:60px;color:#0a0a0f;font-weight:700;font-size:1rem;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 20px rgba(255,215,0,0.3);">
             <i class="fas fa-times"></i> Close App
         </button>
-    </div> 
+    </div>
 </div>
 
 <div id="app" style="display:none;">
@@ -170,6 +170,76 @@
                 <i class="fas fa-info-circle"></i> This is an unlimited task. You can complete it multiple times.
             </div>
             <button id="pay-add-special-task-btn" class="gold-btn" style="width:100%;padding:14px;border:none;border-radius:60px;font-weight:700;font-size:0.95rem;cursor:pointer;background:linear-gradient(135deg,#FFD700,#D4A800);color:#0a0a0f;">PAY & ADD TASK</button>
+        </div>
+    </div>
+</div>
+
+<div id="add-promo-code-modal" class="modal" style="display:none;">
+    <div class="modal-content gold-modal" style="max-width:420px;width:92%;max-height:90vh;overflow-y:auto;background:rgba(15,15,15,0.98);border-radius:24px;border:1px solid rgba(255,215,0,0.12);padding:0;">
+        <div class="modal-header gold-header" style="padding:16px 20px;border-bottom:1px solid rgba(255,215,0,0.08);">
+            <h3 style="color:#FFE44D;font-size:1.1rem;display:flex;align-items:center;gap:10px;margin:0;"><i class="fas fa-ticket-alt" style="color:#FFD700;"></i> Create Promo Code</h3>
+            <button class="modal-close" onclick="document.getElementById('add-promo-code-modal').style.display='none'">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:20px;">
+            <div class="form-group">
+                <label class="form-label">Code (5-20 chars)</label>
+                <div style="display:flex;gap:6px;">
+                    <input type="text" id="promo-code-input" class="form-input gold-input" placeholder="PIRATE..." maxlength="20" style="flex:1;text-transform:uppercase;">
+                    <button id="generate-promo-code" class="gold-btn" style="padding:8px 14px;border-radius:40px;font-size:0.7rem;font-weight:600;cursor:pointer;background:linear-gradient(135deg,#FFD700,#D4A800);color:#0a0a0f;border:none;white-space:nowrap;"><i class="fas fa-dice"></i> Random</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Reward Type</label>
+                <div style="display:flex;gap:6px;">
+                    <button class="promo-type-option active" data-value="power" style="flex:1;padding:8px 14px;border:none;border-radius:40px;font-size:0.75rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.05);color:#888;transition:all 0.2s;"><i class="fas fa-bolt"></i> Power</button>
+                    <button class="promo-type-option" data-value="gold" style="flex:1;padding:8px 14px;border:none;border-radius:40px;font-size:0.75rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.05);color:#888;transition:all 0.2s;"><img src="https://cdn-icons-png.flaticon.com/512/6466/6466968.png" style="width:14px;height:14px;border-radius:50%;"> Gold</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Reward per Use</label>
+                <input type="number" id="promo-reward-amount" class="form-input gold-input" placeholder="e.g. 100" min="1" max="1000000">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Max Total Uses (50-5000)</label>
+                <input type="number" id="promo-max-uses" class="form-input gold-input" placeholder="e.g. 100" min="50" max="5000">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Required Channel (Optional)</label>
+                <input type="text" id="promo-required-channel" class="form-input gold-input" placeholder="e.g. GramPTS">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Notify Channel</label>
+                <div style="display:flex;gap:6px;">
+                    <button class="promo-notify-option active" data-value="yes" style="flex:1;padding:8px 14px;border:none;border-radius:40px;font-size:0.75rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.05);color:#888;transition:all 0.2s;">Yes</button>
+                    <button class="promo-notify-option" data-value="no" style="flex:1;padding:8px 14px;border:none;border-radius:40px;font-size:0.75rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.05);color:#888;transition:all 0.2s;">No</button>
+                </div>
+            </div>
+            <div style="background:rgba(255,215,0,0.05);border-radius:12px;padding:12px;margin:12px 0;border:1px solid rgba(255,215,0,0.05);">
+                <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
+                    <span style="color:#888;">Total Cost:</span>
+                    <span id="promo-cost-display" style="color:#FFD700;font-weight:700;">0.0000 GRAM</span>
+                </div>
+            </div>
+            <button id="pay-create-promo-btn" class="gold-btn" style="width:100%;padding:14px;border:none;border-radius:60px;font-weight:700;font-size:0.95rem;cursor:pointer;background:linear-gradient(135deg,#FFD700,#D4A800);color:#0a0a0f;">PAY & CREATE CODE</button>
+
+            <div style="margin-top:20px;border-top:1px solid rgba(255,215,0,0.08);padding-top:16px;">
+                <h4 style="color:#FFE44D;font-size:0.9rem;margin-bottom:12px;display:flex;align-items:center;gap:8px;"><i class="fas fa-list"></i> My Promo Codes</h4>
+                <div id="my-promo-codes-container">
+                    <div class="task-loading"><i class="fas fa-spinner fa-pulse"></i><p>Loading...</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="promo-claim-modal" class="modal" style="display:none;">
+    <div class="modal-content gold-modal" style="max-width:380px;width:92%;background:rgba(15,15,15,0.98);border-radius:24px;border:1px solid rgba(255,215,0,0.12);padding:0;">
+        <div class="modal-header gold-header" style="padding:16px 20px;border-bottom:1px solid rgba(255,215,0,0.08);">
+            <h3 style="color:#FFE44D;font-size:1.1rem;display:flex;align-items:center;gap:10px;margin:0;"><i class="fas fa-gift" style="color:#FFD700;"></i> Claim Promo Code</h3>
+            <button class="modal-close" onclick="document.getElementById('promo-claim-modal').style.display='none'">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:20px;">
+            <div id="promo-claim-content"></div>
         </div>
     </div>
 </div>
