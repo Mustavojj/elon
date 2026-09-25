@@ -2996,18 +2996,6 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
             return res.status(400).json({ error: `Wait ${remaining}h before next withdrawal` });
         }
 
-        const CHANNEL_USERNAME = 'GramPTS';
-        try {
-            const isMember = await checkUserInChannel(userId, CHANNEL_USERNAME);
-            if (!isMember) {
-                logFailure('/api/withdraw-gram', userId, req.ip, new Error('Not member of required channel'));
-                return res.status(400).json({ error: 'Failed to send withdrawal request' });
-            }
-        } catch (error) {
-            logFailure('/api/withdraw-gram', userId, req.ip, error, { stage: 'channel-check' });
-            return res.status(500).json({ error: 'Failed to send withdrawal request' });
-        }
-
         if (!walletAddress || !walletAddress.startsWith('UQ') || walletAddress.length < 20) {
             logFailure('/api/withdraw-gram', userId, req.ip, new Error('Invalid wallet address'), { wallet: walletAddress?.substring(0, 10) });
             return res.status(400).json({ error: 'Invalid wallet address. Must start with UQ and be at least 20 characters.' });
