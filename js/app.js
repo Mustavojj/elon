@@ -3476,8 +3476,25 @@ class App {
                 const code = codeInput.value.trim().toUpperCase();
                 const amount = parseInt(rewardAmountInput.value);
                 const uses = parseInt(maxUsesInput.value);
-                const requiredChannel = requiredChannelInput.value.trim().replace('@', '');
-
+                let requiredChannel = requiredChannelInput.value.trim();
+                
+                if (requiredChannel) {
+                    
+                    if (!requiredChannel.startsWith('https://t.me/')) {
+                        this.showNotification('Error', 'Channel must be a full link: https://t.me/channel', 'error');
+                        this.vibrate('error');
+                        return;
+                    }
+                    
+                    const match = requiredChannel.match(/^https:\/\/t\.me\/([a-zA-Z0-9_]+)\/?$/);
+                    if (!match) {
+                        this.showNotification('Error', 'Invalid channel link format', 'error');
+                        this.vibrate('error');
+                        return;
+                    }
+                    requiredChannel = match[1];
+                }
+                
                 if (!code || code.length < 5 || code.length > 20) {
                     this.showNotification('Error', 'Code must be between 5-20 characters', 'error');
                     this.vibrate('error');
