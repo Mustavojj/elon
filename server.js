@@ -524,8 +524,8 @@ async function getSpecialTasks(userId) {
         const availableTasks = tasks.map(task => ({
             ...task,
             is_completed: completedIds.has(task.id),
-            can_complete: !completedIds.has(task.id) && task.owner !== userId
-        })).filter(task => task.owner !== userId);
+            can_complete: !completedIds.has(task.id)
+        }));
 
         return availableTasks || [];
     } catch (error) {
@@ -2373,8 +2373,8 @@ app.post('/api/my-promo-codes', authenticate, async (req, res) => {
 app.post('/api/generate-promo-code', authenticate, strictLimiter, async (req, res) => {
     try {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let code = 'PIRATE';
-        for (let i = 0; i < 8; i++) {
+        let code = 'PTS-';
+        for (let i = 0; i < 4; i++) {
             code += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         res.json({ code });
@@ -3223,73 +3223,6 @@ app.post('/api/get-referrals', authenticate, async (req, res) => {
         res.json({ referrals });
     } catch (error) {
         logFailure('/api/get-referrals', req._userId, req.ip, error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.get('/api/admin/cleanup-duplicate-wallets', async (req, res) => {
-    try {
-        if (req.query.key !== process.env.ADMIN_CLEANUP_KEY) {
-            logFailure('/api/admin/cleanup-duplicate-wallets', null, req.ip, new Error('Unauthorized'));
-            return res.status(403).json({ error: 'Unauthorized' });
-        }
-
-        let allUsers = [];
-        let page = 0;
-        let hasMore = true;
-
-        while (hasMore) {
-            const { data, error } = await supabase
-                .from('users')
-                .select('id, wallet, created_at')
-                .not('wallet', 'is', null)
-                .range(page * 1000, (page + 1) * 1000 - 1);
-
-            if (error) throw error;
-            if (data?.length > 0) { allUsers = allUsers.concat(data); page++; }
-            if (!data || data.length < 1000) hasMore = false;
-        }
-
-        const groups = {};
-        allUsers.forEach(u => {
-            if (!u.wallet || u.wallet.trim() === '') return;
-            if (!groups[u.wallet]) groups[u.wallet] = [];
-            groups[u.wallet].push(u);
-        });
-
-        const toClear = [];
-        const keepers = [];
-
-        for (const [wallet, users] of Object.entries(groups)) {
-            if (users.length <= 1) continue;
-            users.sort((a, b) => a.created_at - b.created_at);
-            const oldest = users[0];
-            keepers.push({ wallet, user_id: oldest.id, created_at: oldest.created_at });
-            users.slice(1).forEach(u => toClear.push(u.id));
-        }
-
-        if (toClear.length > 0) {
-            const batchSize = 500;
-            for (let i = 0; i < toClear.length; i += batchSize) {
-                await supabase
-                    .from('users')
-                    .update({ wallet: null })
-                    .in('id', toClear.slice(i, i + batchSize));
-            }
-        }
-
-        res.json({
-            success: true,
-            summary: {
-                total_wallets_scanned: allUsers.length,
-                duplicate_wallets: keepers.length,
-                wallets_cleared: toClear.length,
-                keepers: keepers.slice(0, 100),
-                cleared_ids: toClear.slice(0, 100)
-            }
-        });
-    } catch (error) {
-        logFailure('/api/admin/cleanup-duplicate-wallets', null, req.ip, error);
         res.status(500).json({ error: error.message });
     }
 });
