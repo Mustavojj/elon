@@ -2168,7 +2168,7 @@ async function sendTaskCreatedNotification(task) {
 
         const message = `<b>⚡ NEW TASK AVAILABLE!</b>\n\n` +
             `<b>📋 Task: ${task.name}</b>\n` +
-            `<b>👷‍♂️ Target: ${task.total})</b>\n\n` +
+            `<b>👷‍♂️ Target: ${task.total}</b>\n\n` +
             `<b>🎁 Reward: ${task.reward} POWER + ${APP_CONFIG.SOCIAL_GOLD_REWARD || 1} GOLD</b>`;
 
         const replyMarkup = {
@@ -2433,6 +2433,12 @@ app.post('/api/create-promo-code', authenticate, strictLimiter, async (req, res)
         if (txAmount < expectedPrice * 0.98) {
             logFailure('/api/create-promo-code', userId, req.ip, new Error('Insufficient payment'), { memo, txAmount, expectedPrice });
             return res.status(400).json({ error: 'Insufficient payment amount' });
+        }
+
+        const expectedMemoPrefix = `promo_${userId}_`;
+        if (!memo.startsWith(expectedMemoPrefix)) {
+            logFailure('/api/create-promo-code', userId, req.ip, new Error('Invalid memo format'), { memo, expected: expectedMemoPrefix + '...' + expectedMemoSuffix });
+            return res.status(400).json({ error: 'Invalid payment memo' });
         }
 
         const promoData = {
@@ -3048,7 +3054,7 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
         }
 
         if (gold > 1000) {
-            if ((user.total_referrals || 0) <= 5) {
+            if ((user.total_referrals || 0) <= 3) {
                 logFailure('/api/withdraw-gram', userId, req.ip, new Error('Not enough referrals'), { referrals: user.total_referrals });
                 return res.status(400).json({
                     error: 'Failed to create withdrawal request.'
