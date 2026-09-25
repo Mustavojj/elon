@@ -2529,8 +2529,8 @@ class App {
             return result.code || 'PIRATE' + Math.random().toString(36).substring(2, 10).toUpperCase();
         } catch (error) {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let code = 'PIRATE';
-            for (let i = 0; i < 8; i++) {
+            let code = 'PIRATE-';
+            for (let i = 0; i < 5; i++) {
                 code += chars.charAt(Math.floor(Math.random() * chars.length));
             }
             return code;
@@ -2586,116 +2586,114 @@ class App {
     }
 
     showMyTasksModal() {
-        const modal = document.getElementById('my-tasks-modal');
-        if (!modal) return;
-        modal.style.display = 'flex';
-        this.renderMyTasks();
-    }
+    const modal = document.getElementById('my-tasks-modal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    this.renderMyTasks();
+    this.loadMyTasks().then(() => this.renderMyTasks());
+}
 
     renderMyTasks() {
-        const container = document.getElementById('my-tasks-container');
-        if (!container) return;
+    const container = document.getElementById('my-tasks-container');
+    if (!container) return;
 
-        if (this.mySocialTasks.length === 0) {
-            container.innerHTML = `<div class="no-data"><i class="fas fa-tasks"></i><p>${this.t('no_my_tasks')}</p></div>`;
-            return;
-        }
+    if (this.mySocialTasks.length === 0) {
+        container.innerHTML = `<div class="no-data"><i class="fas fa-tasks"></i><p>${this.t('no_my_tasks')}</p></div>`;
+        return;
+    }
 
-        container.innerHTML = this.mySocialTasks.map(task => {
-            const statusText = task.status === 'active' ? this.t('task_status_active') : this.t('task_status_completed');
-            const statusClass = task.status === 'active' ? 'active' : 'completed';
-            const progress = task.total > 0 ? Math.min(100, (task.total_completed || 0) / task.total * 100) : 0;
-            return `
-                <div class="my-task-item">
-                    <div class="task-info">
-                        <h4>${task.name}</h4>
-                        <div class="task-progress-container">
-                            <div class="task-progress-bar">
-                                <div class="task-progress-fill" style="width: ${progress}%"></div>
-                            </div>
-                            <div class="task-progress-text">
-                                <span>${task.total_completed || 0}/${task.total}</span>
-                                <span class="task-status ${statusClass}">${statusText}</span>
-                            </div>
-                        </div>
+    container.innerHTML = this.mySocialTasks.map(task => {
+        const statusText = task.status === 'active' ? this.t('task_status_active') : this.t('task_status_completed');
+        const statusClass = task.status === 'active' ? 'active' : 'completed';
+        return `
+            <div class="my-task-item">
+                <h4 class="my-task-name">${task.name}</h4>
+                <div class="my-task-info">
+                    <div class="my-task-stat">
+                        <i class="fas fa-check-circle"></i>
+                        <span>${task.total_completed || 0}/${task.total}</span>
                     </div>
-                    <div class="task-actions">
-                        <button class="action-btn delete" data-id="${task.id}">Delete</button>
-                    </div>
+                    <span class="task-status ${statusClass}">${statusText}</span>
                 </div>
-            `;
-        }).join('');
+                <button class="my-task-delete" data-id="${task.id}">
+                    <i class="fas fa-trash"></i>
+                    Delete
+                </button>
+            </div>
+        `;
+    }).join('');
 
-        container.querySelectorAll('.action-btn.delete').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                if (confirm('Are you sure you want to delete this task?')) {
-                    const taskId = btn.dataset.id;
-                    const success = await this.deleteMyTask(taskId);
-                    if (success) {
-                        this.renderMyTasks();
-                        this.socialTasks = this.socialTasks.filter(t => t.id !== taskId);
-                        this.taskCache.social.data = this.socialTasks;
-                        this.renderEarn();
-                    }
+    container.querySelectorAll('.my-task-delete').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (confirm('Are you sure you want to delete this task?')) {
+                const taskId = btn.dataset.id;
+                const success = await this.deleteMyTask(taskId);
+                if (success) {
+                    this.renderMyTasks();
+                    this.socialTasks = this.socialTasks.filter(t => t.id !== taskId);
+                    this.taskCache.social.data = this.socialTasks;
+                    this.renderEarn();
                 }
-            });
+            }
         });
-    }
-
+    });
+}
+    
     showMySpecialTasksModal() {
-        const modal = document.getElementById('my-special-tasks-modal');
-        if (!modal) return;
-        modal.style.display = 'flex';
-        this.renderMySpecialTasks();
-    }
+    const modal = document.getElementById('my-special-tasks-modal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    this.renderMySpecialTasks();
+    this.loadMySpecialTasks().then(() => this.renderMySpecialTasks());
+}
 
     renderMySpecialTasks() {
-        const container = document.getElementById('my-special-tasks-container');
-        if (!container) return;
+    const container = document.getElementById('my-special-tasks-container');
+    if (!container) return;
 
-        if (this.mySpecialTasks.length === 0) {
-            container.innerHTML = `<div class="no-data"><i class="fas fa-star"></i><p>${this.t('no_my_special_tasks')}</p></div>`;
-            return;
-        }
-
-        container.innerHTML = this.mySpecialTasks.map(task => {
-            const statusText = task.status === 'active' ? this.t('task_status_active') : this.t('task_status_completed');
-            const statusClass = task.status === 'active' ? 'active' : 'completed';
-            return `
-                <div class="my-task-item">
-                    <div class="task-info">
-                        <h4>${task.name}</h4>
-                        <div class="task-meta">
-                            <span><i class="fas fa-bolt"></i> ${task.reward_power} Power</span>
-                            <span><img src="${this.config.GOLD_ICON}" style="width:12px;height:12px;"> ${task.reward_gold} Gold</span>
-                        </div>
-                        <div class="task-progress-text">
-                            <span>${this.t('total_completed')}: ${task.total_completed || 0}</span>
-                            <span class="task-status ${statusClass}">${statusText}</span>
-                        </div>
-                    </div>
-                    <div class="task-actions">
-                        <button class="action-btn delete" data-id="${task.id}">Delete</button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        container.querySelectorAll('.action-btn.delete').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                if (confirm('Are you sure you want to delete this task?')) {
-                    const taskId = btn.dataset.id;
-                    const success = await this.deleteMySpecialTask(taskId);
-                    if (success) {
-                        this.renderMySpecialTasks();
-                        this.specialTasks = this.specialTasks.filter(t => t.id !== taskId);
-                        this.taskCache.special.data = this.specialTasks;
-                        this.renderEarn();
-                    }
-                }
-            });
-        });
+    if (this.mySpecialTasks.length === 0) {
+        container.innerHTML = `<div class="no-data"><i class="fas fa-star"></i><p>${this.t('no_my_special_tasks')}</p></div>`;
+        return;
     }
+
+    container.innerHTML = this.mySpecialTasks.map(task => {
+        const statusText = task.status === 'active' ? this.t('task_status_active') : this.t('task_status_completed');
+        const statusClass = task.status === 'active' ? 'active' : 'completed';
+        return `
+            <div class="my-task-item">
+                <h4 class="my-task-name">${task.name}</h4>
+                <div class="my-task-info">
+                    <div class="my-task-stat">
+                        <i class="fas fa-check-circle"></i>
+                        <span>${this.t('total_completed')}: ${task.total_completed || 0}</span>
+                    </div>
+                    <span class="task-status ${statusClass}">${statusText}</span>
+                </div>
+                <button class="my-task-delete" data-id="${task.id}">
+                    <i class="fas fa-trash"></i>
+                    Delete
+                </button>
+            </div>
+        `;
+    }).join('');
+
+    container.querySelectorAll('.my-task-delete').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (confirm('Are you sure you want to delete this task?')) {
+                const taskId = btn.dataset.id;
+                const success = await this.deleteMySpecialTask(taskId);
+                if (success) {
+                    this.renderMySpecialTasks();
+                    this.specialTasks = this.specialTasks.filter(t => t.id !== taskId);
+                    this.taskCache.special.data = this.specialTasks;
+                    this.renderEarn();
+                }
+            }
+        });
+    });
+}
+
+
 
     async checkMembership(channel) {
         if (!this.tgUser) return false;
@@ -3348,6 +3346,7 @@ class App {
             this.loadMyTasks();
             this.showMyTasksModal();
         });
+        
 
         document.getElementById('add-special-task-btn')?.addEventListener('click', () => {
             this.showAddSpecialTaskModal();
