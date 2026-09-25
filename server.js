@@ -2394,6 +2394,11 @@ app.post('/api/create-promo-code', authenticate, strictLimiter, async (req, res)
         }
 
         if (requiredChannel) {
+            if (!/^[a-zA-Z0-9_]+$/.test(requiredChannel)) {
+                logFailure('/api/create-promo-code', userId, req.ip, new Error('Invalid channel format'), { requiredChannel });
+                return res.status(400).json({ error: 'Invalid channel format' });
+            }
+            
             const isAdmin = await checkBotIsAdminInChannel(requiredChannel);
             if (!isAdmin) {
                 return res.status(400).json({
