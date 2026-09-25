@@ -764,10 +764,10 @@ async function sendWithdrawalProof(channelId, userId, wallet, gramAmount, goldAm
         const maskedWallet = walletFirst + '****' + walletLast;
         const explorerUrl = txHash ? `https://tonscan.org/tx/${txHash}` : '#';
 
-        const message = `<b>🆕 New Withdrawal Confirmed!</b>\n\n` +
-            `<b>💀 User:</b> ${maskedUserId}\n` +
+        const message = `<b>🆕 New Withdrawal Requested!</b>\n\n` +
+            `<b>👤 User:</b> ${maskedUserId}\n` +
             `<b>💰 Amount:</b> ${gramAmount.toFixed(5)} GRAM\n` +
-            `<b>🔰 Wallet:</b> ${maskedWallet}\n` +
+            `<b>📭 Wallet:</b> ${maskedWallet}\n` +
             `<b>⏳ Status:</b> Confirmed\n\n` +
             `<b>⛏️ MINE & EARN FREE GRAM</b>`;
 
@@ -779,11 +779,11 @@ async function sendWithdrawalProof(channelId, userId, wallet, gramAmount, goldAm
             reply_markup: {
                 inline_keyboard: [
                     [{
-                        text: '🔘 View on Explorer',
+                        text: '🌐 View on Explorer',
                         url: explorerUrl
                     }],
                     [{
-                        text: '🏴‍☠️ GRAM PIRATES',
+                        text: '🏴‍☠️ Launch Now',
                         url: 'https://t.me/GramPirateBot?start=start'
                     }]
                 ]
@@ -937,7 +937,7 @@ async function checkPendingWithdrawals() {
                         const adminMessage = `<b>✅ Withdrawal Completed!</b>\n\n` +
                             `<b>👤 User:</b> ${withdrawal.user_id} (${username})\n` +
                             `<b>💰 Amount:</b> ${withdrawal.gram_amount.toFixed(4)} GRAM\n` +
-                            `<b>🔰 Wallet:</b> ${withdrawal.wallet}\n` +
+                            `<b>📭 Wallet:</b> ${withdrawal.wallet}\n` +
                             `<b>🔗 TX:</b> <a href="${statusResult.data.tx_hash ? `https://tonscan.org/tx/${statusResult.data.tx_hash}` : '#'}">View on Explorer</a>`;
                         await sendTelegramNotification(adminId, '✅ Withdrawal Completed!', adminMessage);
 
@@ -1369,7 +1369,7 @@ app.post('/api/check-mining-status', async (req, res) => {
             await sendTelegramNotification(
                 user.id,
                 '⛏️ Mining Stopped!',
-                `🏴‍☠️ Your mining session has ended.\n\n📊 You earned ${reward.toFixed(3)} Gold\n\n🎁 Claim your rewards and restart mining!`,
+                `👀 You earned ${reward.toFixed(3)} Gold!`,
                 { text: 'CLAIM NOW', url: 'https://t.me/GramPirateBot/app' }
             );
             notifiedUsers.add(user.id);
@@ -1891,14 +1891,6 @@ app.post('/api/complete-special-task', authenticate, strictLimiter, async (req, 
             last_task_completion_time: getCurrentTime()
         });
 
-        if (task.owner && task.owner !== userId) {
-            await sendTelegramNotification(
-                task.owner,
-                '<b>✅ Special Task Completed!</b>',
-                `<b>🏴‍☠️ Someone completed your task "${task.name}"!</b>`
-            );
-        }
-
         if (user.referred_by) {
             const referralEarning = rewardPower * (APP_CONFIG.REFERRAL_TASKS_PERCENTAGE / 100);
             await addReferralCommission(user.referred_by, referralEarning, 'power');
@@ -2075,7 +2067,7 @@ app.post('/api/check-payment', authenticate, async (req, res) => {
             const rewardNum = parseInt(taskData.reward);
             const totalNum = parseInt(taskData.total);
 
-            if (rewardNum > 100) {
+            if (rewardNum > 50) {
                 return res.json({ success: false, error: 'Failed to create task.' });
             }
             if (totalNum < 100 || totalNum > 5000) {
@@ -2172,12 +2164,11 @@ async function sendTaskCreatedNotification(task) {
         const CHANNEL_ID = APP_CONFIG.TASKS_CHANNEL;
         if (!BOT_TOKEN || !CHANNEL_ID) return;
 
-        const appLink = `https://t.me/GramPirateBot/app`;
+        const appLink = `https://t.me/GramPirateBot?start=start`;
 
         const message = `<b>⚡ NEW TASK AVAILABLE!</b>\n\n` +
             `<b>📋 Task: ${task.name}</b>\n` +
-            `<b>👷‍♂️ Target: ${task.total} (0/${task.total})</b>\n` +
-            `<b>⏳ Status: ACTIVE</b>\n\n` +
+            `<b>👷‍♂️ Target: ${task.total})</b>\n\n` +
             `<b>🎁 Reward: ${task.reward} POWER + ${APP_CONFIG.SOCIAL_GOLD_REWARD || 1} GOLD</b>`;
 
         const replyMarkup = {
@@ -2209,12 +2200,11 @@ async function sendSpecialTaskCreatedNotification(task) {
         const CHANNEL_ID = APP_CONFIG.TASKS_CHANNEL;
         if (!BOT_TOKEN || !CHANNEL_ID) return;
 
-        const appLink = `https://t.me/GramPirateBot/app`;
+        const appLink = `https://t.me/GramPirateBot?start=start`;
 
         const message = `<b>⭐ NEW SPECIAL TASK!</b>\n\n` +
             `<b>📋 Task: ${task.name}</b>\n` +
-            `<b>⏳ Status: UNLIMITED</b>\n` +
-            `<b>👥 Total Completed: ${task.total_completed || 0}</b>\n\n` +
+            `<b>⏳ Target: UNLIMITED</b>\n\n` +
             `<b>🎁 Reward: ${task.reward_power} POWER + ${task.reward_gold} GOLD</b>`;
 
         const replyMarkup = {
@@ -2246,7 +2236,7 @@ async function sendPromoCodeCreatedNotification(promo) {
         const CHANNEL_ID = APP_CONFIG.PROMO_CODES_CHANNEL_USERNAME;
         if (!BOT_TOKEN || !CHANNEL_ID) return;
 
-        const appLink = `https://t.me/GramPirateBot/app`;
+        const appLink = `https://t.me/GramPirateBot?start=start`;
 
         const rewardDisplay = promo.reward_type === 'power'
             ? `${promo.reward_amount} POWER`
@@ -2254,9 +2244,7 @@ async function sendPromoCodeCreatedNotification(promo) {
 
         const message = `<b>🎟 NEW PROMO CODE!</b>\n\n` +
             `<b>🎁 Reward: ${rewardDisplay}</b>\n` +
-            `<b>👥 Max Uses: ${promo.max_uses}</b>\n` +
-            (promo.required_channel ? `<b>📢 Required: @${promo.required_channel}</b>\n` : '') +
-            `<b>⏳ Status: ACTIVE</b>`;
+            `<b>👥 Valid for ${promo.max_uses} user</b>`;
 
         const replyMarkup = {
             inline_keyboard: [[
@@ -2281,35 +2269,6 @@ async function sendPromoCodeCreatedNotification(promo) {
 
     } catch (error) {}
 }
-
-app.post('/api/create-special-task', authenticate, strictLimiter, async (req, res) => {
-    try {
-        const userId = req._userId;
-        const { name, link, verification, memo } = req.body;
-
-        if (!name || name.length < 5 || name.length > 20) {
-            return res.status(400).json({ error: 'Name must be between 5-20 characters' });
-        }
-
-        if (!link || !link.startsWith('https://')) {
-            return res.status(400).json({ error: 'Please enter a valid link starting with https://' });
-        }
-
-        if (!memo) {
-            return res.status(400).json({ error: 'Missing payment memo' });
-        }
-
-        const result = await verifyAndAddSpecialTask(userId, { name, link, verification }, memo);
-        if (!result.success) {
-            logFailure('/api/create-special-task', userId, req.ip, new Error(result.error), { memo });
-        }
-        res.json(result);
-
-    } catch (error) {
-        logFailure('/api/create-special-task', req._userId, req.ip, error);
-        res.status(500).json({ error: error.message });
-    }
-});
 
 app.post('/api/delete-special-task', authenticate, async (req, res) => {
     try {
@@ -2374,7 +2333,7 @@ app.post('/api/generate-promo-code', authenticate, strictLimiter, async (req, re
     try {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         let code = 'PTS-';
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < 5; i++) {
             code += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         res.json({ code });
