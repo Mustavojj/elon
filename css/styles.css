@@ -2454,3 +2454,76 @@ body {
 .stat-badge { font-size: 0.7rem; padding: 4px 10px; background: rgba(255,215,0,0.1); border-radius: 20px; color: var(--primary); font-weight: 600; }
 .my-task-delete { width: 100%; padding: 8px; background: rgba(231,76,60,0.12); border: 1px solid rgba(231,76,60,0.2); border-radius: 10px; color: #e74c3c; font-weight: 600; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; }
 .my-task-delete:active { transform: scale(0.98); background: rgba(231,76,60,0.2); } 
+
+
+
+.my-task-item {
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 215, 0, 0.08);
+    border-radius: var(--border-radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.my-task-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--primary-light);
+    margin: 0;
+    word-break: break-word;
+}
+
+.my-task-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.my-task-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--primary);
+    background: rgba(255, 215, 0, 0.08);
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 215, 0, 0.06);
+}
+
+.my-task-stat i {
+    font-size: 0.7rem;
+}
+
+.my-task-delete {
+    width: 100%;
+    padding: 9px 14px;
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid rgba(231, 76, 60, 0.2);
+    border-radius: 10px;
+    color: var(--error);
+    font-weight: 600;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.my-task-delete:hover,
+.my-task-delete:active {
+    background: rgba(231, 76, 60, 0.2);
+    transform: scale(0.98);
+}
+
+.my-task-delete i {
+    font-size: 0.75rem;
+} 
