@@ -3342,19 +3342,24 @@ class App {
             this.showAddSocialTaskModal();
         });
 
-        document.getElementById('my-tasks-btn')?.addEventListener('click', () => {
-            this.loadMyTasks();
-            this.showMyTasksModal();
+        document.getElementById('my-tasks-btn')?.addEventListener('click', async () => {
+            const modal = document.getElementById('my-tasks-modal');
+            modal.style.display = 'flex';
+            document.getElementById('my-tasks-container').innerHTML = '<div class="task-loading"><i class="fas fa-spinner fa-pulse"></i><p>Loading...</p></div>';
+            await this.loadMyTasks();
+            this.renderMyTasks();
         });
         
+        document.getElementById('my-special-tasks-btn')?.addEventListener('click', async () => {
+            const modal = document.getElementById('my-special-tasks-modal');
+            modal.style.display = 'flex';
+            document.getElementById('my-special-tasks-container').innerHTML = '<div class="task-loading"><i class="fas fa-spinner fa-pulse"></i><p>Loading...</p></div>';
+            await this.loadMySpecialTasks();
+            this.renderMySpecialTasks();
+        });
 
         document.getElementById('add-special-task-btn')?.addEventListener('click', () => {
             this.showAddSpecialTaskModal();
-        });
-
-        document.getElementById('my-special-tasks-btn')?.addEventListener('click', () => {
-            this.loadMySpecialTasks();
-            this.showMySpecialTasksModal();
         });
 
         this.loadActivePromoCodes();
@@ -3737,7 +3742,7 @@ class App {
                 watchBtn.disabled = true;
                 watchBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
                 try {
-                    const AdController = window.Adsgram.init({ blockId: this.config.REWARD_AD_BLOCK_ID || "37724" });
+                    const AdController = window.Adsgram.init({ blockId: this.config.INTERSTITIAL_AD_BLOCK_ID || "37724" });
                     await AdController.show();
                     adWatched = true;
                     watchBtn.classList.add('completed');
@@ -4229,8 +4234,7 @@ class App {
                                     <span class="reward-badge"><img src="${this.config.GOLD_ICON}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;"> ${task.reward_gold} Gold</span>
                                 </div>
                                 <div style="font-size:0.55rem;color:#888;margin-top:2px;">
-                                    <span class="unlimited-badge">${this.t('unlimited')}</span>
-                                    <span>${this.t('total_completed')}: ${task.total_completed || 0}</span>
+                                    <span class="reward-badge">${this.t('unlimited')}</span>
                                 </div>
                             </div>
                             ${buttonHtml}
