@@ -2446,3 +2446,11 @@ body {
     height: 44px !important;
     display: block !important;
 }
+
+.my-task-header { margin-bottom: 8px; }
+.my-task-title { font-size: 0.95rem; font-weight: 700; color: var(--primary-light); }
+.my-task-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.my-task-stats { display: flex; gap: 8px; }
+.stat-badge { font-size: 0.7rem; padding: 4px 10px; background: rgba(255,215,0,0.1); border-radius: 20px; color: var(--primary); font-weight: 600; }
+.my-task-delete { width: 100%; padding: 8px; background: rgba(231,76,60,0.12); border: 1px solid rgba(231,76,60,0.2); border-radius: 10px; color: #e74c3c; font-weight: 600; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; }
+.my-task-delete:active { transform: scale(0.98); background: rgba(231,76,60,0.2); } 
