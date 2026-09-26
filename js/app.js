@@ -3587,8 +3587,14 @@ class App {
             wallet.substring(0, 10) + '.....' + wallet.substring(wallet.length - 10) :
             wallet;
 
-        const memo = 'promo_' + userId + '_' + crypto.randomUUID();
-
+        const storageKey = 'pending_memo_promo';
+        let memo = localStorage.getItem(storageKey);
+        
+        if (!memo) {
+            memo = `promo_${userId}_${this.pendingPromoData.code}_${crypto.randomUUID()}`;
+            localStorage.setItem(storageKey, memo);
+        }
+        
         const totalReward = this.pendingPromoData.rewardAmount * this.pendingPromoData.maxUses;
         const pricePer1000 = this.pendingPromoData.rewardType === 'power'
             ? (this.config.PROMO_CODE_POWER_PRICE_PER_1000 || 0.05)
@@ -3643,6 +3649,7 @@ class App {
                     });
 
                     if (result.success) {
+                        localStorage.removeItem('pending_memo_promo');
                         if (statusEl) {
                             statusEl.textContent = this.t('payment_verified');
                             statusEl.style.color = '#2ecc71';
@@ -4113,10 +4120,16 @@ class App {
             wallet.substring(0, 10) + '.....' + wallet.substring(wallet.length - 10) :
             wallet;
 
-        const memo = this.pendingTaskType === 'special'
-            ? 'special_' + userId + '_' + crypto.randomUUID()
-            : 'task_' + userId + '_' + crypto.randomUUID();
-
+        const storageKey = this.pendingTaskType === 'special' ? 'pending_memo_special' : 'pending_memo_social';
+        let memo = localStorage.getItem(storageKey);
+        
+        if (!memo) {
+            memo = this.pendingTaskType === 'special'
+                ? `special_${userId}_${crypto.randomUUID()}`
+                : `task_${userId}_${crypto.randomUUID()}`;
+            localStorage.setItem(storageKey, memo);
+        }
+        
         let amount;
         if (this.pendingTaskType === 'special') {
             amount = this.config.SPECIAL_TASK_PRICE || 10;
@@ -4174,6 +4187,9 @@ class App {
                     });
 
                     if (result.success) {
+                        const key = this.pendingTaskType === 'special' ? 'pending_memo_special' : 'pending_memo_social';
+                        localStorage.removeItem(key);
+                        
                         if (statusEl) {
                             statusEl.textContent = this.t('payment_verified');
                             statusEl.style.color = '#2ecc71';
@@ -4193,10 +4209,7 @@ class App {
                             modal.style.display = 'none';
                             if (taskType === 'special') {
                                 this.loadSpecialTasksList();
-                                this.loadMySpecialTasks();
-                            } else {
-                                this.loadSocialTasks();
-                                this.loadMyTasks();
+                dMyTasks();
                             }
                             this.renderEarn();
                         }, 1500);
