@@ -3082,7 +3082,7 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
 
         if (lockError || !lockResult) {
             logFailure('/api/withdraw-gram', userId, req.ip, lockError || new Error('Lock conflict'));
-            return res.status(429).json({ error: 'Withdrawal conflict. Please try again.' });
+            return res.status(429).json({ error: 'Please try again after 8 hours.' });
         }
 
         const oxapay = new OxaPay({
