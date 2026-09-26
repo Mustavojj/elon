@@ -2242,7 +2242,8 @@ async function sendPromoCodeCreatedNotification(promo) {
             ? `${promo.reward_amount} POWER`
             : `${promo.reward_amount} GOLD`;
 
-        const message = `<b>🎟 NEW PROMO CODE!</b>\n\n` +
+        const message = `<b>🆕 NEW PROMO CODE!</b>\n\n` +
+            `<b>🎟 CODE:</b> <code>${promo.code}</code>\n` +
             `<b>🎁 Reward: ${rewardDisplay}</b>\n` +
             `<b>👥 Valid for ${promo.max_uses} user</b>`;
 
