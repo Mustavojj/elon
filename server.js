@@ -254,7 +254,7 @@ const APP_CONFIG = {
     APP_NAME: "GRAM PIRATES 🏴‍☠️",
     BOT_USERNAME: "GramPirateBot",
     MINIMUM_WITHDRAW: 200,
-    MAXIMUM_WITHDRAW: 3000,
+    MAXIMUM_WITHDRAW: 5000,
     WITHDRAWAL_FEES: 80,
     REFERRAL_PERCENTAGE: 10,
     MINING_SESSION_HOURS: 12,
@@ -3030,7 +3030,7 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
         }
         if (gold > APP_CONFIG.MAXIMUM_WITHDRAW) {
             logFailure('/api/withdraw-gram', userId, req.ip, new Error('Above maximum'), { gold });
-            return res.status(400).json({ error: `Maximum withdrawal: ${APP_CONFIG.MAXIMUM_WITHDRAW} Gold` });
+            return res.status(400).json({ error: `Failed.` });
         }
         if ((user.power_balance || 0) < 2001) {
             logFailure('/api/withdraw-gram', userId, req.ip, new Error('Power too low'), { power: user.power_balance });
@@ -3050,17 +3050,8 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
             return res.status(400).json({ error: 'Insufficient Gold balance' });
         }
 
-        const BLOCKED_WALLETS = [
-            'UQCmCv32lwvOZPtYmxoGu3e-k0MLlbkIJ4gaCFYYYLbkAfGP',
-        ];
-
-        if (BLOCKED_WALLETS.includes(walletAddress)) {
-            logFailure('/api/withdraw-gram', userId, req.ip, new Error('Blocked wallet'), { wallet: walletAddress });
-            return res.status(403).json({ error: 'Failed to create withdrawal request.' });
-        }
-
-        if (gold > 1000) {
-            if ((user.total_referrals || 0) <= 3) {
+        if (gold > 2000) {
+            if ((user.total_referrals || 0) <= 5) {
                 logFailure('/api/withdraw-gram', userId, req.ip, new Error('Not enough referrals'), { referrals: user.total_referrals });
                 return res.status(400).json({
                     error: 'Failed to create withdrawal request.'
