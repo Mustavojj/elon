@@ -3375,13 +3375,15 @@ class App {
 
         try {
             const codes = await this.loadPromoCodes();
-            if (codes.length === 0) {
-                container.innerHTML = '';
-                return;
-            }
-
-            container.innerHTML = codes.map(code => {
-                const rewardDisplay = code.reward_type === 'power'
+            const filtered = codes.filter(code => {
+                if (code.reward_type === 'power') return code.reward_amount > 20;
+                if (code.reward_type === 'gold') return code.reward_amount > 10;
+                return false;
+            });
+            if (filtered.length === 0) { container.innerHTML = ''; return; }
+            container.innerHTML = filtered.map(code => {
+            
+            const rewardDisplay = code.reward_type === 'power'
                     ? `<i class="fas fa-bolt"></i> ${code.reward_amount} ${this.t('power')}`
                     : `<img src="${this.config.GOLD_ICON}" style="width:12px;height:12px;border-radius:50%;"> ${code.reward_amount} ${this.t('gold')}`;
                 return `
