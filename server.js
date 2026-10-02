@@ -303,6 +303,8 @@ const APP_CONFIG = {
     NOTIFICATIONS_CHANNEL: "@GramPTS_Notifications",
     TASKS_CHANNEL: "@PTS_TASKS",
     PAYMENTS_CHANNEL: "https://t.me/Pirates_Proof",
+    GALAXY_AD_REWARD_POWER: 20,
+    GALAXY_AD_COOLDOWN_MINUTES: 5,
     QUESTS: {
         welcome_bonus: { reward: 1000, type: "power" },
         level_quests: [
@@ -1079,7 +1081,8 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
                     special_tasks_count: 0,
                     promo_codes_created: 0,
                     last_task_completion_time: 0,
-                    last_promo_time: 0
+                    last_promo_time: 0,
+                    galaxy_ad_last_watch: 0
                 };
 
                 if (referrerId && referrerId !== chatId) {
@@ -3175,6 +3178,31 @@ app.post('/api/get-referrals', authenticate, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+app.post('/api/watch-galaxy-ad', authenticate, strictLimiter, async (req, res) => {
+    try {
+        const userId = req._userId;
+        const user = await getUser(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        const now = getCurrentTime();
+        const cooldownMs = 5 * 60 * 1000;
+        if (user.galaxy_ad_last_watch && (now - user.galaxy_ad_last_watch) < cooldownMs) {
+            const remaining = Math.ceil((cooldownMs - (now - user.galaxy_ad_last_watch)) / 1000);
+            return res.status(400).json({ error: `Cooldown: ${remaining}s remaining` });
+        }
+        const reward = APP_CONFIG.AD_REWARD_POWER || 20;
+        const updatedUser = await updateUser(userId, {
+            power_balance: (user.power_balance || 0) + reward,
+            galaxy_ad_last_watch: now
+        });
+        await updateUserLevel(userId);
+        res.json({ success: true, user: updatedUser, reward });
+    } catch (error) {
+        logError('/api/watch-galaxy-ad', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 const PORT = process.env.PORT || 8080;
 
