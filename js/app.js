@@ -3067,7 +3067,7 @@ class App {
             </div>
 
          <div class="ad-card blue-card">
-           <div class="ad-icon"><img src="https://i.ibb.co/KzxwxXhv/IMG-20260830-155757-173.jpg" alt="AdsGalaxy"></div>
+           <div class="ad-icon"><img src="https://slho.shop/i/7967" alt="AdsGalaxy"></div>
              <div class="ad-info">
                  <h4>${this.t('watch_ad_galaxy')}</h4>
                  <p><span class="bolt"><i class="fas fa-bolt"></i> ${this.adRewardPower} ${this.t('power')}</span></p>
