@@ -2927,7 +2927,7 @@ class App {
         this.showWithdrawalModal(amount, wallet, fees, received);
     }
 
-    async function watchGalaxyAd() {
+    async watchGalaxyAd() {
     try {
         const result = await this.fetchFromServer('/api/watch-galaxy-ad', {});
         if (result.error) {
