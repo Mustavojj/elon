@@ -1299,6 +1299,7 @@ class App {
         this.pendingPromoData = null;
 
         this.loadSettings();
+        this.galaxyAdLastWatch = 0;
     }
 
     copyToClipboard(text) {
@@ -2922,6 +2923,31 @@ class App {
         this.showWithdrawalModal(amount, wallet, fees, received);
     }
 
+    async function watchGalaxyAd() {
+    try {
+        const result = await this.fetchFromServer('/api/watch-galaxy-ad', {});
+        if (result.error) {
+            this.showNotification('Error', result.error, 'error');
+            this.vibrate('error');
+            return false;
+        }
+        if (result.user) {
+            this.powerBalance = result.user.power_balance || 0;
+            this.galaxyAdLastWatch = result.user.galaxy_ad_last_watch || Date.now();
+            this.userLevel = result.user.level || 1;
+            this.updateLevelFromPower();
+            this.updateHeaderBalances();
+            this.showNotification('Ad Success', `+${result.reward} Power`, 'success');
+            this.vibrate('success');
+            this.renderMining();
+            return true;
+        }
+        return false;
+    } catch (error) {
+        return false;
+    }
+}
+
     renderMining() {
         const el = document.getElementById('mining-page');
         if (!el) return;
@@ -2941,7 +2967,9 @@ class App {
         const now = Date.now();
         const adsgramCooldown = this.adLastWatch ? Math.max(0, (5 * 60 * 1000) - (now - this.adLastWatch)) : 0;
         const adsgramAvailable = adsgramCooldown === 0;
-
+        const galaxyCooldown = this.galaxyAdLastWatch ? Math.max(0, (5 * 60 * 1000) - (now - this.galaxyAdLastWatch)) : 0;
+        const galaxyAvailable = galaxyCooldown === 0;
+        
         const levelQuests = this.config?.QUESTS?.level_quests || [];
         const levelIndex = this.quests.currentLevelQuestIndex || 0;
         const currentLevelQuest = levelIndex < levelQuests.length ? levelQuests[levelIndex] : null;
@@ -3033,6 +3061,18 @@ class App {
                     ${adsgramAvailable ? this.t('watch') : Math.ceil(adsgramCooldown / 1000) + 's'}
                 </button>
             </div>
+
+         <div class="ad-card blue-card">
+           <div class="ad-icon"><img src="https://i.ibb.co/KzxwxXhv/IMG-20260830-155757-173.jpg" alt="AdsGalaxy"></div>
+             <div class="ad-info">
+                 <h4>${this.t('watch_ad_galaxy')}</h4>
+                 <p><span class="bolt"><i class="fas fa-bolt"></i> ${this.adRewardPower} ${this.t('power')}</span></p>
+                 <p style="font-size:0.6rem;color:#666;">${galaxyCooldown > 0 ? this.t('ad_cooldown_seconds', { s: Math.ceil(galaxyCooldown / 1000) }) : this.t('ad_ready')}</p>
+             </div>
+             <button id="watch-galaxy-btn" class="ad-btn blue-btn" ${!galaxyAvailable ? 'disabled' : ''}>
+                  ${galaxyAvailable ? this.t('watch') : Math.ceil(galaxyCooldown / 1000) + 's'}
+             </button>
+          </div>
 
             <div class="section-title"><i class="fas fa-tasks"></i> ${this.t('quests_title')}</div>
 
@@ -3215,6 +3255,27 @@ class App {
                 this.vibrate('warning');
             }
 
+            btn.disabled = false;
+            btn.innerHTML = this.t('watch');
+            this.renderMining();
+        });
+
+
+        document.getElementById('watch-galaxy-btn')?.addEventListener('click', async () => {
+            const btn = document.getElementById('watch-galaxy-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
+            
+            try {
+                const result = await window.showAdsGalaxy();
+                if (result) {
+                    await this.watchGalaxyAd();
+                }
+            } catch (e) {
+                this.showNotification('Ad Error', this.t('ad_error'), 'error');
+                this.vibrate('error');
+            }
+            
             btn.disabled = false;
             btn.innerHTML = this.t('watch');
             this.renderMining();
