@@ -295,7 +295,8 @@ const translations = {
         promo_code_expired: "Promo code expired",
         promo_codes_channel: "Promo Codes Channel",
         promo_codes_channel_desc: "Get all new promo codes",
-        open_channel: "Open"
+        open_channel: "Open", 
+        watch_ad_galaxy: "Watch AdsGalaxy AD"
     },
     ar: {
         level: "المستوى",
@@ -593,7 +594,8 @@ const translations = {
         promo_code_expired: "الكود منتهي الصلاحية",
         promo_codes_channel: "قناة الأكواد الترويجية",
         promo_codes_channel_desc: "احصل على جميع الأكواد الجديدة",
-        open_channel: "فتح"
+        open_channel: "فتح",
+        watch_ad_galaxy: "مشاهدة إعلان AdsGalaxy"
     },
     ru: {
         level: "Уровень",
@@ -891,7 +893,8 @@ const translations = {
         promo_code_expired: "Промокод истёк",
         promo_codes_channel: "Канал промокодов",
         promo_codes_channel_desc: "Получите все новые промокоды",
-        open_channel: "Открыть"
+        open_channel: "Открыть",
+        watch_ad_galaxy: "Смотреть рекламу AdsGalaxy"
     },
     fa: {
         level: "سطح",
@@ -1189,7 +1192,8 @@ const translations = {
         promo_code_expired: "کد منقضی شده",
         promo_codes_channel: "کانال کدهای تبلیغاتی",
         promo_codes_channel_desc: "تمام کدهای جدید را دریافت کنید",
-        open_channel: "باز کردن"
+        open_channel: "باز کردن",
+        watch_ad_galaxy: "تماشای تبلیغ AdsGalaxy"
     }
 };
 
