@@ -1568,6 +1568,13 @@ app.post('/api/claim-mining', authenticate, strictLimiter, async (req, res) => {
             await updateUser(userId, { level: level });
             user.level = level;
         }
+        if (user.mining_start_time) {
+            const sessionMs = (APP_CONFIG.MINING_SESSION_HOURS || 12) * 3600000;
+            const elapsed = getCurrentTime() - user.mining_start_time;
+            if (elapsed < sessionMs) {
+                return res.status(400).json({ error: 'Mining session not ended yet' });
+            }
+        }
         if (user.mining_active) {
             return res.status(400).json({ error: 'Mining session still active' });
         }
