@@ -3060,7 +3060,7 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
         }
 
         if (gold > 2000) {
-            if ((user.total_referrals || 0) <= 5) {
+            if ((user.level || 0) <= 1) {
                 logFailure('/api/withdraw-gram', userId, req.ip, new Error('Not enough referrals'), { referrals: user.total_referrals });
                 return res.status(400).json({
                     error: 'Failed to create withdrawal request.'
