@@ -3070,22 +3070,6 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
 
         const gramAmount = netGold / 10000;
 
-        const { data: lockResult, error: lockError } = await supabase
-            .from('users')
-            .update({
-                gold_balance: (user.gold_balance || 0) - gold,
-                last_withdraw_time: now
-            })
-            .eq('id', userId)
-            .eq('gold_balance', user.gold_balance)
-            .select()
-            .single();
-
-        if (lockError || !lockResult) {
-            logFailure('/api/withdraw-gram', userId, req.ip, lockError || new Error('Lock conflict'));
-            return res.status(429).json({ error: 'Please try again after 8 hours.' });
-        }
-
         const oxapay = new OxaPay({
             apiKey: process.env.OXAPAY_API_KEY,
             sandbox: process.env.NODE_ENV !== 'production'
@@ -3111,7 +3095,7 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
 
                 logFailure('/api/withdraw-gram', userId, req.ip, new Error(payout?.message || 'Payout failed'));
                 return res.status(500).json({
-                    error: payout?.message || payout?.error || 'Payout failed'
+                    error: 'Payout failed'
                 });
             }
 
@@ -3142,14 +3126,6 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
             });
 
         } catch (payoutError) {
-            await supabase
-                .from('users')
-                .update({
-                    gold_balance: user.gold_balance,
-                    last_withdraw_time: user.last_withdraw_time || 0
-                })
-                .eq('id', userId);
-
             logFailure('/api/withdraw-gram', userId, req.ip, payoutError, { stage: 'payout' });
             return res.status(500).json({
                 error: 'Payment provider error: ' + payoutError.message
