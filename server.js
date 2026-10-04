@@ -3276,7 +3276,6 @@ app.get('/api/admin/cleanup-same-photo', async (req, res) => {
             }
         });
     } catch (error) {
-        logError('/api/admin/cleanup-same-photo', error);
         res.status(500).json({ error: error.message });
     }
 });
