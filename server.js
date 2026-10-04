@@ -3202,7 +3202,7 @@ app.post('/api/watch-galaxy-ad', authenticate, strictLimiter, async (req, res) =
     }
 });
 
-app.get('/api/pi/admin/cleanup-same-photo', async (req, res) => {
+app.get('/api/admin/cleanup-same-photo', async (req, res) => {
     try {
         const adminKey = req.query.key;
         if (adminKey !== process.env.ADMIN_CLEANUP_KEY) {
