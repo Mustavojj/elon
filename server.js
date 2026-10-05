@@ -3008,6 +3008,8 @@ app.post('/api/withdraw-gram', authenticate, veryStrictLimiter, async (req, res)
             return res.status(404).json({ error: 'User not found' });
         }
 
+        if (user.state === 'ban') return res.status(403).json({ error: 'Account banned', banned: true });
+    
         const now = Date.now();
         const cooldownMs = 6 * 3600000;
 
